@@ -718,3 +718,4 @@ Generated on live market price: ${priceDisplay}`;
 };
 
 export const StraddleChartAnalysisPanel = GeminaChartAnalysisPanel;
+
