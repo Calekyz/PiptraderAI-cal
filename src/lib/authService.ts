@@ -241,58 +241,6 @@ export async function loginUserAsync(email: string, password: string): Promise<U
   return profile;
 }
 
-// ------------------- Google SSO -------------------
-export async function loginWithGoogleAsync(data: {
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  avatarUrl?: string;
-}): Promise<UserProfile> {
-  const normalizedEmail = data.email.trim().toLowerCase();
-  if (!normalizedEmail || !normalizedEmail.includes('@')) {
-    throw new Error('A valid email address is required for Google Sign-In.');
-  }
-
-  const nameParts = (data.firstName || '').trim().split(' ');
-  const fName = data.firstName ? nameParts[0] : normalizedEmail.split('@')[0];
-  const lName = data.lastName ? data.lastName : nameParts.slice(1).join(' ') || 'Trader';
-
-  const res = await fetch('/api/auth/google', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: normalizedEmail,
-      firstName: fName,
-      lastName: lName,
-      avatarUrl: data.avatarUrl
-    })
-  });
-
-  const resData = await res.json();
-  if (!res.ok || !resData.success) {
-    throw new Error(resData.error || 'Failed to authenticate with Google');
-  }
-
-  const profile: UserProfile = {
-    id: resData.user.id,
-    firstName: resData.user.firstName || fName,
-    lastName: resData.user.lastName || lName,
-    email: resData.user.email || normalizedEmail,
-    countryCode: resData.user.countryCode || '+1',
-    phone: resData.user.phone || '',
-    isVerified: true,
-    authProvider: 'google',
-    avatarUrl: data.avatarUrl || resData.user.avatarUrl,
-    plan: (resData.user.plan as PlanTier) || 'Pending',
-    mt5Connected: resData.user.mt5Connected || false,
-    createdAt: resData.user.createdAt
-  };
-
-  saveActiveSession(profile);
-  setLastUsedEmail(profile.email);
-  return profile;
-}
-
 // ------------------- Profile update -------------------
 export async function updateUserProfileAsync(updates: Partial<UserProfile>): Promise<UserProfile | null> {
   const current = getActiveSession();
@@ -322,8 +270,7 @@ export async function updateUserProfileAsync(updates: Partial<UserProfile>): Pro
   throw new Error(resData.error || 'Failed to update profile');
 }
 
-// ------------------- 🔥 NEW: Fetch fresh user from server -------------------
-// Used by App.tsx on mount to sync any admin-initiated changes (plan, credits, status)
+// ------------------- Fetch fresh user from server -------------------
 export async function fetchFreshUserAsync(email: string): Promise<UserProfile | null> {
   try {
     const res = await fetch(`/api/user/me?email=${encodeURIComponent(email)}`);
@@ -382,9 +329,7 @@ export function logoutUser(): void {
   saveActiveSession(null);
 }
 
-// ------------------- Feature access (trial system removed) -------------------
-// Returns a simplified trial-status shape for API compatibility.
-// "isUnlocked" is now simply: does this user have an admin-assigned paid plan?
+// ------------------- Feature access -------------------
 export async function fetchTrialStatusAsync(email?: string): Promise<TrialStatusResponse | null> {
   try {
     const session = getActiveSession();
