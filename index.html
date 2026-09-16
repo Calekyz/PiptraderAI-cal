@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>PipNex Forex Trading Platform | Institutional Forex Trading Bot & Automation</title>
+    <meta name="description" content="PipNex Forex Trading Platform - Advanced institutional automated forex trading, prop firm passing strategies, and AI market intelligence." />
+    <link rel="canonical" href="https://www.pipnexai.com/" />
+    <meta property="og:title" content="PipNex Forex Trading Platform | Institutional Forex Trading Bot & Automation" />
+    <meta property="og:description" content="PipNex Forex Trading Platform - Advanced institutional automated forex trading, prop firm passing strategies, and AI market intelligence." />
+    <meta property="og:url" content="https://www.pipnexai.com/" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- ============================================ -->
+    <!-- PWA: Manifest & Theme Colors                 -->
+    <!-- ============================================ -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#5b3fe4" />
+    <meta name="msapplication-TileColor" content="#5b3fe4" />
+
+    <!-- ============================================ -->
+    <!-- PWA: iOS Support (Add to Home Screen)        -->
+    <!-- ============================================ -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PipNex AI" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+
+    <!-- ============================================ -->
+    <!-- PWA: Android / Chrome                        -->
+    <!-- ============================================ -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="PipNex AI" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- ============================================ -->
+    <!-- PWA: Favicons (multi-size)                   -->
+    <!-- ============================================ -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0d18'/%3E%3Cpath d='M8 22L14 12L18 17L24 9' stroke='%23a855f7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='24' cy='9' r='2.5' fill='%23c084fc'/%3E%3C/svg%3E" />
+
+    <!-- ============================================ -->
+    <!-- Fonts & Google APIs                          -->
+    <!-- ============================================ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- ============================================ -->
+    <!-- PWA: Service Worker Registration             -->
+    <!-- ============================================ -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js', { scope: '/' })
+            .then((reg) => {
+              console.log('[PWA] Service worker registered at:', reg.scope);
+
+              // Detect new version availability
+              reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (!newWorker) return;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[PWA] New version available. Refresh to update.');
+                  }
+                });
+              });
+            })
+            .catch((err) => {
+              console.warn('[PWA] Service worker registration failed:', err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

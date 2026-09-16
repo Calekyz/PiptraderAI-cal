@@ -1,0 +1,6 @@
+{
+  "name": "PipNex Forex Bot",
+  "description": "Automated Forex Trading Bot platform with real-time ForexFactory news & economic calendar, multi-timezone time change filters, Cloud SQL persistence, and algorithmic trading tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
