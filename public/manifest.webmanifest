@@ -1,0 +1,65 @@
+{
+  "name": "PipNex AI — Trading Intelligence",
+  "short_name": "PipNex",
+  "description": "AI-powered forex, crypto, and commodities trading intelligence with real-time market analysis, Pulse signals, and automated bots.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#07080d",
+  "theme_color": "#5b3fe4",
+  "categories": ["finance", "business", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Trading",
+      "short_name": "AI Trade",
+      "description": "Open the AI Trading station",
+      "url": "/?view=ai-trading",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "News & Calendar",
+      "short_name": "News",
+      "description": "View live ForexFactory calendar",
+      "url": "/?view=news-calendar",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Pulse Signals",
+      "short_name": "Signals",
+      "description": "View Pulse trading signals",
+      "url": "/?view=pulse-signals",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
