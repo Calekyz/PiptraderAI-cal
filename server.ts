@@ -40,6 +40,13 @@ import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase, PlanT
 import { sendVerificationEmail } from './server/emailService';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter } from './server/forexFactoryEngine';
+import {
+  analyzeMarket,
+  scanSymbols,
+  analyzeNews,
+  isNewsLockoutActive,
+  respondToUser,
+} from './server/engine';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -4307,6 +4314,122 @@ app.delete('/api/admin/broadcasts/:id', (req, res) => {
 });
 
 // Vite / static file serving
+
+// ==========================================
+// PIPNEX RULE-BASED TRADING ENGINE ENDPOINTS
+// ==========================================
+// Zero AI. Zero external APIs. Pure rules.
+
+async function fetchFfEventsForEngine() {
+  try {
+    const ffRes = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!ffRes.ok) return [];
+    const raw: any[] = await ffRes.json();
+    return (raw || []).map((e: any, i: number) => ({
+      id: `ff_${i}`,
+      title: e.title,
+      currency: (e.country || 'USD').toUpperCase(),
+      country: e.country || 'USD',
+      impact: e.impact || 'Low',
+      actual: e.actual,
+      forecast: e.forecast,
+      previous: e.previous,
+      timestamp: e.date ? new Date(e.date).getTime() : undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+app.post('/api/engine/chat', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ reply: 'Please send a message.', intent: 'error', confidence: 0 });
+    }
+    const email = (req.headers['x-user-email'] as string) || '';
+    const user = email ? db.getUserByEmail(email) : null;
+    const ffEvents = await fetchFfEventsForEngine();
+    const reply = await respondToUser(message, {
+      user: user ? ({
+        id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
+        phone: user.phone, countryCode: user.countryCode, plan: user.plan, balance: user.balance,
+        credits: user.credits ?? 0, isVerified: user.isVerified, authProvider: user.authProvider,
+        mt5Connected: user.mt5Connected,
+      } as any) : null,
+      signalEngine: async (symbol: string, timeframe = 'M15') => {
+        const data = await fetchRealCandles(symbol, timeframe);
+        return analyzeMarket({ symbol, timeframe, candles: data.candles });
+      },
+      newsEngine: analyzeNews,
+      forexFactoryEvents: ffEvents,
+    });
+    res.json(reply);
+  } catch (err: any) {
+    console.error('[Engine Chat Error]:', err);
+    res.status(500).json({ reply: 'The engine hit an error. Please try again.', intent: 'error', confidence: 0 });
+  }
+});
+
+app.post('/api/engine/analyze', async (req, res) => {
+  try {
+    const symbol = (req.body.symbol as string) || 'XAUUSD';
+    const timeframe = (req.body.timeframe as string) || 'M15';
+    const data = await fetchRealCandles(symbol, timeframe);
+    if (!data || !data.candles || data.candles.length < 30) {
+      return res.status(400).json({ success: false, error: `Not enough candle data for ${symbol} ${timeframe}.` });
+    }
+    const plan = analyzeMarket({ symbol, timeframe, candles: data.candles });
+    res.json({ success: true, plan, quote: data.quote, engine: 'rule-based-v1' });
+  } catch (err: any) {
+    console.error('[Engine Analyze Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Engine analysis failed' });
+  }
+});
+
+app.get('/api/engine/news-bias', async (req, res) => {
+  try {
+    const events = await fetchFfEventsForEngine();
+    if (!events.length) {
+      return res.status(503).json({ success: false, error: 'ForexFactory data unavailable' });
+    }
+    const bias = analyzeNews(events);
+    const lockout = isNewsLockoutActive(events);
+    res.json({ success: true, ...bias, lockout });
+  } catch (err: any) {
+    console.error('[Engine News Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'News analysis failed' });
+  }
+});
+
+app.get('/api/engine/scan', async (req, res) => {
+  try {
+    const timeframe = (req.query.timeframe as string) || 'M15';
+    const symbolsParam = (req.query.symbols as string) ||
+      'XAUUSD,EURUSD,GBPUSD,USDJPY,AUDUSD,USDCAD,USDCHF,NZDUSD,BTCUSD,ETHUSD';
+    const symbols = symbolsParam.split(',').map((s) => s.trim()).filter(Boolean);
+    const candlesBySymbol: Record<string, any[]> = {};
+    await Promise.all(symbols.map(async (sym) => {
+      try {
+        const d = await fetchRealCandles(sym, timeframe);
+        if (d && d.candles && d.candles.length >= 30) candlesBySymbol[sym] = d.candles;
+      } catch { /* skip */ }
+    }));
+    const results = scanSymbols({ symbols, timeframe, candlesBySymbol, minConfidence: 75 });
+    res.json({
+      success: true, timeframe,
+      scanned: Object.keys(candlesBySymbol).length,
+      signalsFound: results.length,
+      results, timestamp: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error('[Engine Scan Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Scan failed' });
+  }
+});
 async function setupVite() {
   // Load all user data from Postgres into memory before accepting traffic
   await initializeDatabase();
@@ -4329,5 +4452,6 @@ async function setupVite() {
     console.log(`PipNex Server running at http://0.0.0.0:${PORT}`);
   });
 }
+
 
 setupVite();
