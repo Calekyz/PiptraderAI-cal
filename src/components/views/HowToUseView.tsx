@@ -213,7 +213,7 @@ export const HowToUseView: React.FC = () => {
       categoryBadge: 'Pulse Signals',
       bannerTitle: 'Pulse Signals',
       headline: 'PIPTRADERAI - Pulse Signals | Real-Time AI Trading Intelligence',
-      description: 'Discover PIPNEX Pulse Signals — AI-powered market intelligence designed to help you identify potential trading opportunities across forex and commodities.',
+      description: 'Discover PipTraderAI Pulse Signals — AI-powered market intelligence designed to help you identify potential trading opportunities across forex and commodities.',
       duration: '1:22s',
       accentColor: 'from-[#300e5c] to-[#18062e]',
       mockupType: 'phone-signals',
@@ -315,7 +315,7 @@ export const HowToUseView: React.FC = () => {
               {/* Brand Logo & Watermark */}
               <div className="flex items-center gap-1.5 text-white/90 font-mono text-xs font-bold">
                 <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-                <span>pipnex</span>
+                <span>PipTraderAI</span>
               </div>
 
               {/* Center Title Art */}

@@ -130,7 +130,7 @@ export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
   }, []);
 
   const handleCopy = (sig: PulseSignal) => {
-    const text = `🎯 PIPNEX PULSE SIGNAL (${sig.symbol} - ${sig.interval})
+    const text = `🎯 PIPTRADERAI PULSE SIGNAL (${sig.symbol} - ${sig.interval})
 Direction: ${sig.direction} (${sig.type})
 Entry: ${sig.entryPrice}
 Stop Loss: ${sig.stopLoss}

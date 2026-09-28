@@ -518,7 +518,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
           )}
           <div className={`flex items-center gap-1.5 font-bold tracking-tight text-xs pr-2 border-r ${isLight ? 'text-slate-900 border-slate-200' : 'text-white border-[#1a1d33]'}`}>
             <Sparkles className="w-3.5 h-3.5 text-purple-600 fill-purple-600/30" />
-            <span className="font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 font-mono">pipnex</span>
+            <span className="font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 font-mono">PipTraderAI</span>
           </div>
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold">
             <span className="relative flex h-2 w-2">
