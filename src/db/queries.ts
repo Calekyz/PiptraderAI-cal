@@ -46,7 +46,7 @@ export async function getOrCreateUser(userData: {
     const created = await db.insert(users).values({
       id: userData.id || `usr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       uid: userData.uid,
-      fullName: userData.fullName || 'PipNex Trader',
+      fullName: userData.fullName || 'PipTraderAI Trader',
       email: userData.email,
       googleId: userData.googleId,
       profilePicture: userData.profilePicture,
@@ -64,7 +64,7 @@ export async function getOrCreateUser(userData: {
     const defaultAccount = await db.insert(tradingAccounts).values({
       id: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: newUser.id,
-      accountName: 'PipNex Demo Primary',
+      accountName: 'PipTraderAI Demo Primary',
       accountNumber: `MT5-${Math.floor(10000000 + Math.random() * 90000000)}`,
       broker: 'MetaTrader 5 Demo',
       accountType: 'Demo',
@@ -81,7 +81,7 @@ export async function getOrCreateUser(userData: {
     await db.insert(botSettings).values({
       id: `bot_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: newUser.id,
-      botName: 'PipNex AI Pro',
+      botName: 'PipTraderAI Pro',
       botVersion: '2.4.0',
       strategy: 'Scalping',
       riskPerTrade: '2.00',
@@ -105,7 +105,7 @@ export async function getOrCreateUser(userData: {
       id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: newUser.id,
       type: 'System Update',
-      title: 'Welcome to PipNex AI Trading Bot',
+      title: 'Welcome to PipTraderAI Trading Bot',
       message: 'Your PostgreSQL Cloud SQL database account has been provisioned and synced with MetaTrader 5 demo integration.',
       priority: 'High',
       isRead: false
@@ -203,7 +203,7 @@ export async function recordTrade(tradeData: {
       takeProfit: tradeData.takeProfit,
       lotSize: tradeData.lotSize,
       status: 'Open',
-      strategy: tradeData.strategy || 'PipNex AI Engine',
+      strategy: tradeData.strategy || 'PipTraderAI Engine',
       notes: tradeData.notes
     }).returning();
     return res[0];

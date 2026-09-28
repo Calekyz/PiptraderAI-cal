@@ -297,7 +297,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         <aside
           id="desktop-sidebar"
           aria-hidden={!isSidebarOpen}
-          className={`fixed top-0 left-0 h-screen w-64 xl:w-72 bg-white dark:bg-[#0c0e18] border-r border-[#e5e7eb] dark:border-[#171a27] p-4 flex-col justify-between shrink-0 z-30 shadow-xs select-none overflow-y-auto custom-scrollbar transition-transform duration-300 ${
+          className={`fixed top-0 left-0 h-screen w-64 xl:w-72 bg-white dark:bg-[#0c0e18] border-r border-[#e5e7eb] dark:border-[#171a27] p-4 flex-col justify-between shrink-0 z-50 shadow-xs select-none overflow-y-auto custom-scrollbar transition-transform duration-300 ${
             isSidebarOpen
               ? 'hidden lg:flex translate-x-0'
               : 'hidden -translate-x-full pointer-events-none invisible'
@@ -431,7 +431,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
         {/* MOBILE / TABLET SLIDE-IN NAVIGATION DRAWER */}
         {isSidebarOpen && (
-          <div className="fixed inset-0 z-40 flex lg:hidden transition-opacity duration-300">
+          <div className="fixed inset-0 z-50 flex lg:hidden transition-opacity duration-300">
             {/* Smooth Backdrop Overlay */}
             <div
               className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
@@ -696,7 +696,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                       </div>
                       <div className="overflow-hidden min-w-0">
                         <div className="font-medium text-[#0f172a] dark:text-white text-[13px] truncate">
-                          {user.email || `${user.firstName?.toLowerCase() || 'trader'}@pipnexai.com`}
+                          {user.email || `${user.firstName?.toLowerCase() || 'trader'}@piptraderai.com`}
                         </div>
                         <div className="mt-1">
                           <span className="px-2.5 py-0.5 rounded-md bg-[#f0edfe] dark:bg-[#1c1635] text-[#5b3fe4] dark:text-purple-300 text-[11px] font-medium tracking-wide inline-block border border-purple-200 dark:border-purple-500/30">

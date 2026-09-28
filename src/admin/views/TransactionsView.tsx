@@ -136,7 +136,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onRefreshSta
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `PipNex_Transactions_${dateRange}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `PipTraderAI_Transactions_${dateRange}_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

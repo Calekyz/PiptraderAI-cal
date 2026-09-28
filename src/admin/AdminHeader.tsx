@@ -195,7 +195,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             <div className="absolute right-0 mt-2 w-56 bg-[#111427] border border-[#232847] rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95">
               <div className="p-2 border-b border-[#1e233d] mb-1">
                 <div className="text-xs font-bold text-white">Pipnexadmin</div>
-                <div className="text-[11px] text-slate-400">admin@pipnexai.com</div>
+                <div className="text-[11px] text-slate-400">admin@piptraderai.com</div>
                 <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 text-[10px] border border-purple-500/20">
                   <Shield className="w-3 h-3 text-purple-400" />
                   Super Administrator

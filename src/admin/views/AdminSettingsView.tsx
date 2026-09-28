@@ -18,7 +18,7 @@ import { AdminApi } from '../api';
 export const AdminSettingsView: React.FC = () => {
   const [settings, setSettings] = useState<AdminSettings>({
     platformName: 'PipTraderAI',
-    supportEmail: 'support@pipnexai.com',
+    supportEmail: 'support@piptraderai.com',
     maintenanceMode: false,
     allowNewRegistrations: true,
     defaultStarterCredits: 500,

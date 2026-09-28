@@ -87,7 +87,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   }, [user?.id]);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  const referralLink = `https://pipnex-ai.com/ref/${user.referralCode || 'PNX782'}`;
+  const referralLink = `https://piptraderai.com/ref/${user.referralCode || 'PTA782'}`;
 
   const handleCopyLink = () => {
     if (navigator.clipboard) {

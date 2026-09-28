@@ -171,7 +171,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
       productId: currentProduct.id,
       phoneNumber: mpesaPhone,
       userId: user?.email || 'guest',
-      userEmail: user?.email || 'trader@pipnex.ai',
+      userEmail: user?.email || 'trader@piptraderai.com',
       userName: user ? `${user.firstName} ${user.lastName}` : 'PipTraderAI Trader'
     });
 
@@ -181,7 +181,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
       setActivePayment({
         id: response.paymentId,
         userId: user?.email || 'guest',
-        userEmail: user?.email || 'trader@pipnex.ai',
+        userEmail: user?.email || 'trader@piptraderai.com',
         productId: currentProduct.id,
         productName: currentProduct.name,
         usdPrice: currentProduct.usdPrice,
@@ -217,7 +217,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
       amountSent: manualKesAmount || currentProduct.kesAmount,
       smsMessage: mpesaSmsMessage,
       userId: user?.email || 'guest',
-      userEmail: user?.email || 'trader@pipnex.ai',
+      userEmail: user?.email || 'trader@piptraderai.com',
       userName: user ? `${user.firstName} ${user.lastName}` : 'PipTraderAI Trader'
     });
 
@@ -253,7 +253,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
       transactionRef: binanceTxHash.trim(),
       binanceId: binanceId.trim(),
       userId: user?.email || 'guest',
-      userEmail: user?.email || 'trader@pipnex.ai',
+      userEmail: user?.email || 'trader@piptraderai.com',
       userName: user ? `${user.firstName} ${user.lastName}` : 'PipTraderAI Trader'
     });
 

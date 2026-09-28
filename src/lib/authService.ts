@@ -448,7 +448,7 @@ export async function verifyFeatureAccessAsync(featureName: string, email?: stri
 export function enterAsDevUser(): any {
   return {
     id: 'dev-' + Date.now(),
-    email: 'dev@pipnex.ai',
+    email: 'dev@piptraderai.com',
     firstName: 'Dev',
     lastName: 'Trader',
     phone: '',
