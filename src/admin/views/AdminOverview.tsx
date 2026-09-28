@@ -213,11 +213,11 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
 
             <div className="space-y-3">
               {[
-                { name: 'Free Trial (3-Day)', count: stats?.planBreakdown?.FreeTrial || 0, color: 'bg-slate-400' },
+                { name: 'Pending', count: stats?.planBreakdown?.Pending || 0, color: 'bg-slate-400' },
                 { name: 'Starter Plan ($49)', count: stats?.planBreakdown?.Starter || 0, color: 'bg-blue-500' },
                 { name: 'Pro Tier ($99)', count: stats?.planBreakdown?.Pro || 0, color: 'bg-purple-500' },
                 { name: 'Elite Plan ($199)', count: stats?.planBreakdown?.Elite || 0, color: 'bg-amber-500' },
-                { name: 'Platinum / Institutional', count: stats?.planBreakdown?.Platinum || 0, color: 'bg-cyan-500' }
+                { name: 'Elite', count: stats?.planBreakdown?.Elite || 0, color: 'bg-cyan-500' }
               ].map((tier) => {
                 const total = stats?.totalUsers || 1;
                 const pct = Math.round((tier.count / total) * 100) || 0;

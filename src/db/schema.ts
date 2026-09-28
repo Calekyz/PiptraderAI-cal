@@ -163,7 +163,7 @@ export const pipnexUsers = pgTable('pipnex_users', {
   lastName: text('last_name').notNull().default(''),
   phone: text('phone').default(''),
   countryCode: text('country_code').default('+254'),
-  plan: text('plan').default('Free Trial').notNull(),
+  plan: text('plan').default('Pending').notNull(),
   balance: decimal('balance', { precision: 20, scale: 2 }).default('10000.00').notNull(),
   credits: integer('credits').default(150).notNull(),
   isEarlyAccessUser: boolean('is_early_access_user').default(false),

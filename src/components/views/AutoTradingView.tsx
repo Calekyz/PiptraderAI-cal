@@ -23,7 +23,7 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({
   user, 
   onOpenUpgrade 
 }) => {
-  // If user is not platinum or in preview mode, display the exact Platinum Feature lock screen from Screenshot 1
+  // If user is not on Pro/Elite, display the upgrade lock screen
   const [isUnlocked, setIsUnlocked] = useState(user?.plan === 'Pro' || user?.plan === 'Elite');
   const [isLive, setIsLive] = useState(true);
   const [riskPercent, setRiskPercent] = useState('1.5');
@@ -91,13 +91,13 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({
           <div className="flex items-center gap-2.5">
             <Crown className="w-5 h-5 text-[#f5a623]" />
             <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              Platinum Feature
+              Pro & Elite Feature
             </h2>
           </div>
 
           {/* Description matching screenshot */}
           <p className="text-xs sm:text-[13px] text-gray-300 leading-relaxed">
-            Auto Trading is exclusive to Platinum members. Upgrade to unlock locked AI-managed modes (Aggressive · Intraday · Swing) on your MT5 account.
+            Auto Trading is available on Pro and Elite plans. Upgrade to unlock AI-managed modes (Aggressive · Intraday · Swing) on your MT5 account.
           </p>
 
           {/* Purple Upgrade Button */}
@@ -106,7 +106,7 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({
               onClick={handleUpgradeClick}
               className="px-6 py-2.5 rounded-xl bg-[#a084e8] hover:bg-[#b096f2] text-[#120f24] font-bold text-xs shadow-md transition-all active:scale-[0.98] inline-flex items-center gap-2"
             >
-              <span>Upgrade to Platinum</span>
+              <span>Upgrade to Pro or Elite</span>
             </button>
           </div>
 
@@ -133,7 +133,7 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="px-2.5 py-0.5 rounded-full bg-[#1e170c] border border-[#f5a623]/35 text-[#f5a623] text-[10px] font-bold font-mono tracking-wide flex items-center gap-1">
-            👑 Platinum Active
+            👑 Pro/Elite Active
           </span>
         </div>
         <button

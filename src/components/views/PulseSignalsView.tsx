@@ -20,7 +20,7 @@ import { MarketPulse } from '../MarketPulse';
 
 interface PulseSignalsViewProps {
   onBack?: () => void;
-  onOpenUpgrade?: (tier?: 'Pro' | 'Platinum' | 'Ultimate') => void;
+  onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
   onExecuteSignal?: (signal: any) => void;
 }
 
@@ -345,7 +345,7 @@ Setup: ${sig.setupType}`;
         </div>
 
         <button
-          onClick={() => onOpenUpgrade?.('Platinum')}
+          onClick={() => onOpenUpgrade?.('Elite')}
           className="px-5 py-2.5 rounded-xl bg-[#a78bfa] hover:bg-[#bba4fb] text-slate-950 font-bold text-xs transition-all shadow-md cursor-pointer shrink-0"
         >
           Upgrade for Webhooks

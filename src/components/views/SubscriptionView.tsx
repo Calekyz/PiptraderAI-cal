@@ -81,7 +81,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
         `Customer: ${user.firstName} ${user.lastName}\n` +
         `Email: ${user.email}\n` +
         `Phone: ${user.phone || 'N/A'}\n` +
-        `Current Plan: ${user.plan || 'Pro'}\n` +
+        `Current Plan: ${user.plan || 'Pending'}\n` +
         `Plan Status: Active / Verified\n` +
         `Payment Method: ${latestPayment?.paymentMethod || 'M-Pesa Verified / Binance USDT'}\n` +
         `Transaction Ref: ${latestPayment?.mpesaReceiptNumber || latestPayment?.transactionHash || 'chk_5u4g0IIZoSxkx2Dt'}\n` +
@@ -101,7 +101,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
     }, 600);
   };
 
-  const currentPlanName = user.plan || 'Pro';
+  const currentPlanName = user.plan || 'Pending';
 
   const getStatusBadge = (status: PaymentRecordDTO['status']) => {
     switch (status) {

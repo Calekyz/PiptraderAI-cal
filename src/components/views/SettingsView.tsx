@@ -36,7 +36,7 @@ interface SettingsViewProps {
   user: UserProfile;
   onUpdateUser: (updated: Partial<UserProfile>) => void;
   onLogout?: () => void;
-  onOpenUpgrade?: (tier?: 'Pro' | 'Platinum' | 'Ultimate') => void;
+  onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
   currentTheme?: 'dark' | 'light';
   onSetTheme?: (mode: 'dark' | 'light') => void;
 }
@@ -323,17 +323,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* 4. MT5 Account Connection (Platinum Feature) */}
+      {/* 4. MT5 Account Connection (Elite Feature) */}
       <div className="bg-white border border-[#e5e7eb] rounded-3xl p-8 text-center shadow-xs relative overflow-hidden flex flex-col items-center justify-center space-y-3">
         {/* Diamond Icon */}
         <div className="w-12 h-12 rounded-2xl bg-[#f0edfe] border border-purple-200 flex items-center justify-center text-[#5b3fe4] mb-1">
           <Diamond className="w-6 h-6" />
         </div>
 
-        {/* Platinum Feature Badge */}
+        {/* Elite Feature Badge */}
         <div>
           <span className="px-3 py-1 rounded-full bg-[#f0edfe] text-[#5b3fe4] text-[10px] font-bold uppercase tracking-wider font-mono border border-purple-200">
-            💎 Platinum Feature
+            💎 Elite Feature
           </span>
         </div>
 
@@ -350,7 +350,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* Upgrade to Platinum Button */}
         <div className="pt-2">
           <button
-            onClick={() => onOpenUpgrade?.('Platinum')}
+            onClick={() => onOpenUpgrade?.('Elite')}
             className="px-6 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] active:scale-[0.98] text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5" />

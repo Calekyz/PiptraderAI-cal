@@ -139,7 +139,7 @@ const DEFAULT_PRODUCTS: ProductPlanInfo[] = [
   },
   {
     id: 'platinum',
-    name: 'Platinum VIP',
+    name: 'Elite',
     usdPrice: 349,
     exchangeRate: 129,
     kesAmount: 45021,
@@ -158,7 +158,7 @@ const DEFAULT_PRODUCTS: ProductPlanInfo[] = [
   },
   {
     id: 'ultimate',
-    name: 'Ultimate Lifetime',
+    name: 'Elite Lifetime',
     usdPrice: 599,
     exchangeRate: 129,
     kesAmount: 77271,

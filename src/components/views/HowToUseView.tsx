@@ -186,7 +186,7 @@ export const HowToUseView: React.FC = () => {
       accentColor: 'from-[#33115e] to-[#17062b]',
       mockupType: 'cards',
       keySteps: [
-        'Comparing Pro, Platinum, and Ultimate Institutional tiers',
+        'Comparing Starter, Pro, and Elite Institutional tiers',
         'Selecting secure Card or SyncPay crypto checkout',
         'Immediate instant unlocking of automated bot licenses'
       ]

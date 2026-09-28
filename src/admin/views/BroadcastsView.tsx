@@ -148,7 +148,7 @@ export const BroadcastsView: React.FC = () => {
                   className="w-full px-3 py-2 bg-[#161a30] border border-[#262b49] rounded-xl text-xs text-white"
                 >
                   <option value="ALL">All Traders</option>
-                  <option value="FREE_TRIAL">Free Trial Members</option>
+                  <option value="PENDING">Pending Members</option>
                   <option value="PRO">Pro Tier</option>
                   <option value="ELITE">Elite Institutional</option>
                 </select>

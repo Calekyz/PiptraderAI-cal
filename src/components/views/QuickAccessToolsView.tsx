@@ -21,7 +21,7 @@ import { HorizontalQuickAccessMenu } from '../HorizontalQuickAccessMenu';
 
 interface QuickAccessToolsProps {
   onNavigateToTab: (tabId: string) => void;
-  onOpenUpgrade?: (tier?: 'Pro' | 'Platinum' | 'Ultimate') => void;
+  onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
 }
 
 export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({ 
@@ -66,12 +66,12 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
       icon: Trophy,
       iconColor: 'text-purple-400',
       badgeType: 'platinum',
-      badgeLabel: 'Platinum Feature',
+      badgeLabel: 'Elite Feature',
       lockType: 'diamond',
-      heading: 'Platinum Feature',
+      heading: 'Elite Feature',
       subtitle: 'Upgrade your plan to access PipNex PropPass',
       targetTab: 'proppass',
-      requiredTier: 'Platinum' as const
+      requiredTier: 'Elite' as const
     },
     {
       id: 'ai-prompt-trading',
@@ -80,12 +80,12 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
       icon: MessageSquare,
       iconColor: 'text-purple-400',
       badgeType: 'platinum',
-      badgeLabel: 'Platinum Feature',
+      badgeLabel: 'Elite Feature',
       lockType: 'diamond',
-      heading: 'Platinum Feature',
+      heading: 'Elite Feature',
       subtitle: 'Upgrade your plan to access AI Prompt Trading',
       targetTab: 'prompt-trading',
-      requiredTier: 'Platinum' as const
+      requiredTier: 'Elite' as const
     }
   ];
 
@@ -135,7 +135,7 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
     t.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleUpgradeClick = (tier: 'Pro' | 'Platinum' | 'Ultimate', targetTab: string) => {
+  const handleUpgradeClick = (tier: 'Starter' | 'Pro' | 'Elite', targetTab: string) => {
     if (onOpenUpgrade) {
       onOpenUpgrade(tier);
     } else {
@@ -219,7 +219,7 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
                   )}
                 </div>
 
-                {/* Platinum Feature Badge if applicable */}
+                {/* Elite Feature Badge if applicable */}
                 {tool.badgeLabel && (
                   <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#1b162b] border border-purple-500/40 text-purple-300 text-[10px] font-bold font-mono">
                     <span>👑</span>

@@ -122,7 +122,7 @@ export const ManageBotsView: React.FC<ManageBotsViewProps> = ({
       
       {/* 1. Header Card */}
       <div className="bg-[#080911] border border-[#171926] rounded-3xl p-6 sm:p-7 space-y-3.5 shadow-xl">
-        {/* Title + Platinum Badge */}
+        {/* Title + Plan Badge */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-[#141624] border border-[#272c44] flex items-center justify-center text-purple-400 shadow-sm shrink-0">
             <Sparkles className="w-5 h-5" />
@@ -132,7 +132,7 @@ export const ManageBotsView: React.FC<ManageBotsViewProps> = ({
               Manage Bots
             </h1>
             <span className="px-2.5 py-0.5 rounded-full bg-[#1b162b] border border-purple-500/40 text-purple-300 text-[10px] font-bold font-mono tracking-wide flex items-center gap-1">
-              💎 Platinum Active
+              💎 Elite Active
             </span>
           </div>
         </div>

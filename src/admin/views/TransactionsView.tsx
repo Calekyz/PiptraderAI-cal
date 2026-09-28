@@ -354,7 +354,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onRefreshSta
             </span>
           </div>
           <p className="text-[11px] text-slate-400 mt-1">
-            Institutional PropPass & Platinum accounts
+            Institutional PropPass & Elite accounts
           </p>
         </div>
       </div>

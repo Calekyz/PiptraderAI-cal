@@ -18,7 +18,7 @@ interface MyProfileModalProps {
   onClose: () => void;
   user: UserProfile;
   onUpdateUser: (updated: Partial<UserProfile>) => void;
-  onOpenUpgrade?: (tier?: 'Pro' | 'Platinum' | 'Ultimate') => void;
+  onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
 }
 
 export const MyProfileModal: React.FC<MyProfileModalProps> = ({
@@ -145,7 +145,7 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
               type="button"
               onClick={() => {
                 onClose();
-                onOpenUpgrade?.('Platinum');
+                onOpenUpgrade?.('Elite');
               }}
               className="text-xs font-bold text-purple-400 hover:text-purple-300 px-3 py-1.5 rounded-lg bg-purple-950/40 border border-purple-500/30 hover:border-purple-500/60 transition-all cursor-pointer"
             >

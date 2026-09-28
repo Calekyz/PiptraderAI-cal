@@ -19,7 +19,7 @@ interface MT5ConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile;
-  onOpenUpgrade?: (tier?: 'Pro' | 'Platinum' | 'Ultimate') => void;
+  onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
 }
 
 export const MT5ConnectionModal: React.FC<MT5ConnectionModalProps> = ({
@@ -28,7 +28,7 @@ export const MT5ConnectionModal: React.FC<MT5ConnectionModalProps> = ({
   user,
   onOpenUpgrade
 }) => {
-  const isPlatinum = user.plan === 'Elite';
+  const isElite = user.plan === 'Elite';
 
   const [broker, setBroker] = useState('FTMO-Server');
   const [accountNumber, setAccountNumber] = useState('10984218');
@@ -73,7 +73,7 @@ export const MT5ConnectionModal: React.FC<MT5ConnectionModalProps> = ({
                 <h3 className="text-base font-bold text-white font-mono">MT5 Account Connection</h3>
                 <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
                   <Diamond className="w-2.5 h-2.5 fill-amber-400" />
-                  Platinum
+                  Elite
                 </span>
               </div>
               <p className="text-xs text-gray-400 mt-0.5">
@@ -92,25 +92,25 @@ export const MT5ConnectionModal: React.FC<MT5ConnectionModalProps> = ({
 
         {/* Content */}
         <div className="p-6 space-y-5">
-          {!isPlatinum ? (
+          {!isElite ? (
             <div className="p-5 rounded-2xl bg-[#161226] border border-purple-500/30 text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 mx-auto flex items-center justify-center">
                 <Lock className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Platinum Feature</h4>
+                <h4 className="text-sm font-bold text-white">Elite Feature</h4>
                 <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-                  MetaTrader 5 live execution bridge is exclusively available for Platinum &amp; Ultimate members.
+                  MetaTrader 5 live execution bridge is exclusively available for Elite members.
                 </p>
               </div>
               <button
                 onClick={() => {
                   onClose();
-                  onOpenUpgrade?.('Platinum');
+                  onOpenUpgrade?.('Elite');
                 }}
                 className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all cursor-pointer"
               >
-                Upgrade to Platinum
+                Upgrade to Elite
               </button>
             </div>
           ) : (
