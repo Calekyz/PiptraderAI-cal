@@ -76,7 +76,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-12">
       
-      {/* 1. Header Section: Personalized Welcome to PipNex */}
+      {/* 1. Header Section: Personalized Welcome to PipTraderAI */}
       <div 
         id="welcome-hero-banner"
         className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-purple-950/80 border border-slate-800/80 shadow-2xl p-6 sm:p-8 md:p-10 backdrop-blur-md"
@@ -93,7 +93,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <div className="space-y-2.5 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30 backdrop-blur-sm">
               <Sparkles className="w-3.5 h-3.5 text-purple-300 animate-pulse" />
-              <span>PipNex Intelligence Suite</span>
+              <span>PipTraderAI Intelligence Suite</span>
             </div>
 
             <h1 
@@ -104,7 +104,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 textShadow: '0 4px 20px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.6)'
               }}
             >
-              Hello {userGreetingName} Trader, Welcome to PipNex
+              Hello {userGreetingName} Trader, Welcome to PipTraderAI
             </h1>
 
             <p 
@@ -687,7 +687,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             Your Tools &amp; Shortcuts
           </h3>
         </div>
-        <p className="text-xs text-[#64748b] dark:text-slate-400">Quick access to popular PipNex features</p>
+        <p className="text-xs text-[#64748b] dark:text-slate-400">Quick access to popular PipTraderAI features</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
           <button
@@ -729,7 +729,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="flex items-center gap-2">
               <Crown className="w-5 h-5 text-amber-500" />
               <h3 className="text-base sm:text-lg font-bold text-[#0f172a] dark:text-white tracking-wide">
-                PipNex Membership Plans
+                PipTraderAI Membership Plans
               </h3>
             </div>
             <p className="text-xs text-[#64748b] dark:text-slate-400 mt-0.5">
@@ -758,7 +758,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <div className="flex items-center gap-1.5">✓ 10 Chart Uploads per day</div>
                 <div className="flex items-center gap-1.5">✓ Advanced Chart Analysis</div>
                 <div className="flex items-center gap-1.5">✓ Multi-Timeframe Analysis</div>
-                <div className="flex items-center gap-1.5">✓ PipNex Pulse Signals (2/day)</div>
+                <div className="flex items-center gap-1.5">✓ PipTraderAI Pulse Signals (2/day)</div>
                 <div className="flex items-center gap-1.5">✓ AI News Trading Analysis</div>
                 <div className="flex items-center gap-1.5">✓ Position Size Calculator</div>
                 <div className="flex items-center gap-1.5">✓ 3 Custom AI Setups per day</div>
@@ -793,10 +793,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <div className="flex items-center gap-1.5">✓ 24 Chart Uploads per day</div>
                 <div className="flex items-center gap-1.5">✓ Multi-Timeframe Analysis</div>
                 <div className="flex items-center gap-1.5 text-[#5b3fe4] dark:text-purple-300 font-bold">✓ Signal of the Day (90%+ accurate)</div>
-                <div className="flex items-center gap-1.5">✓ PipNex Pulse Signals (2/day)</div>
+                <div className="flex items-center gap-1.5">✓ PipTraderAI Pulse Signals (2/day)</div>
                 <div className="flex items-center gap-1.5">✓ AI News Trading Analysis (NFP/CPI)</div>
                 <div className="flex items-center gap-1.5">✓ AI Auto trading</div>
-                <div className="flex items-center gap-1.5">✓ PipNex PropPass</div>
+                <div className="flex items-center gap-1.5">✓ PipTraderAI PropPass</div>
                 <div className="flex items-center gap-1.5">✓ Smart Chart Analyzer</div>
                 <div className="flex items-center gap-1.5">✓ Unlimited Custom Setups</div>
                 <div className="flex items-center gap-1.5">✓ 24/7 Priority Support</div>
@@ -825,7 +825,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
 
               <div className="mt-4 pt-3 border-t border-[#e5e7eb] dark:border-[#1e2338] space-y-1.5 text-xs text-[#334155] dark:text-slate-300">
-                <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-medium">✓ Unlimited PipNex Pulse Signals</div>
+                <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-medium">✓ Unlimited PipTraderAI Pulse Signals</div>
                 <div className="flex items-center gap-1.5">✓ Direct AI Chart Analysis (no uploads)</div>
                 <div className="flex items-center gap-1.5">✓ Prompt Trading UI</div>
                 <div className="flex items-center gap-1.5">✓ MT5 Account Connection</div>
@@ -918,7 +918,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 Trading foreign exchange (Forex), contracts for difference (CFDs), and other leveraged financial instruments carries a high level of risk and may not be suitable for all investors. You should never trade with money you cannot afford to lose. Leverage can work against you as well as for you. <strong className="text-[#0f172a] dark:text-white">Past performance is not indicative of future results.</strong>
               </p>
               <p>
-                PipNex AI is not a licensed financial advisor, broker, or exchange. All tools, signals, alerts, and algorithmic suggestions provided by PipNex AI are for <strong className="text-[#0f172a] dark:text-white">educational, informational, and analytical purposes only</strong>. They do not constitute investment advice, financial guidance, or a solicitation to buy or sell any security, currency, or asset. You are solely responsible for your own trading decisions.
+                PipTraderAI is not a licensed financial advisor, broker, or exchange. All tools, signals, alerts, and algorithmic suggestions provided by PipTraderAI are for <strong className="text-[#0f172a] dark:text-white">educational, informational, and analytical purposes only</strong>. They do not constitute investment advice, financial guidance, or a solicitation to buy or sell any security, currency, or asset. You are solely responsible for your own trading decisions.
               </p>
             </div>
 
@@ -926,7 +926,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="space-y-1.5">
               <h4 className="font-bold text-[#0f172a] dark:text-white text-xs">2. No Profit Guarantees</h4>
               <p>
-                PipNex AI does <strong className="text-[#0f172a] dark:text-white">NOT</strong> promise or guarantee profits, passive income, or specific win-rate percentages. Our AI-powered market analysis, support/resistance levels, and trade setups are generated using technical indicators, pattern recognition, and machine learning models. They are <strong className="text-[#0f172a] dark:text-white">analytical tools</strong>, not profit-generating machines. No algorithmic system can accurately predict market movements with 100% certainty. Any reference to "Signal of the Day," "high-probability setups," or backtested performance is for educational illustration only and is not a guarantee of future results.
+                PipTraderAI does <strong className="text-[#0f172a] dark:text-white">NOT</strong> promise or guarantee profits, passive income, or specific win-rate percentages. Our AI-powered market analysis, support/resistance levels, and trade setups are generated using technical indicators, pattern recognition, and machine learning models. They are <strong className="text-[#0f172a] dark:text-white">analytical tools</strong>, not profit-generating machines. No algorithmic system can accurately predict market movements with 100% certainty. Any reference to "Signal of the Day," "high-probability setups," or backtested performance is for educational illustration only and is not a guarantee of future results.
               </p>
             </div>
 
@@ -934,7 +934,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="space-y-1.5">
               <h4 className="font-bold text-[#0f172a] dark:text-white text-xs">3. No Custody of Funds</h4>
               <p>
-                PipNex AI does <strong className="text-[#0f172a] dark:text-white">NOT</strong> hold, store, or take custody of user funds or deposits for trading purposes. Our platform provides algorithmic trade setups, market data analysis, and decision-support tools. It does not execute trades on your behalf or manage your account balance. All actual trading activity must take place through your own external, regulated brokerage account. We connect to your brokerage account only via secure APIs (where applicable) and never have the ability to withdraw, move, or manage your funds.
+                PipTraderAI does <strong className="text-[#0f172a] dark:text-white">NOT</strong> hold, store, or take custody of user funds or deposits for trading purposes. Our platform provides algorithmic trade setups, market data analysis, and decision-support tools. It does not execute trades on your behalf or manage your account balance. All actual trading activity must take place through your own external, regulated brokerage account. We connect to your brokerage account only via secure APIs (where applicable) and never have the ability to withdraw, move, or manage your funds.
               </p>
             </div>
 
@@ -950,7 +950,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="space-y-1.5">
               <h4 className="font-bold text-[#0f172a] dark:text-white text-xs">5. Jurisdictional Considerations</h4>
               <p>
-                PipNex AI is available to users worldwide, but it is your responsibility to ensure that using our tools complies with your local laws and regulations. Some jurisdictions restrict or prohibit trading in leveraged financial products. It is your duty to verify whether you are legally permitted to trade Forex, CFDs, or cryptocurrencies in your country. PipNex AI does not provide services to individuals or entities in jurisdictions where such services are prohibited.
+                PipTraderAI is available to users worldwide, but it is your responsibility to ensure that using our tools complies with your local laws and regulations. Some jurisdictions restrict or prohibit trading in leveraged financial products. It is your duty to verify whether you are legally permitted to trade Forex, CFDs, or cryptocurrencies in your country. PipTraderAI does not provide services to individuals or entities in jurisdictions where such services are prohibited.
               </p>
             </div>
 
@@ -958,12 +958,12 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="space-y-1.5">
               <h4 className="font-bold text-[#0f172a] dark:text-white text-xs">6. Acknowledgment of Risk</h4>
               <p>
-                By using PipNex AI, you acknowledge and agree that you have read, understood, and accepted this Risk Disclaimer in its entirety; you are solely responsible for all trading decisions and outcomes; you understand that trading involves substantial risk of financial loss; and you will not hold PipNex AI, its developers, affiliates, or data providers liable for any trading losses, missed profits, or damages arising from your use of our platform.
+                By using PipTraderAI, you acknowledge and agree that you have read, understood, and accepted this Risk Disclaimer in its entirety; you are solely responsible for all trading decisions and outcomes; you understand that trading involves substantial risk of financial loss; and you will not hold PipTraderAI, its developers, affiliates, or data providers liable for any trading losses, missed profits, or damages arising from your use of our platform.
               </p>
             </div>
 
             <div className="pt-2 border-t border-[#f1f5f9] dark:border-[#171a27] text-[10px] text-[#94a3b8] dark:text-slate-500 font-mono">
-              Last Updated: September 2026 · © {new Date().getFullYear()} PipNex AI. All rights reserved.
+              Last Updated: September 2026 · © {new Date().getFullYear()} PipTraderAI. All rights reserved.
             </div>
           </div>
         )}

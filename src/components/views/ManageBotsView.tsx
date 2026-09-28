@@ -177,7 +177,7 @@ export const ManageBotsView: React.FC<ManageBotsViewProps> = ({
           </div>
           <div>
             <h2 className="text-sm font-bold text-[#0f172a] dark:text-white tracking-tight flex items-center gap-2">
-              PipNex Bot Platform
+              PipTraderAI Bot Platform
               <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/40 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 LIVE VPS
@@ -236,7 +236,7 @@ export const ManageBotsView: React.FC<ManageBotsViewProps> = ({
         <iframe
           key={iframeKey}
           src="https://app.piptraderai.com"
-          title="PipNex Bot Platform"
+          title="PipTraderAI Bot Platform"
           onLoad={() => setIframeLoading(false)}
           className="w-full border-0"
           style={{ height: 'calc(100vh - 240px)', minHeight: '700px' }}
@@ -247,7 +247,7 @@ export const ManageBotsView: React.FC<ManageBotsViewProps> = ({
 
       {/* ═══ Footer hint ═══ */}
       <div className="text-center text-[11px] text-[#94a3b8] dark:text-slate-500 px-4">
-        Powered by PipNex Cloud VPS · 24/7 uptime · Click "Open in New Tab" if the embed doesn't load
+        Powered by PipTraderAI Cloud VPS · 24/7 uptime · Click "Open in New Tab" if the embed doesn't load
       </div>
     </div>
   );

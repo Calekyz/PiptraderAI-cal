@@ -42,7 +42,7 @@ export const PWAInstallPrompt: React.FC = () => {
           <Download className="w-5 h-5 text-purple-300" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white">Install PipNex AI</div>
+          <div className="text-sm font-bold text-white">Install PipTraderAI</div>
           <div className="text-xs text-slate-400 mt-0.5">Add to home screen for a faster, app-like experience.</div>
           <div className="flex gap-2 mt-3">
             <button

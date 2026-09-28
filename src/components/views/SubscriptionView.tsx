@@ -75,7 +75,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
       setDownloading(false);
       const latestPayment = userPayments[0];
       const blob = new Blob([
-        `PIPNEX AI - OFFICIAL SUBSCRIPTION & INVOICE RECEIPT\n` +
+        `PIPTRADERAI - OFFICIAL SUBSCRIPTION & INVOICE RECEIPT\n` +
         `===================================================\n` +
         `Invoice Date: ${new Date().toLocaleDateString()}\n` +
         `Customer: ${user.firstName} ${user.lastName}\n` +
@@ -88,12 +88,12 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
         `Amount Paid: ${latestPayment ? `$${latestPayment.usdPrice} USD (KES ${latestPayment.kesAmount.toLocaleString()})` : '$95.00 USD (KES 12,255)'}\n` +
         `Support Contact: Pipnexaicustomer@gmail.com | +254726222093\n` +
         `===================================================\n` +
-        `All PipNex plan upgrades feature real-time AI chart intelligence, Gemina AI (DeepSeek) bot execution, and 24/7 priority support.`
+        `All PipTraderAI plan upgrades feature real-time AI chart intelligence, Gemina AI (DeepSeek) bot execution, and 24/7 priority support.`
       ], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `PipNex-Receipt-${user.firstName}-${Date.now()}.txt`;
+      a.download = `PipTraderAI-Receipt-${user.firstName}-${Date.now()}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -149,7 +149,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
             Subscription Management
           </h1>
           <p className="text-xs text-gray-400 mt-1">
-            Manage your PipNex membership, view real-time payment records, and upgrade plans.
+            Manage your PipTraderAI membership, view real-time payment records, and upgrade plans.
           </p>
         </div>
 
@@ -221,7 +221,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
         <div className="flex items-center justify-between border-b border-[#161826] pb-3">
           <div>
             <h3 className="text-sm font-bold text-white font-mono uppercase tracking-wider">
-              PipNex Membership Tiers
+              PipTraderAI Membership Tiers
             </h3>
             <p className="text-xs text-gray-400 mt-0.5">
               Source of truth dynamic pricing with automated M-Pesa STK push & Binance TRC20 verification
@@ -250,7 +250,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
                 <li>✓ 10 Chart Uploads / day</li>
                 <li>✓ Advanced Chart Analysis</li>
                 <li>✓ Multi-Timeframe Analysis</li>
-                <li>✓ PipNex Pulse Signals (2/day)</li>
+                <li>✓ PipTraderAI Pulse Signals (2/day)</li>
                 <li>✓ Smart Chart Analyzer</li>
               </ul>
             </div>
@@ -279,7 +279,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
                 <li>✓ 24 Chart Uploads / day</li>
                 <li>✓ Signal of the Day (90%+ accurate)</li>
                 <li>✓ AI Auto trading</li>
-                <li>✓ PipNex PropPass</li>
+                <li>✓ PipTraderAI PropPass</li>
                 <li>✓ Unlimited Custom Setups</li>
               </ul>
             </div>

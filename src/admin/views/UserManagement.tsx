@@ -223,8 +223,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     setActiveUser(user);
     setMessageData({
       template: 'Custom Advisory',
-      subject: `Account Notice: PipNex AI Platform`,
-      message: `Dear ${user.firstName},\n\nWe are reaching out regarding your PipNex AI account...`
+      subject: `Account Notice: PipTraderAI Platform`,
+      message: `Dear ${user.firstName},\n\nWe are reaching out regarding your PipTraderAI account...`
     });
     setFormError(null);
     setIsMessageModalOpen(true);
@@ -510,7 +510,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               onClick={() => {
                 setMessageData({
                   template: 'Bulk Notice',
-                  subject: 'Notice from PipNex AI Team',
+                  subject: 'Notice from PipTraderAI Team',
                   message: 'Hello Traders,\n\nWe are writing with an update...'
                 });
                 setIsBulkMessageOpen(true);

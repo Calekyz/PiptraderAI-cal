@@ -72,7 +72,7 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
     },
     {
       id: 'proppass',
-      title: 'PipNex PropPass',
+      title: 'PipTraderAI PropPass',
       description: 'Pass prop firm challenges with AI auto-trading, risk management, and 24/7 compliance monitoring.',
       icon: Trophy,
       iconColor: 'text-purple-400',
@@ -80,7 +80,7 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
       badgeLabel: 'Elite Feature',
       lockType: 'diamond',
       heading: 'Elite Feature',
-      subtitle: 'Upgrade your plan to access PipNex PropPass',
+      subtitle: 'Upgrade your plan to access PipTraderAI PropPass',
       targetTab: 'proppass',
       requiredTier: 'Elite' as const
     },
@@ -162,7 +162,7 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
         <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-3 pb-2 flex items-center justify-between">
           <span className="flex items-center gap-1.5 text-purple-300">
             <Zap className="w-3.5 h-3.5" />
-            <span>PipNex AI Pro Quick Access</span>
+            <span>PipTraderAI Pro Quick Access</span>
           </span>
           <span className="text-[10px] text-slate-500 font-mono">Horizontal View</span>
         </div>
@@ -179,7 +179,7 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
           Quick Access Tools
         </h1>
         <p className="text-xs md:text-sm text-gray-400">
-          Your essential trading tools — powered by PipNex intelligence.
+          Your essential trading tools — powered by PipTraderAI intelligence.
         </p>
 
         {/* Search tools bar matching screenshot */}
@@ -314,12 +314,12 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
         })}
       </div>
 
-      {/* 3. Explore More PipNex Tools Section */}
+      {/* 3. Explore More PipTraderAI Tools Section */}
       <div className="space-y-5 pt-4">
         <div className="flex items-center justify-center gap-2 text-center">
           <Sparkles className="w-4 h-4 text-purple-400 fill-purple-400/20" />
           <h3 className="text-sm md:text-base font-bold text-purple-300 tracking-tight">
-            Explore More PipNex Tools
+            Explore More PipTraderAI Tools
           </h3>
         </div>
 

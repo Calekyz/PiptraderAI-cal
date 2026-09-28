@@ -166,7 +166,7 @@ export const UploadChartView: React.FC = () => {
       if (plan.direction === 'WAIT') {
         const waitPlan: TradePlan = {
           symbol: selectedSymbol,
-          subTitle: 'PipNex Engine · Rule-Based Analysis',
+          subTitle: 'PipTraderAI Engine · Rule-Based Analysis',
           direction: plan.trend === 'Bearish' ? 'SHORT' : 'LONG',
           confidence: plan.confidence || 0,
           bias: plan.trend === 'Bearish' ? 'Bearish' : plan.trend === 'Bullish' ? 'Bullish' : 'Bullish',
@@ -189,7 +189,7 @@ export const UploadChartView: React.FC = () => {
       const dec = selectedDecimals;
       const realPlan: TradePlan = {
         symbol: selectedSymbol,
-        subTitle: `PipNex Engine · ${plan.strategy} · ${plan.session}`,
+        subTitle: `PipTraderAI Engine · ${plan.strategy} · ${plan.session}`,
         direction: plan.direction === 'BUY' ? 'LONG' : 'SHORT',
         confidence: plan.confidence,
         bias: plan.trend === 'Bearish' ? 'Bearish' : 'Bullish',

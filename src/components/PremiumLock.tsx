@@ -102,11 +102,11 @@ export const PremiumLock: React.FC<PremiumLockProps> = ({
             </span>
           ) : !user ? (
             <span>
-              Sign in with your pre-approved early-access account for a 3-day free trial, or upgrade to PipNex Pro for instant access.
+              Sign in with your pre-approved early-access account for a 3-day free trial, or upgrade to PipTraderAI Pro for instant access.
             </span>
           ) : (
             <span>
-              {featureDescription || 'This institutional trading module requires an active PipNex Pro or Elite subscription.'}
+              {featureDescription || 'This institutional trading module requires an active PipTraderAI Pro or Elite subscription.'}
             </span>
           )}
         </p>
@@ -115,7 +115,7 @@ export const PremiumLock: React.FC<PremiumLockProps> = ({
         <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-4 mb-6 text-left">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>What you unlock with PipNex Pro</span>
+            <span>What you unlock with PipTraderAI Pro</span>
           </h4>
           <ul className="space-y-2.5">
             {defaultBenefits.map((b, idx) => (

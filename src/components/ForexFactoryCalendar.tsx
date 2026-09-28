@@ -728,7 +728,7 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
                                       className="px-3 py-1.5 rounded-lg bg-[#5b3fe4] hover:bg-[#4d32d0] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                                     >
                                       <Sparkles className="w-3 h-3" />
-                                      <span>AI Volatility &amp; PipNex Guard Analysis</span>
+                                      <span>AI Volatility &amp; PipTraderAI Guard Analysis</span>
                                     </button>
 
                                     <a

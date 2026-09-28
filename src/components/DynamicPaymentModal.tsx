@@ -172,7 +172,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
       phoneNumber: mpesaPhone,
       userId: user?.email || 'guest',
       userEmail: user?.email || 'trader@pipnex.ai',
-      userName: user ? `${user.firstName} ${user.lastName}` : 'PipNex Trader'
+      userName: user ? `${user.firstName} ${user.lastName}` : 'PipTraderAI Trader'
     });
 
     setIsSubmitting(false);
@@ -218,7 +218,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
       smsMessage: mpesaSmsMessage,
       userId: user?.email || 'guest',
       userEmail: user?.email || 'trader@pipnex.ai',
-      userName: user ? `${user.firstName} ${user.lastName}` : 'PipNex Trader'
+      userName: user ? `${user.firstName} ${user.lastName}` : 'PipTraderAI Trader'
     });
 
     setIsSubmitting(false);
@@ -254,7 +254,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
       binanceId: binanceId.trim(),
       userId: user?.email || 'guest',
       userEmail: user?.email || 'trader@pipnex.ai',
-      userName: user ? `${user.firstName} ${user.lastName}` : 'PipNex Trader'
+      userName: user ? `${user.firstName} ${user.lastName}` : 'PipTraderAI Trader'
     });
 
     setIsSubmitting(false);

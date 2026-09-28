@@ -59,7 +59,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
         '10 Chart Uploads per day',
         'Advanced Chart Analysis',
         'Multi-Timeframe Analysis',
-        'PipNex Pulse Signals (2/day)',
+        'PipTraderAI Pulse Signals (2/day)',
         'AI News Trading Analysis',
         'Position Size Calculator',
         '3 Custom AI Setups per day',
@@ -84,10 +84,10 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
         '24 Chart Uploads per day',
         'Multi-Timeframe Analysis',
         'Signal of the Day (90%+ accurate)',
-        'PipNex Pulse Signals (2/day)',
+        'PipTraderAI Pulse Signals (2/day)',
         'AI News Trading Analysis (NFP/CPI)',
         'AI Auto trading',
-        'PipNex PropPass',
+        'PipTraderAI PropPass',
         'Smart Chart Analyzer',
         'Unlimited Custom Setups',
         '24/7 Priority Support'
@@ -106,7 +106,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
       highlighted: false,
       color: 'from-amber-600 to-orange-600',
       features: [
-        'Unlimited PipNex Pulse Signals',
+        'Unlimited PipTraderAI Pulse Signals',
         'Direct AI Chart Analysis (no uploads)',
         'Prompt Trading UI',
         'MT5 Account Connection',
@@ -148,7 +148,7 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-400/20 text-[10px] font-semibold tracking-wide uppercase text-purple-300 mb-2.5">
                 <Sparkles className="w-3 h-3" />
-                PipNex Membership
+                PipTraderAI Membership
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Choose your plan</h2>
               <p className="text-xs text-slate-400 mt-1 max-w-xl">

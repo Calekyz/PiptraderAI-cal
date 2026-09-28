@@ -17,7 +17,7 @@ import { AdminApi } from '../api';
 
 export const AdminSettingsView: React.FC = () => {
   const [settings, setSettings] = useState<AdminSettings>({
-    platformName: 'PipNex AI',
+    platformName: 'PipTraderAI',
     supportEmail: 'support@pipnexai.com',
     maintenanceMode: false,
     allowNewRegistrations: true,
@@ -103,7 +103,7 @@ export const AdminSettingsView: React.FC = () => {
           <div>
             <div className="text-xs font-bold text-white">Strict Non-Custodial SaaS Guarantee</div>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              PipNex AI is an algorithmic intelligence software subscription. No custodial withdrawal engine is present in this system.
+              PipTraderAI is an algorithmic intelligence software subscription. No custodial withdrawal engine is present in this system.
             </p>
           </div>
         </div>

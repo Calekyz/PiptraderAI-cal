@@ -85,7 +85,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-xs sm:text-sm text-white tracking-tight truncate">
-                    PipNex AI on Telegram
+                    PipTraderAI on Telegram
                   </span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#0d2a1f] border border-emerald-500/40 text-emerald-400 text-[10px] sm:text-[11px] font-semibold tracking-wide shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -133,7 +133,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           
-          {/* Logo / Brand (Screenshot 1: Black box with PIPNEX AI logo + PipnexAi Algo + AI TRADING INTELLIGENCE) */}
+          {/* Logo / Brand (Screenshot 1: Black box with PIPTRADERAI logo + PipnexAi Algo + AI TRADING INTELLIGENCE) */}
           <div 
             onClick={() => scrollToSection('hero')}
             className="flex items-center gap-3 cursor-pointer group select-none"
@@ -480,7 +480,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="flex items-center gap-2">✓ 10 Chart Uploads per day</div>
                 <div className="flex items-center gap-2">✓ Advanced Chart Analysis</div>
                 <div className="flex items-center gap-2">✓ Multi-Timeframe Analysis</div>
-                <div className="flex items-center gap-2">✓ PipNex Pulse Signals (2/day)</div>
+                <div className="flex items-center gap-2">✓ PipTraderAI Pulse Signals (2/day)</div>
                 <div className="flex items-center gap-2">✓ AI News Trading Analysis</div>
                 <div className="flex items-center gap-2">✓ Position Size Calculator</div>
                 <div className="flex items-center gap-2">✓ 3 Custom AI Setups per day</div>
@@ -515,10 +515,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <div className="flex items-center gap-2">✓ 24 Chart Uploads per day</div>
                 <div className="flex items-center gap-2">✓ Multi-Timeframe Analysis</div>
                 <div className="flex items-center gap-2 text-purple-200 font-semibold">✓ Signal of the Day (90%+ accurate)</div>
-                <div className="flex items-center gap-2">✓ PipNex Pulse Signals (2/day)</div>
+                <div className="flex items-center gap-2">✓ PipTraderAI Pulse Signals (2/day)</div>
                 <div className="flex items-center gap-2">✓ AI News Trading Analysis (NFP/CPI)</div>
                 <div className="flex items-center gap-2">✓ AI Auto trading</div>
-                <div className="flex items-center gap-2">✓ PipNex PropPass</div>
+                <div className="flex items-center gap-2">✓ PipTraderAI PropPass</div>
                 <div className="flex items-center gap-2">✓ Smart Chart Analyzer</div>
                 <div className="flex items-center gap-2">✓ Unlimited Custom Setups</div>
                 <div className="flex items-center gap-2">✓ 24/7 Priority Support</div>
@@ -547,7 +547,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               <div className="mt-6 pt-4 border-t border-[#1b1f30] space-y-2 text-xs text-gray-300">
-                <div className="flex items-center gap-2 text-amber-200">✓ Unlimited PipNex Pulse Signals</div>
+                <div className="flex items-center gap-2 text-amber-200">✓ Unlimited PipTraderAI Pulse Signals</div>
                 <div className="flex items-center gap-2">✓ Direct AI Chart Analysis (no uploads)</div>
                 <div className="flex items-center gap-2">✓ Prompt Trading UI</div>
                 <div className="flex items-center gap-2">✓ MT5 Account Connection</div>
@@ -658,7 +658,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Regulatory & Risk Disclaimer as mandated */}
           <div className="pt-6 border-t border-[#0f111e] space-y-2 text-[11px] text-gray-400 leading-relaxed">
             <p>
-              <strong>Disclaimer &amp; Decision Support Notice:</strong> PipnexAi Algo and Gemina AI are designed exclusively as AI-powered analysis, educational, and decision-support tools. PipNex does not offer guaranteed profits, guaranteed signals, or get-rich-quick claims. Trading Foreign Exchange (Forex) and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with capital you cannot afford to lose.
+              <strong>Disclaimer &amp; Decision Support Notice:</strong> PipnexAi Algo and Gemina AI are designed exclusively as AI-powered analysis, educational, and decision-support tools. PipTraderAI does not offer guaranteed profits, guaranteed signals, or get-rich-quick claims. Trading Foreign Exchange (Forex) and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with capital you cannot afford to lose.
             </p>
             <p className="text-gray-400">
               © {new Date().getFullYear()} PipnexAi Algo. All rights reserved. Support: Pipnexaicustomer@gmail.com · +254726222093

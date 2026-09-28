@@ -1001,7 +1001,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="bg-white border border-rose-200 rounded-3xl max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center gap-2 text-rose-600">
               <AlertTriangle className="w-5 h-5" />
-              <h3 className="text-sm font-bold text-[#0f172a]">Delete PipNex Account?</h3>
+              <h3 className="text-sm font-bold text-[#0f172a]">Delete PipTraderAI Account?</h3>
             </div>
             <p className="text-xs text-[#475569] leading-relaxed">
               Are you sure you want to delete your account? All automated bot parameters, backtesting logs, and MT5 API bridge keys will be permanently erased.

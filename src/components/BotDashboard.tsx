@@ -593,7 +593,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                   <div className="w-7 h-7 rounded-lg bg-[#f0edfe] dark:bg-[#18152e] border border-purple-200 dark:border-purple-500/30 flex items-center justify-center text-[#5b3fe4] dark:text-purple-400 shadow-xs">
                     <Sparkles className="w-3.5 h-3.5" />
                   </div>
-                  <span className="text-sm font-black text-[#0f172a] dark:text-white font-mono">PipNex</span>
+                  <span className="text-sm font-black text-[#0f172a] dark:text-white font-mono">PipTraderAI</span>
                   <span className="text-gray-300 dark:text-gray-600 font-light">/</span>
                 </div>
                 <span className="font-bold text-[#0f172a] dark:text-white text-xs sm:text-sm uppercase tracking-wider font-mono">
@@ -830,7 +830,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
             onTrialExpired={() => refreshTrialStatus()}
           />
 
-          {/* Horizontal Feature / Quick Access Menu (PipNex AI Pro) */}
+          {/* Horizontal Feature / Quick Access Menu (PipTraderAI Pro) */}
           <HorizontalQuickAccessMenu
             activeTab={activeTab}
             onNavigateToTab={(tabId) => setActiveTab(tabId)}

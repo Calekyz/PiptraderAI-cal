@@ -273,7 +273,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
       {/* Background ambient radial glow matching the image */}
       <div className="absolute -inset-4 bg-gradient-to-b from-indigo-950/40 via-purple-950/20 to-transparent rounded-[38px] blur-2xl -z-10 pointer-events-none" />
 
-      {/* Main PipNex Card */}
+      {/* Main PipTraderAI Card */}
       <div 
         id="pipnex-auth-card"
         className="w-full bg-[#0b0c13]/95 border border-[#1d202e] rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl transition-all duration-300"
@@ -297,7 +297,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
             {/* Top Logo / Branding */}
             <div className="flex items-center justify-center gap-2 mb-6 select-none">
               <div className="relative flex items-center justify-center">
-                {/* PipNex Sparkle Icon */}
+                {/* PipTraderAI Sparkle Icon */}
                 <svg 
                   className="w-8 h-8 text-indigo-400" 
                   viewBox="0 0 24 24" 
@@ -310,7 +310,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
                 </svg>
               </div>
               <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                PipNex
+                PipTraderAI
               </span>
             </div>
 

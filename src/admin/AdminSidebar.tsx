@@ -118,7 +118,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-sm text-white tracking-wide">PipNex AI</span>
+                <span className="font-bold text-sm text-white tracking-wide">PipTraderAI</span>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
                   Admin
                 </span>

@@ -346,7 +346,7 @@ export const PositionCalculatorView: React.FC = () => {
   // Copy results summary
   const handleCopyResults = () => {
     if (!calculation) return;
-    const text = `PipNex Position Calculation:
+    const text = `PipTraderAI Position Calculation:
 Pair: ${selectedSymbol} (${direction})
 Entry: ${entryPrice}
 Stop Loss: ${stopLoss} (${calculation.slPips.toFixed(1)} pips)

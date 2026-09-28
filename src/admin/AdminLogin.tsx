@@ -43,7 +43,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
         <div className="flex items-center justify-between mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold tracking-wide uppercase">
             <Shield className="w-3.5 h-3.5" />
-            PipNex Security Gateway
+            PipTraderAI Security Gateway
           </div>
           <span className="text-[11px] font-mono text-slate-500 bg-[#161a30] px-2 py-0.5 rounded border border-[#232847]">
             v2.4.0
@@ -58,7 +58,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                PipNex AI Admin Panel
+                PipTraderAI Admin Panel
               </h1>
               <p className="text-xs text-slate-400">
                 Authorized administrator credentials required
@@ -156,7 +156,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess, onBackTo
             onClick={onBackToApp}
             className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
-            ← Return to PipNex Trader Portal
+            ← Return to PipTraderAI Trader Portal
           </button>
         </div>
       </div>

@@ -342,7 +342,7 @@ export const EmailVerificationCard: React.FC<EmailVerificationCardProps> = ({
       {/* Security notice */}
       <div className="bg-slate-900/40 rounded-xl p-3 border border-slate-800/50 flex items-center gap-2 text-[11px] text-slate-400">
         <Lock className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-        <span>End-to-end encrypted 6-digit OTP verification powered by PipNex Auth.</span>
+        <span>End-to-end encrypted 6-digit OTP verification powered by PipTraderAI Auth.</span>
       </div>
     </div>
   );

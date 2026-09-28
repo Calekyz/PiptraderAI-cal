@@ -45,7 +45,7 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
     {
       id: 'msg-init',
       sender: 'gemina',
-      text: "Hello! I am your PipNex Engine assistant. I can give you live rule-based setups (SMC, CRT, Asian Sweep, Price Action), news bias, and platform help. Try: \"Give me a setup for Gold\" or \"Is USD strong today?\"",
+      text: "Hello! I am your PipTraderAI Engine assistant. I can give you live rule-based setups (SMC, CRT, Asian Sweep, Price Action), news bias, and platform help. Try: \"Give me a setup for Gold\" or \"Is USD strong today?\"",
       timestamp: 'Just now'
     }
   ]);
@@ -247,7 +247,7 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-white text-base tracking-tight">🤖 PipNex Assistant</h3>
+                <h3 className="font-bold text-white text-base tracking-tight">🤖 PipTraderAI Assistant</h3>
                 <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#2962ff]/20 text-[#2962ff] border border-[#2962ff]/40">v3.0</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-950/60 text-emerald-300 border border-emerald-800/60 hidden sm:inline">Rule Engine</span>
               </div>

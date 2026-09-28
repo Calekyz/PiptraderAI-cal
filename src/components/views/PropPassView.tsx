@@ -107,7 +107,7 @@ export const PropPassView: React.FC<{ onNavigateToTab?: (tab: string) => void }>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-white tracking-tight">
-                PipNex <span className="text-[#f5a623]">PropPass</span>
+                PipTraderAI <span className="text-[#f5a623]">PropPass</span>
               </h2>
               <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-md bg-[#2b220e] text-[#f5a623] border border-[#f5a623]/35 font-bold">
                 ULTIMATE

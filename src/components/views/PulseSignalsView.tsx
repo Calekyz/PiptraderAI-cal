@@ -164,7 +164,7 @@ Setup: ${sig.setupType}`;
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                PipNex Pulse Signals
+                PipTraderAI Pulse Signals
               </h1>
               <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold font-mono uppercase flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -226,7 +226,7 @@ Setup: ${sig.setupType}`;
           <RefreshCw className="w-8 h-8 text-purple-400 animate-spin" />
           <div className="text-center">
             <h3 className="text-sm font-bold text-white">Scanning Live Market Structure</h3>
-            <p className="text-xs text-gray-400 mt-1">PipNex AI evaluating M15 order blocks, liquidity pools &amp; Fair Value Gaps...</p>
+            <p className="text-xs text-gray-400 mt-1">PipTraderAI evaluating M15 order blocks, liquidity pools &amp; Fair Value Gaps...</p>
           </div>
         </div>
       ) : (
@@ -375,7 +375,7 @@ Setup: ${sig.setupType}`;
             </h3>
           </div>
           <p className="text-xs text-gray-400 max-w-xl">
-            Stream signals directly into your MT4/MT5 PipNex bots with instant automated 1-click execution.
+            Stream signals directly into your MT4/MT5 PipTraderAI bots with instant automated 1-click execution.
           </p>
         </div>
 

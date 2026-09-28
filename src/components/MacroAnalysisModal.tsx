@@ -178,7 +178,7 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
               <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-[#0e1122] border border-gray-200 dark:border-[#1b2240] space-y-2">
                 <div className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold text-xs">
                   <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                  <span>PipNex Auto-Trading Guard Recommendations</span>
+                  <span>PipTraderAI Auto-Trading Guard Recommendations</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-600 dark:text-gray-300">
                   <div className="flex items-start gap-2 bg-white dark:bg-[#090b16] p-2 rounded-lg border border-gray-200 dark:border-[#161a30]">

@@ -103,7 +103,7 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
       const updated = await AdminApi.replyTicket(
         activeTicket.id,
         replyText.trim(),
-        'PipNex Support Desk',
+        'PipTraderAI Support Desk',
         replyStatus
       );
 

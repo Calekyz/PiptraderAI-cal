@@ -15,7 +15,7 @@ export const MaintenancePage: React.FC = () => {
           <span className="clay-dot clay-dot-lavender" />
         </div>
 
-        <p className="clay-kicker">PipNex AI</p>
+        <p className="clay-kicker">PipTraderAI</p>
 
         <h1 className="clay-heading">
           Under Maintenance

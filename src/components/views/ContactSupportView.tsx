@@ -36,7 +36,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'agent' | 'user'; text: string; time: string }>>([
     {
       sender: 'agent',
-      text: 'Hello! I am Alex from the PipNex Senior Engineering Desk. How can I assist you with your bots, bridge, or signals today?',
+      text: 'Hello! I am Alex from the PipTraderAI Senior Engineering Desk. How can I assist you with your bots, bridge, or signals today?',
       time: 'Just now'
     }
   ]);
@@ -317,7 +317,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
                   <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0e101c]" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-white">PipNex Live Engineering Desk</div>
+                  <div className="text-xs font-bold text-white">PipTraderAI Live Engineering Desk</div>
                   <div className="text-[10px] text-emerald-400 font-mono">Agent Active • 24/7 Priority</div>
                 </div>
               </div>

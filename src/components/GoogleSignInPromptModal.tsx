@@ -91,7 +91,7 @@ export const GoogleSignInPromptModal: React.FC<GoogleSignInPromptModalProps> = (
             {isSignUp ? 'Create account with Google' : 'Sign in with Google'}
           </h4>
           <p className="text-xs text-gray-500 text-center mt-1">
-            to continue to <span className="font-semibold text-indigo-700">PipNex Forex Trading</span>
+            to continue to <span className="font-semibold text-indigo-700">PipTraderAI Forex Trading</span>
           </p>
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
