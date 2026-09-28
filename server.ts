@@ -2464,6 +2464,18 @@ app.post('/api/auth/register', async (req, res) => {
       }
     }
 
+    // Capture IP for legal record (terms acceptance proof)
+    const clientIp = String(
+      req.headers['x-forwarded-for'] ||
+      req.headers['x-real-ip'] ||
+      req.socket?.remoteAddress ||
+      req.connection?.remoteAddress ||
+      'unknown'
+    ).split(',')[0].trim();
+
+    // Terms version — bump this string when the T&C text changes
+    const TERMS_VERSION = 'v1.0-2026-09';
+
     const newUser = db.createUser({
       id: userId,
       email: cleanEmail,
@@ -2482,6 +2494,10 @@ app.post('/api/auth/register', async (req, res) => {
       // Referral fields
       ...(myRefCode && { referralCode: myRefCode }),
       ...(referredByCode && { referredBy: referredByCode }),
+      // Legal record — terms acceptance
+      termsAcceptedAt: new Date().toISOString(),
+      termsVersion: TERMS_VERSION,
+      termsAcceptedIp: clientIp,
     } as any);
 
     const otpCode = crypto.randomInt(100000, 999999).toString();

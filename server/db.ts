@@ -67,6 +67,9 @@ export interface UserEntity {
   mt5AccountNumber?: string;
   referralCode?: string;
   referredBy?: string;
+  termsAcceptedAt?: string;
+  termsVersion?: string;
+  termsAcceptedIp?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -403,6 +406,9 @@ function rowToUser(r: any): UserEntity {
     mt5AccountNumber: r.mt5AccountNumber || undefined,
     referralCode: r.referralCode ?? r.referral_code ?? undefined,
     referredBy: r.referredBy ?? r.referred_by ?? undefined,
+    termsAcceptedAt: r.termsAcceptedAt ?? r.terms_accepted_at ?? undefined,
+    termsVersion: r.termsVersion ?? r.terms_version ?? undefined,
+    termsAcceptedIp: r.termsAcceptedIp ?? r.terms_accepted_ip ?? undefined,
     createdAt: toIso(r.createdAt) || new Date().toISOString(),
     updatedAt: toIso(r.updatedAt) || new Date().toISOString(),
   };
@@ -442,6 +448,9 @@ function userToRow(u: UserEntity) {
     mt5AccountNumber: u.mt5AccountNumber ?? null,
     referralCode: u.referralCode ?? null,
     referredBy: u.referredBy ?? null,
+    termsAcceptedAt: toDate(u.termsAcceptedAt),
+    termsVersion: u.termsVersion ?? null,
+    termsAcceptedIp: u.termsAcceptedIp ?? null,
     createdAt: toDate(u.createdAt) || new Date(),
     updatedAt: toDate(u.updatedAt) || new Date(),
   };
