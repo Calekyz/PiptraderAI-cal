@@ -37,3 +37,17 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
+
+// ═══════════════════════════════════════════════════
+// Fade out the HTML splash loader once React has mounted
+// ═══════════════════════════════════════════════════
+if (typeof window !== 'undefined') {
+  const splash = document.getElementById('app-splash');
+  if (splash) {
+    // Small delay to ensure React has painted the first frame
+    setTimeout(() => {
+      splash.style.opacity = '0';
+      setTimeout(() => splash.remove(), 500); // Remove after fade completes
+    }, 400);
+  }
+}
