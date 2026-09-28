@@ -62,15 +62,38 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
   // Referral code
   const [referralCode, setReferralCode] = useState('');
 
-  // Capture ?ref=XXX from URL on mount
+  // Capture referral code from URL on mount
+  // Supports: /ref/XXX, /referral/XXX, ?ref=XXX, #/ref/XXX
   React.useEffect(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const urlRef = params.get('ref');
+      let urlRef: string | null = null;
+      let source = '';
+
+      // Format 1: ?ref=XXX (query string)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const qRef = params.get('ref');
+        if (qRef) { urlRef = qRef; source = 'query'; }
+      } catch {}
+
+      // Format 2: /ref/XXX (path segment)
+      if (!urlRef) {
+        const pathMatch = window.location.pathname.match(/\/ref\/([A-Z0-9]+)/i);
+        if (pathMatch) { urlRef = pathMatch[1]; source = 'path'; }
+      }
+
+      // Format 3: /referral/XXX or #/ref/XXX
+      if (!urlRef) {
+        const altMatch = window.location.pathname.match(/\/referral\/([A-Z0-9]+)/i)
+                      || window.location.hash.match(/ref[=\/]([A-Z0-9]+)/i);
+        if (altMatch) { urlRef = altMatch[1]; source = 'alt'; }
+      }
+
       if (urlRef) {
         const clean = urlRef.trim().toUpperCase();
         setReferralCode(clean);
         try { localStorage.setItem('pending_referral', clean); } catch {}
+        console.log(`[Referral] Captured from ${source}:`, clean);
       } else {
         try {
           const stored = localStorage.getItem('pending_referral');
@@ -686,7 +709,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
                     <input
                       id="input-referral"
                       type="text"
-                      placeholder="PIU7501"
+                      placeholder="Enter referral code"
                       value={referralCode}
                       onChange={(e) => {
                         setReferralCode(e.target.value.toUpperCase());
