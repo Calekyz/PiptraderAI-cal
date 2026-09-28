@@ -49,6 +49,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   currentTheme = 'dark',
   onSetTheme
 }) => {
+  // Plan access helper
+  const planOrder: Record<string, number> = { Pending: 0, Starter: 1, Pro: 2, Elite: 3 };
+  const userLevel = planOrder[user?.plan || 'Pending'] ?? 0;
+  const hasElite = userLevel >= 3;
+
   // Notification Toggles
   const [pushNotifications, setPushNotifications] = useState(true);
   const [tradeAlerts, setTradeAlerts] = useState(true);
@@ -347,15 +352,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           Connect your MT5 account for automated trading, PropPass, and AI position sizing.
         </p>
 
-        {/* Upgrade to Platinum Button */}
+        {/* Elite Feature — unlock or connect */}
         <div className="pt-2">
-          <button
-            onClick={() => onOpenUpgrade?.('Elite')}
-            className="px-6 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] active:scale-[0.98] text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>Upgrade to Platinum</span>
-          </button>
+          {hasElite ? (
+            <button
+              onClick={() => onUpdateUser({ mt5Connected: !user.mt5Connected })}
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>{user.mt5Connected ? 'MT5 Connected ✓' : 'Connect MT5 Account'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenUpgrade?.('Elite')}
+              className="px-6 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] active:scale-[0.98] text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Upgrade to Elite</span>
+            </button>
+          )}
         </div>
       </div>
 

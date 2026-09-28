@@ -49,6 +49,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   onOpenUpgrade,
   onNavigateToTab,
 }) => {
+
+  // Plan access helpers
+  const planOrder: Record<string, number> = { Pending: 0, Starter: 1, Pro: 2, Elite: 3 };
+  const userLevel = planOrder[user?.plan || 'Pending'] ?? 0;
+  const hasPro = userLevel >= 2;
+  const hasElite = userLevel >= 3;
+
   const [referralTab, setReferralTab] = useState<'Overview' | 'Referrals' | 'Withdrawals'>('Overview');
   const [copiedRef, setCopiedRef] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -323,13 +330,23 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         <div className="pt-2">
-          <button
-            onClick={() => onOpenUpgrade('Elite')}
-            className="px-6 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
-          >
-            <Crown className="w-3.5 h-3.5 text-amber-300" />
-            <span>Upgrade to Unlock</span>
-          </button>
+          {hasElite ? (
+            <button
+              onClick={() => onNavigateToTab('pulse-signals')}
+              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-300" />
+              <span>View Signal of the Day</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenUpgrade('Elite')}
+              className="px-6 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Crown className="w-3.5 h-3.5 text-amber-300" />
+              <span>Upgrade to Unlock</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -363,12 +380,21 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             Upgrade to Pro (or higher) to receive high-confidence NFP &amp; CPI trading signals
           </p>
           <div className="pt-1">
-            <button
-              onClick={() => onOpenUpgrade('Pro')}
-              className="px-7 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
-            >
-              Upgrade to Pro
-            </button>
+            {hasPro ? (
+              <button
+                onClick={() => onNavigateToTab('news-calendar')}
+                className="px-7 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
+              >
+                View NFP/CPI Signals
+              </button>
+            ) : (
+              <button
+                onClick={() => onOpenUpgrade('Pro')}
+                className="px-7 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
+              >
+                Upgrade to Pro
+              </button>
+            )}
           </div>
         </div>
       </div>
