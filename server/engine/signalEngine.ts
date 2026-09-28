@@ -158,7 +158,8 @@ export function analyzeMarket(params: {
   const trend = swings.length >= 4 ? classifyTrend(swings) : 'Sideways';
 
   // ─── Session detection ─────────────────────────────────────────────
-  const lastCandleTime = candles.length > 0 ? candles[candles.length - 1].time : Date.now();
+  const lastCandle = candles.length > 0 ? candles[candles.length - 1] as any : null;
+  const lastCandleTime = lastCandle ? (Number(lastCandle.timestamp) || Number(lastCandle.time) || Date.now()) : Date.now();
   const session = detectSession(lastCandleTime);
 
   // ─── Run all 4 strategies ──────────────────────────────────────────
