@@ -48,6 +48,20 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
   const [upNextHighlightId, setUpNextHighlightId] = useState<string | null>(null);
   const [showFullCalendar, setShowFullCalendar] = useState(false);
 
+  // Format event time in USER's local timezone
+  const formatLocalTime = (evt: any): string => {
+    if (!evt?.timestamp) return evt?.formattedDate || evt?.dayDate || 'Scheduled';
+    const d = new Date(Number(evt.timestamp));
+    return d.toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   // ═══ UPCOMING EVENTS — only future events, sorted by soonest first ═══
   const upcomingEvents = useMemo(() => {
     const now = Date.now();
@@ -280,7 +294,7 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
                   {upcomingEvents[0].title}
                 </div>
                 <div className="text-[11px] text-[#64748b] font-mono">
-                  {upcomingEvents[0].formattedDate || upcomingEvents[0].dayDate || 'Scheduled'} · {upcomingEvents[0].time || ''}
+                  {formatLocalTime(upcomingEvents[0])}
                 </div>
               </div>
 
@@ -325,7 +339,7 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
                       {evt.title}
                     </div>
                     <div className="text-[11px] text-[#64748b] font-mono">
-                      {evt.formattedDate || evt.dayDate || 'Scheduled'} · {evt.time || ''}
+                      {formatLocalTime(evt)}
                     </div>
                   </div>
 

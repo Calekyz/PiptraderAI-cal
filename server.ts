@@ -3464,18 +3464,27 @@ app.get(['/api/forex-factory-calendar', '/api/macro-news', '/api/forex-factory-n
 
     if (!events || events.length === 0) {
       const now = Date.now();
+      // Generate fallback data relative to today so it's never stale
+      const nowDate = new Date();
+      const dayOffset = (days: number, hourUtc: number) => {
+        const d = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate() + days, hourUtc, 30, 0));
+        return d;
+      };
+      const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
+      const dayStr = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
       const fallbackList = [
-        { title: 'German ifo Business Climate', currency: 'EUR', impact: 'Medium' as const, time: '9:00am', dayDate: 'Mon Aug 24', forecast: '86.0', previous: '87.0', actual: '86.6' },
-        { title: 'Core Durable Goods Orders m/m', currency: 'USD', impact: 'High' as const, time: '1:30pm', dayDate: 'Mon Aug 24', forecast: '0.2%', previous: '0.1%', actual: '0.4%' },
-        { title: 'CB Consumer Confidence', currency: 'USD', impact: 'High' as const, time: '3:00pm', dayDate: 'Tue Aug 25', forecast: '100.9', previous: '100.3', actual: '103.3' },
-        { title: 'CPI m/m & Core CPI y/y', currency: 'USD', impact: 'High' as const, time: '1:30pm', dayDate: 'Tue Aug 25', forecast: '0.2%', previous: '0.3%', actual: undefined },
-        { title: 'Fed Chair Powell Speaks at Economic Summit', currency: 'USD', impact: 'High' as const, time: '6:00pm', dayDate: 'Wed Aug 26', forecast: 'Hawkish Guidance', previous: '5.25% - 5.50%', actual: undefined },
-        { title: 'Main Refinancing Rate & Policy Statement', currency: 'EUR', impact: 'High' as const, time: '1:15pm', dayDate: 'Thu Aug 27', forecast: '3.65%', previous: '3.75%', actual: undefined },
-        { title: 'Official Bank Rate & MPC Votes', currency: 'GBP', impact: 'High' as const, time: '12:00pm', dayDate: 'Thu Aug 27', forecast: '5.00%', previous: '5.25%', actual: undefined },
-        { title: 'US Preliminary GDP q/q', currency: 'USD', impact: 'High' as const, time: '1:30pm', dayDate: 'Thu Aug 27', forecast: '2.8%', previous: '2.8%', actual: undefined },
-        { title: 'Non-Farm Employment Change (NFP)', currency: 'USD', impact: 'High' as const, time: '1:30pm', dayDate: 'Fri Aug 28', forecast: '185K', previous: '223K', actual: undefined },
-        { title: 'Unemployment Rate', currency: 'USD', impact: 'High' as const, time: '1:30pm', dayDate: 'Fri Aug 28', forecast: '4.3%', previous: '4.3%', actual: undefined },
-        { title: 'ISM Manufacturing PMI', currency: 'USD', impact: 'High' as const, time: '3:00pm', dayDate: 'Fri Aug 28', forecast: '49.8', previous: '48.5', actual: undefined }
+        { title: 'German ifo Business Climate', currency: 'EUR', impact: 'Medium' as const, time: fmt(dayOffset(1, 9)), dayDate: dayStr(dayOffset(1, 9)), forecast: '86.0', previous: '87.0', actual: undefined, timestamp: dayOffset(1, 9).getTime() },
+        { title: 'Core Durable Goods Orders m/m', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(1, 13)), dayDate: dayStr(dayOffset(1, 13)), forecast: '0.2%', previous: '0.1%', actual: undefined, timestamp: dayOffset(1, 13).getTime() },
+        { title: 'CB Consumer Confidence', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(2, 15)), dayDate: dayStr(dayOffset(2, 15)), forecast: '100.9', previous: '100.3', actual: undefined, timestamp: dayOffset(2, 15).getTime() },
+        { title: 'CPI m/m & Core CPI y/y', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(2, 13)), dayDate: dayStr(dayOffset(2, 13)), forecast: '0.2%', previous: '0.3%', actual: undefined, timestamp: dayOffset(2, 13).getTime() },
+        { title: 'FOMC Statement', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(3, 18)), dayDate: dayStr(dayOffset(3, 18)), forecast: 'Hawkish', previous: '5.25% - 5.50%', actual: undefined, timestamp: dayOffset(3, 18).getTime() },
+        { title: 'Main Refinancing Rate & Policy Statement', currency: 'EUR', impact: 'High' as const, time: fmt(dayOffset(3, 13)), dayDate: dayStr(dayOffset(3, 13)), forecast: '3.65%', previous: '3.75%', actual: undefined, timestamp: dayOffset(3, 13).getTime() },
+        { title: 'Official Bank Rate & MPC Votes', currency: 'GBP', impact: 'High' as const, time: fmt(dayOffset(4, 12)), dayDate: dayStr(dayOffset(4, 12)), forecast: '5.00%', previous: '5.25%', actual: undefined, timestamp: dayOffset(4, 12).getTime() },
+        { title: 'US Preliminary GDP q/q', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(4, 13)), dayDate: dayStr(dayOffset(4, 13)), forecast: '2.8%', previous: '2.8%', actual: undefined, timestamp: dayOffset(4, 13).getTime() },
+        { title: 'Non-Farm Employment Change (NFP)', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(5, 13)), dayDate: dayStr(dayOffset(5, 13)), forecast: '185K', previous: '223K', actual: undefined, timestamp: dayOffset(5, 13).getTime() },
+        { title: 'Unemployment Rate', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(5, 13)), dayDate: dayStr(dayOffset(5, 13)), forecast: '4.3%', previous: '4.3%', actual: undefined, timestamp: dayOffset(5, 13).getTime() },
+        { title: 'ISM Manufacturing PMI', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(5, 15)), dayDate: dayStr(dayOffset(5, 15)), forecast: '49.8', previous: '48.5', actual: undefined, timestamp: dayOffset(5, 15).getTime() }
       ];
 
       events = fallbackList.map((item, idx) => {
@@ -3493,8 +3502,17 @@ app.get(['/api/forex-factory-calendar', '/api/macro-news', '/api/forex-factory-n
           dayDate: item.dayDate,
           dayName: item.dayDate.split(' ')[0],
           formattedDate: `${item.dayDate}, 2026`,
-          timestamp: now + (idx * 14400000),
-          countdown: `${idx * 4 + 2}h ${15 + idx * 5}m`,
+          timestamp: item.timestamp || (now + (idx * 14400000)),
+          countdown: (() => {
+            const ts = item.timestamp || (now + (idx * 14400000));
+            const diff = ts - now;
+            if (diff <= 0) return 'Released';
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(hours / 24);
+            const remHrs = hours % 24;
+            const mins = Math.floor((diff % 3600000) / 60000);
+            return days > 0 ? `${days}d ${remHrs}h` : `${hours}h ${mins}m`;
+          })(),
           consensus: item.forecast,
           forecast: item.forecast,
           previous: item.previous,

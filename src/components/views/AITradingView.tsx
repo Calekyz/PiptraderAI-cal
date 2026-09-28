@@ -444,12 +444,25 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
   };
 
   const handleQuickAction = async (actionText: string) => {
+    // Translate UI button labels → engine-friendly queries
+    const LABEL_MAP: Record<string, string> = {
+      'Explain This': `Give me a setup for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+      'Find Support & Resistance': `Find Support & Resistance for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+      'Analyze Trend': `Analyze Trend for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+      'Explain Liquidity': `Explain Liquidity for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+      'Find Possible Setups': `Find Possible Setups for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+      'Key Levels': `Find Support & Resistance for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+      'Trend': `Analyze Trend for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+      'Liquidity': `Explain Liquidity for ${selectedAsset.symbol} on ${currentTfObj.api}`,
+    };
+    const engineQuery = LABEL_MAP[actionText] || `${actionText} for ${selectedAsset.symbol} on ${currentTfObj.api}`;
+    const userDisplay = actionText;
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Add user's question to chat
     setChatMessages((prev) => [
       ...prev,
-      { sender: 'user', text: actionText, time }
+      { sender: 'user', text: userDisplay, time }
     ]);
 
     // Show a "thinking" state
@@ -460,9 +473,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
       const response = await fetch('/api/engine/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `${actionText} for ${selectedAsset.symbol} on ${currentTfObj.api} timeframe`
-        })
+        body: JSON.stringify({ message: engineQuery })
       });
 
       const data = await response.json();
