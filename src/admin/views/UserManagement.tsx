@@ -1136,12 +1136,50 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               </div>
             </div>
 
+            {/* Legal — T&C Acceptance */}
+            <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-700/40 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                  <span>📄</span> Legal Record
+                </span>
+                <button
+                  onClick={() => window.open(`/api/admin/users/${activeUser.id}/terms-pdf`, '_blank')}
+                  className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 underline"
+                >
+                  Download PDF →
+                </button>
+              </div>
+              <div className="flex justify-between py-1 border-b border-emerald-900/40">
+                <span className="text-slate-400">T&C Accepted</span>
+                <span className="text-slate-200 font-mono">
+                  {(activeUser as any).termsAcceptedAt
+                    ? new Date((activeUser as any).termsAcceptedAt).toLocaleString()
+                    : 'Not recorded'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-emerald-900/40">
+                <span className="text-slate-400">Terms Version</span>
+                <span className="text-slate-200 font-mono">{(activeUser as any).termsVersion || '—'}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-slate-400">Acceptance IP</span>
+                <span className="text-slate-200 font-mono">{(activeUser as any).termsAcceptedIp || '—'}</span>
+              </div>
+            </div>
+
             <div className="pt-4 border-t border-[#1e233d] flex gap-2">
               <button onClick={() => { setIsDetailDrawerOpen(false); handleOpenMessage(activeUser); }} className="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5" /> Message
               </button>
               <button onClick={() => { setIsDetailDrawerOpen(false); handleOpenCredit(activeUser); }} className="py-2 px-3 rounded-xl bg-[#1a1f38] hover:bg-[#252c4e] text-amber-400 text-xs font-semibold">
                 Credits
+              </button>
+              <button
+                onClick={() => window.open(`/api/admin/users/${activeUser.id}/terms-pdf`, '_blank')}
+                title="Download signed Terms & Conditions as PDF"
+                className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5"
+              >
+                📄 T&amp;C PDF
               </button>
             </div>
           </div>

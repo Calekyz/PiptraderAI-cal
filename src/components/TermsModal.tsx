@@ -92,6 +92,12 @@ export const TermsModal: React.FC<TermsModalProps> = ({
               <section>
                 <h4 className="text-sm font-bold text-white mb-2">1. Acceptance of Terms</h4>
                 <p>
+                  <strong className="text-white">Operated by:</strong> CALEKYZ DIGITALISED SERVICE ENTERPRISES, a business duly registered under the Registrar of Companies, Republic of Kenya.
+                </p>
+                <p>
+                  <strong className="text-white">Effective Date:</strong> September 2026 · <strong className="text-white">Terms Version:</strong> v1.0-2026-09
+                </p>
+                <p>
                   By accessing or using the PipTraderAI platform ("Service"), you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you must not use the Service. These terms apply to all visitors, users, and others who access or use the Service.
                 </p>
               </section>
@@ -258,6 +264,9 @@ export const TermsModal: React.FC<TermsModalProps> = ({
 
               <section>
                 <h4 className="text-sm font-bold text-white mb-2">6. Cookies</h4>
+                <p>
+                  <strong className="text-white">Data Controller:</strong> CALEKYZ DIGITALISED SERVICE ENTERPRISES (Registrar of Companies, Republic of Kenya).
+                </p>
                 <p>
                   PipTraderAI uses cookies and similar technologies to maintain your session, remember your preferences, and analyze usage. You can control cookies through your browser settings, though disabling them may affect platform functionality.
                 </p>
