@@ -2,6 +2,7 @@ import React from 'react';
 import { UserProfile, TrialStatusResponse } from '../types';
 import { Lock, Zap, ShieldCheck, Sparkles, CheckCircle2, ArrowRight, Clock, Star } from 'lucide-react';
 import { motion } from 'motion/react';
+import { isPaidPlan } from '../lib/planAccess';
 
 interface PremiumLockProps {
   featureName: string;
@@ -25,7 +26,7 @@ export const PremiumLock: React.FC<PremiumLockProps> = ({
   benefits
 }) => {
   // Determine if unlocked
-  const isPaid = Boolean(user && user.plan && user.plan !== 'Free Trial');
+  const isPaid = isPaidPlan(user?.plan);
   const isEarlyAccess = Boolean(user?.isEarlyAccessUser || trialStatus?.isEarlyAccessUser);
   
   // Calculate if trial is actively valid

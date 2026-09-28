@@ -700,7 +700,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                         </div>
                         <div className="mt-1">
                           <span className="px-2.5 py-0.5 rounded-md bg-[#f0edfe] dark:bg-[#1c1635] text-[#5b3fe4] dark:text-purple-300 text-[11px] font-medium tracking-wide inline-block border border-purple-200 dark:border-purple-500/30">
-                            {user.plan === 'Platinum' ? 'Platinum Tier' : 'Free Trial'}
+                            {user.plan === 'Elite' ? 'Elite Tier' : (user.plan === 'Pro' ? 'Pro Tier' : 'Trial')}
                           </span>
                         </div>
                       </div>

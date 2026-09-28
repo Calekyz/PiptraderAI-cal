@@ -134,7 +134,7 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
                 <div className="text-xs font-bold text-white flex items-center gap-2">
                   <span>Current Membership</span>
                   <span className="px-2 py-0.5 rounded bg-purple-900/50 text-purple-300 text-[10px] font-mono border border-purple-500/30">
-                    {user.plan || 'Trial'}
+                    {user.plan && user.plan !== 'Pending' ? user.plan : 'Trial'}
                   </span>
                 </div>
                 <div className="text-[11px] text-gray-400 mt-0.5">Renews automatically</div>

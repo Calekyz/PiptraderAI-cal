@@ -597,7 +597,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 <Shield className="w-3.5 h-3.5 text-gray-400" />
                 <span>Membership Plan:</span>
               </span>
-              <span className="font-semibold text-[#5b3fe4] dark:text-purple-400">{user.plan || 'Free Trial'}</span>
+              <span className="font-semibold text-[#5b3fe4] dark:text-purple-400">{user.plan && user.plan !== 'Pending' ? user.plan : 'Trial'}</span>
             </div>
             <div className="flex items-center justify-between border-b border-[#f1f5f9] dark:border-[#171a27] pb-2">
               <span className="text-[#64748b] dark:text-slate-400 flex items-center gap-1.5">
@@ -644,7 +644,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span className="font-mono font-bold text-[#0f172a] dark:text-white">0 / 0</span>
           </div>
           <div className="flex items-center justify-between pt-1">
-            <span className="text-[#475569] dark:text-slate-400">Current Plan: <strong className="text-[#5b3fe4] dark:text-purple-400">{user.plan || 'Free Trial'}</strong></span>
+            <span className="text-[#475569] dark:text-slate-400">Current Plan: <strong className="text-[#5b3fe4] dark:text-purple-400">{user.plan && user.plan !== 'Pending' ? user.plan : 'Trial'}</strong></span>
             <span className="text-[11px] text-[#64748b] dark:text-slate-400 font-mono">Trial Active</span>
           </div>
         </div>

@@ -24,7 +24,7 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({
   onOpenUpgrade 
 }) => {
   // If user is not platinum or in preview mode, display the exact Platinum Feature lock screen from Screenshot 1
-  const [isUnlocked, setIsUnlocked] = useState(user?.plan === 'Platinum' || user?.plan === 'Ultimate');
+  const [isUnlocked, setIsUnlocked] = useState(user?.plan === 'Pro' || user?.plan === 'Elite');
   const [isLive, setIsLive] = useState(true);
   const [riskPercent, setRiskPercent] = useState('1.5');
   const [maxOpenTrades, setMaxOpenTrades] = useState('4');

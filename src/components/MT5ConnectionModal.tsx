@@ -28,7 +28,7 @@ export const MT5ConnectionModal: React.FC<MT5ConnectionModalProps> = ({
   user,
   onOpenUpgrade
 }) => {
-  const isPlatinum = user.plan === 'Platinum' || user.plan === 'Ultimate';
+  const isPlatinum = user.plan === 'Elite';
 
   const [broker, setBroker] = useState('FTMO-Server');
   const [accountNumber, setAccountNumber] = useState('10984218');
