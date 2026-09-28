@@ -204,7 +204,27 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
         });
 
         setIsLoading(false);
-        if (result.requireVerification) {
+        // NEW FLOW: SMTP disabled — auto-verify
+        if (result.autoVerified) {
+          // Show 4-second "verifying" screen
+          setVerificationEmail(result.email || email.trim().toLowerCase());
+          setVerificationNotice('⏳ Verifying your account...');
+          setShowVerificationStep(true);
+
+          // After 4 seconds, show success and switch to login
+          setTimeout(() => {
+            setVerificationNotice('✅ Account created successfully! Please log in to continue.');
+            setTimeout(() => {
+              setShowVerificationStep(false);
+              setIsSignUp(false); // switch to login tab
+              setErrorMessage(undefined);
+              // Pre-fill email for convenience
+              setEmail(result.email || email.trim().toLowerCase());
+              setPassword('');
+            }, 2500);
+          }, 4000);
+        } else if (result.requireVerification) {
+          // Legacy path — still supported
           setVerificationEmail(result.email || email.trim().toLowerCase());
           setVerificationNotice(result.message);
           setShowVerificationStep(true);
@@ -214,13 +234,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
         }
       } catch (err: any) {
         setIsLoading(false);
-        if (err.requireVerification) {
-          setVerificationEmail(err.email || email.trim().toLowerCase());
-          setVerificationNotice(err.message);
-          setShowVerificationStep(true);
-        } else {
-          setErrorMessage(err.message || 'Failed to sign up. Please try again.');
-        }
+        setErrorMessage(err.message || 'Failed to sign up. Please try again.');
       }
 
     } else {
