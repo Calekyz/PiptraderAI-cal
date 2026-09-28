@@ -48,7 +48,11 @@ import {
   respondToUser,
 } from './server/engine';
 
-const __filename = fileURLToPath(import.meta.url);
+// CJS-safe __filename / __dirname (works when bundled by esbuild to cjs)
+const __filename =
+  typeof __filename !== 'undefined'
+    ? __filename
+    : (typeof require !== 'undefined' && typeof module !== 'undefined' ? require('path').resolve() : process.cwd() + '/server.js');
 const __dirname = path.dirname(__filename);
 
 const app = express();
