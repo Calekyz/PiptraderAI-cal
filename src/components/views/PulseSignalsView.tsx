@@ -62,10 +62,45 @@ export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
     if (showLoadingSpinner) setLoading(true);
     setIsRefreshing(true);
     try {
-      const res = await fetch('/api/pulse-signals');
+      const res = await fetch('/api/engine/scan?timeframe=M15');
       const data = await res.json();
-      if (data.success && Array.isArray(data.signals)) {
-        setSignals(data.signals);
+      if (data.success && Array.isArray(data.results)) {
+        // Transform engine output → PulseSignal shape
+        const transformed: PulseSignal[] = data.results.map((r: any, idx: number) => {
+          const p = r.plan;
+          const rawSymbol = r.symbol || '';
+          // XAUUSD → XAU/USD
+          const prettySymbol = rawSymbol.length >= 6
+            ? `${rawSymbol.slice(0, 3)}/${rawSymbol.slice(3, 6)}`
+            : rawSymbol;
+          const cat: 'Forex' | 'Commodities' | 'Crypto' =
+            rawSymbol.includes('XAU') || rawSymbol.includes('XAG') || rawSymbol.includes('WTI')
+              ? 'Commodities'
+              : rawSymbol.includes('BTC') || rawSymbol.includes('ETH') || rawSymbol.includes('SOL')
+                ? 'Crypto'
+                : 'Forex';
+          return {
+            id: `${r.symbol}-${p.timestamp || idx}`,
+            symbol: prettySymbol,
+            name: rawSymbol,
+            category: cat,
+            direction: p.direction === 'BUY' ? 'BUY' : 'SELL',
+            type: 'Market Execution',
+            interval: p.timeframe || 'M15',
+            entryPrice: String(p.entry),
+            stopLoss: String(p.stopLoss),
+            takeProfit1: String(p.takeProfit1),
+            takeProfit2: String(p.takeProfit2),
+            riskReward: `1:${(p.riskReward || 0).toFixed(1)}`,
+            confidence: p.confidence || 0,
+            setupType: p.setupType || 'Setup',
+            status: 'ACTIVE',
+            pipsGain: '0 Pips',
+            timeAgo: 'live',
+            briefThesis: (p.reasons && p.reasons[0]) || p.marketSummary || 'Engine setup detected.',
+          };
+        });
+        setSignals(transformed);
         setLastUpdated('Just now');
         setRefreshCountdown(45);
       }
