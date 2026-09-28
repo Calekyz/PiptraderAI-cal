@@ -7,6 +7,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://piptraderai-cal.onrender.com/api/:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
