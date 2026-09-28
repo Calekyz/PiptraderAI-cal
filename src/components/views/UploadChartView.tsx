@@ -39,6 +39,8 @@ export interface TradePlan {
 
 export const UploadChartView: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState('XAUUSD');
+  const [selectedTimeframe, setSelectedTimeframe] = useState('M15');
   const [isMultiTimeframe, setIsMultiTimeframe] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
@@ -143,22 +145,68 @@ export const UploadChartView: React.FC = () => {
     if (!imgData || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
-      const res = await fetch('/api/analyze-chart', {
+      // Call the rule-based engine with the selected symbol + timeframe
+      const res = await fetch('/api/engine/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageBase64: imgData,
-          pair: 'UNKNOW',
-          timeframe: isMultiTimeframe ? 'M15/H1' : 'M15'
+          symbol: selectedSymbol,
+          timeframe: selectedTimeframe,
         })
       });
       const data = await res.json();
-      if (data.tradePlan) {
-        setTradePlan(data.tradePlan);
-      } else {
+      const plan = data.plan;
+
+      if (!plan) {
         setTradePlan(defaultBuyPlan);
+        return;
       }
-    } catch {
+
+      // If engine returns WAIT, show informative message instead of fake plan
+      if (plan.direction === 'WAIT') {
+        const waitPlan: TradePlan = {
+          symbol: selectedSymbol,
+          subTitle: 'PipNex Engine · Rule-Based Analysis',
+          direction: plan.trend === 'Bearish' ? 'SHORT' : 'LONG',
+          confidence: plan.confidence || 0,
+          bias: plan.trend === 'Bearish' ? 'Bearish' : plan.trend === 'Bullish' ? 'Bullish' : 'Bullish',
+          entry: plan.currentPrice ? plan.currentPrice.toFixed(selectedDecimals) : '—',
+          orderType: 'No Setup — Wait',
+          stopLoss: '—',
+          stopLossDistance: 'No active setup',
+          takeProfit1: '—',
+          takeProfit2: '—',
+          riskReward: '—',
+          recommendedRisk: 'Wait for confirmation',
+          whyThisTrade: `Engine status: No high-confidence setup on ${selectedSymbol} (${selectedTimeframe}). Current trend: ${plan.trend}. Session: ${plan.session}. RSI: ${plan.rsi ? plan.rsi.toFixed(1) : 'N/A'}. ${plan.marketSummary || ''}`,
+          adjustmentNote: 'Setups only fire above 75% confidence. Try a different timeframe or wait for the next candle close.',
+        };
+        setTradePlan(waitPlan);
+        return;
+      }
+
+      // Real setup — map engine output → TradePlan shape
+      const dec = selectedDecimals;
+      const realPlan: TradePlan = {
+        symbol: selectedSymbol,
+        subTitle: `PipNex Engine · ${plan.strategy} · ${plan.session}`,
+        direction: plan.direction === 'BUY' ? 'LONG' : 'SHORT',
+        confidence: plan.confidence,
+        bias: plan.trend === 'Bearish' ? 'Bearish' : 'Bullish',
+        entry: plan.entry.toFixed(dec),
+        orderType: plan.direction === 'BUY' ? 'Buy Limit / Market' : 'Sell Limit / Market',
+        stopLoss: plan.stopLoss.toFixed(dec),
+        stopLossDistance: `${Math.abs(plan.entry - plan.stopLoss).toFixed(dec)} away`,
+        takeProfit1: plan.takeProfit1.toFixed(dec),
+        takeProfit2: plan.takeProfit2.toFixed(dec),
+        riskReward: `1:${plan.riskReward.toFixed(1)}`,
+        recommendedRisk: '1.0% – 1.5% of equity',
+        whyThisTrade: (plan.reasons || []).join(' · ') + (plan.warnings?.length ? ` ⚠️ ${plan.warnings.join(' · ')}` : ''),
+        adjustmentNote: `Setup type: ${plan.setupType} · Confidence ${plan.confidence}% (min 75%).`,
+      };
+      setTradePlan(realPlan);
+    } catch (err) {
+      console.error('[UploadChart] Engine call failed:', err);
       setTradePlan(defaultBuyPlan);
     } finally {
       setIsAnalyzing(false);
@@ -179,6 +227,12 @@ export const UploadChartView: React.FC = () => {
       setTradePlan(defaultSellPlan);
     }
   };
+
+  const selectedDecimals =
+    selectedSymbol.includes('JPY') ? 3
+    : selectedSymbol.includes('XAU') || selectedSymbol.includes('BTC') || selectedSymbol.includes('ETH') ? 2
+    : selectedSymbol === 'US30' || selectedSymbol === 'NAS100' || selectedSymbol === 'SPX500' ? 1
+    : 5;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
@@ -290,6 +344,71 @@ export const UploadChartView: React.FC = () => {
           <p className="text-xs text-gray-500 pl-6">
             Supports PNG, JPG, JPEG formats up to 20MB
           </p>
+        </div>
+
+        {/* ─── Symbol + Timeframe Selectors ─── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Symbol Selector */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              Symbol to Analyze
+            </label>
+            <select
+              value={selectedSymbol}
+              onChange={(e) => setSelectedSymbol(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-[#0a0c16] border border-[#eaecf0] dark:border-[#1b1f32] text-sm font-mono font-bold text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+            >
+              <optgroup label="Metals">
+                <option value="XAUUSD">XAUUSD — Gold</option>
+                <option value="XAGUSD">XAGUSD — Silver</option>
+              </optgroup>
+              <optgroup label="Forex Majors">
+                <option value="EURUSD">EURUSD — Euro / USD</option>
+                <option value="GBPUSD">GBPUSD — Pound / USD</option>
+                <option value="USDJPY">USDJPY — USD / Yen</option>
+                <option value="USDCHF">USDCHF — USD / Franc</option>
+                <option value="USDCAD">USDCAD — USD / CAD</option>
+                <option value="AUDUSD">AUDUSD — Aussie / USD</option>
+                <option value="NZDUSD">NZDUSD — Kiwi / USD</option>
+              </optgroup>
+              <optgroup label="Crypto">
+                <option value="BTCUSD">BTCUSD — Bitcoin</option>
+                <option value="ETHUSD">ETHUSD — Ethereum</option>
+              </optgroup>
+              <optgroup label="Indices">
+                <option value="US30">US30 — Dow Jones</option>
+                <option value="NAS100">NAS100 — Nasdaq 100</option>
+                <option value="SPX500">SPX500 — S&P 500</option>
+              </optgroup>
+            </select>
+          </div>
+
+          {/* Timeframe Selector */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+              Timeframe
+            </label>
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => setSelectedTimeframe(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-[#0a0c16] border border-[#eaecf0] dark:border-[#1b1f32] text-sm font-mono font-bold text-gray-900 dark:text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+            >
+              <option value="M5">M5 — 5 minutes</option>
+              <option value="M15">M15 — 15 minutes</option>
+              <option value="M30">M30 — 30 minutes</option>
+              <option value="H1">H1 — 1 hour</option>
+              <option value="H4">H4 — 4 hours</option>
+              <option value="D1">D1 — Daily</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Live engine hint */}
+        <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 px-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>
+            Analysis powered by the rule-based engine on <strong className="text-gray-700 dark:text-gray-200">{selectedSymbol}</strong> · <strong className="text-gray-700 dark:text-gray-200">{selectedTimeframe}</strong> live candles. Image is kept for your reference only.
+          </span>
         </div>
 
         {/* Central Dropzone Box */}
