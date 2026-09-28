@@ -47,6 +47,18 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
   const [filterOnlyUpcoming, setFilterOnlyUpcoming] = useState(true); // ✅ CHANGED: default to true
   const [upNextHighlightId, setUpNextHighlightId] = useState<string | null>(null);
 
+  // ═══ UPCOMING EVENTS — only future events, sorted by soonest first ═══
+  const upcomingEvents = useMemo(() => {
+    const now = Date.now();
+    return events
+      .filter((e: any) => {
+        // Must have a timestamp (parsed from date) and be in the future
+        if (!e.timestamp) return false;
+        return Number(e.timestamp) > now;
+      })
+      .sort((a: any, b: any) => Number(a.timestamp) - Number(b.timestamp));
+  }, [events]);
+
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const upNextRef = useRef<HTMLTableRowElement | null>(null);
 
@@ -237,76 +249,95 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
         {/* Next Up Highlight Card */}
         <div 
           onClick={() => {
-            const nextEvt = events.find(e => e.id === upNextHighlightId) || events[0];
+            const nextEvt = upcomingEvents[0];
             if (nextEvt) onOpenMacroAnalysis(nextEvt);
           }}
           className="p-4 rounded-xl bg-[#f5f3ff] border border-[#ddd6fe] shadow-xs space-y-2.5 cursor-pointer hover:border-[#5b3fe4] transition-all group"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#5b3fe4] text-white text-[10px] font-bold shadow-xs">
-                ✨ Next Up
-              </span>
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                Medium
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-white border border-[#e5e7eb] text-[#334155] text-[10px] font-medium">
-                Unemployment
-              </span>
-            </div>
-            <span className="font-bold text-xs text-[#0f172a] font-mono">US</span>
-          </div>
+          {upcomingEvents[0] ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#5b3fe4] text-white text-[10px] font-bold shadow-xs">
+                    ✨ Next Up
+                  </span>
+                  <span className={`flex items-center gap-1 text-[11px] font-semibold ${
+                    upcomingEvents[0].impact === 'High' ? 'text-rose-600' : upcomingEvents[0].impact === 'Medium' ? 'text-amber-700' : 'text-emerald-700'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${upcomingEvents[0].impact === 'High' ? 'bg-rose-500' : upcomingEvents[0].impact === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                    {upcomingEvents[0].impact}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white border border-[#e5e7eb] text-[#334155] text-[10px] font-medium">
+                    {upcomingEvents[0].category || 'Economic'}
+                  </span>
+                </div>
+                <span className="font-bold text-xs text-[#0f172a] font-mono">{upcomingEvents[0].country || '—'}</span>
+              </div>
 
-          <div>
-            <div className="font-bold text-sm text-[#0f172a] group-hover:text-[#5b3fe4] transition-colors">
-              Unemployment Claims
-            </div>
-            <div className="text-[11px] text-[#64748b] font-mono">
-              8/27/2026, 3:30:00 PM UTC
-            </div>
-          </div>
+              <div>
+                <div className="font-bold text-sm text-[#0f172a] group-hover:text-[#5b3fe4] transition-colors">
+                  {upcomingEvents[0].title}
+                </div>
+                <div className="text-[11px] text-[#64748b] font-mono">
+                  {upcomingEvents[0].formattedDate || upcomingEvents[0].dayDate || 'Scheduled'} · {upcomingEvents[0].time || ''}
+                </div>
+              </div>
 
-          <div className="flex items-center justify-between pt-1 border-t border-purple-200/60 text-[11px] font-mono text-[#475569]">
-            <span>Consensus: <strong className="text-[#0f172a] font-bold">208K</strong></span>
-            <span>Previous: <strong className="text-[#0f172a] font-bold">206K</strong></span>
-          </div>
+              <div className="flex items-center justify-between pt-1 border-t border-purple-200/60 text-[11px] font-mono text-[#475569]">
+                <span>Forecast: <strong className="text-[#0f172a] font-bold">{upcomingEvents[0].forecast || '—'}</strong></span>
+                <span>Previous: <strong className="text-[#0f172a] font-bold">{upcomingEvents[0].previous || '—'}</strong></span>
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-[#64748b] py-4 text-center">No upcoming events</div>
+          )}
         </div>
 
-        {/* High Impact Upcoming Card */}
+        {/* High Impact Upcoming Card — pulls next High impact event */}
         <div 
           onClick={() => {
-            const fomcEvt = events.find(e => e.impact === 'High') || events[1];
+            const fomcEvt = upcomingEvents.find(e => e.impact === 'High');
             if (fomcEvt) onOpenMacroAnalysis(fomcEvt);
           }}
           className="p-4 rounded-xl bg-white border border-[#e5e7eb] shadow-xs space-y-2.5 cursor-pointer hover:border-rose-300 transition-all group"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-600">
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                High
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
-                FOMC
-              </span>
-            </div>
-            <span className="font-bold text-xs text-[#0f172a] font-mono">US</span>
-          </div>
+          {upcomingEvents.find(e => e.impact === 'High') ? (
+            (() => {
+              const evt = upcomingEvents.find(e => e.impact === 'High')!;
+              return (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-600">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                        High
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 text-[10px] font-bold border border-rose-200">
+                        {evt.category || 'HIGH IMPACT'}
+                      </span>
+                    </div>
+                    <span className="font-bold text-xs text-[#0f172a] font-mono">{evt.country || '—'}</span>
+                  </div>
 
-          <div>
-            <div className="font-bold text-sm text-[#0f172a] group-hover:text-rose-600 transition-colors">
-              Fed Chairman Warsh Speaks
-            </div>
-            <div className="text-[11px] text-[#64748b] font-mono">
-              8/28/2026, 5:00:00 PM UTC
-            </div>
-          </div>
+                  <div>
+                    <div className="font-bold text-sm text-[#0f172a] group-hover:text-rose-600 transition-colors">
+                      {evt.title}
+                    </div>
+                    <div className="text-[11px] text-[#64748b] font-mono">
+                      {evt.formattedDate || evt.dayDate || 'Scheduled'} · {evt.time || ''}
+                    </div>
+                  </div>
 
-          <div className="flex items-center justify-between pt-1 border-t border-[#f1f5f9] text-[11px] font-mono text-[#475569]">
-            <span>Impact: <strong className="text-rose-600 font-bold">Extreme Volatility</strong></span>
-            <span className="text-[#5b3fe4] font-semibold group-hover:underline">Analyze with AI →</span>
-          </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-[#f1f5f9] text-[11px] font-mono text-[#475569]">
+                    <span>Impact: <strong className="text-rose-600 font-bold">Extreme Volatility</strong></span>
+                    <span className="text-[#5b3fe4] font-semibold group-hover:underline">Analyze with AI →</span>
+                  </div>
+                </>
+              );
+            })()
+          ) : (
+            <div className="text-xs text-[#64748b] py-4 text-center">No high-impact events scheduled</div>
+          )}
         </div>
       </div>
 
