@@ -2444,6 +2444,26 @@ app.post('/api/auth/register', async (req, res) => {
     const { hash, salt } = hashPassword(password);
     const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
+    // Generate a unique referral code for this user
+    const myRefCode = 'PTA' + Math.floor(10000 + Math.random() * 90000).toString();
+
+    // Validate the referrer (if provided) — must exist in DB
+    let referredByCode: string | null = null;
+    if (referralCode && typeof referralCode === 'string') {
+      const cleanRef = referralCode.trim().toUpperCase();
+      if (cleanRef.length >= 4) {
+        // Verify the referrer exists
+        const allUsers = db.getAllUsers();
+        const referrer = allUsers.find((u: any) => (u.referralCode || '').toUpperCase() === cleanRef);
+        if (referrer) {
+          referredByCode = cleanRef;
+          console.log(`[Referral] New user ${cleanEmail} referred by ${cleanRef}`);
+        } else {
+          console.log(`[Referral] Invalid referral code: ${cleanRef}`);
+        }
+      }
+    }
+
     const newUser = db.createUser({
       id: userId,
       email: cleanEmail,
@@ -2458,8 +2478,11 @@ app.post('/api/auth/register', async (req, res) => {
       credits: 0,
       isVerified: false,
       authProvider: 'email',
-      mt5Connected: false
-    });
+      mt5Connected: false,
+      // Referral fields
+      ...(myRefCode && { referralCode: myRefCode }),
+      ...(referredByCode && { referredBy: referredByCode }),
+    } as any);
 
     const otpCode = crypto.randomInt(100000, 999999).toString();
     
@@ -4321,6 +4344,91 @@ app.delete('/api/admin/broadcasts/:id', (req, res) => {
 });
 
 // Vite / static file serving
+
+// ==========================================
+// REFERRAL STATS + USER USAGE
+// ==========================================
+
+/** GET /api/referral/stats?email=user@example.com */
+app.get('/api/referral/stats', (req, res) => {
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+
+    const user = db.getUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const myRefCode = (user as any).referralCode;
+    if (!myRefCode) {
+      return res.json({ success: true, myReferralCode: null, totalReferred: 0, subscribed: 0, pending: 0, earnings: 0 });
+    }
+
+    const allUsers = db.getAllUsers();
+    const referred = allUsers.filter((u: any) => {
+      const r = String(u.referredBy || '').toUpperCase();
+      return r === String(myRefCode).toUpperCase();
+    });
+
+    const subscribed = referred.filter((u: any) => u.plan === 'Starter' || u.plan === 'Pro' || u.plan === 'Elite').length;
+    const pending = referred.length - subscribed;
+
+    let earnings = 0;
+    referred.forEach((u: any) => {
+      if (u.plan === 'Starter' || u.plan === 'Pro') earnings += 5;
+      else if (u.plan === 'Elite') earnings += 10;
+    });
+
+    res.json({
+      success: true,
+      myReferralCode: myRefCode,
+      totalReferred: referred.length,
+      subscribed,
+      pending,
+      earnings,
+    });
+  } catch (err: any) {
+    console.error('[Referral Stats]', err);
+    res.status(500).json({ success: false, error: err?.message || 'Referral stats failed' });
+  }
+});
+
+/** GET /api/user/usage?email=user@example.com */
+app.get('/api/user/usage', (req, res) => {
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+
+    const user = db.getUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const allAnalyses = (db as any).getChartAnalysesByUser ? (db as any).getChartAnalysesByUser(user.id) : [];
+    const todayAnalyses = (allAnalyses as any[]).filter((a: any) => (a.createdAt || '').startsWith(today));
+
+    const allStrategies = (db as any).getStrategiesByUser ? (db as any).getStrategiesByUser(user.id) : [];
+    const todayStrategies = (allStrategies as any[]).filter((s: any) => (s.createdAt || '').startsWith(today));
+
+    const limits: Record<string, any> = {
+      Pending: { analyses: 2, voice: 0, setups: 0 },
+      Starter: { analyses: 10, voice: 0, setups: 3 },
+      Pro: { analyses: 24, voice: 5, setups: 20 },
+      Elite: { analyses: 999, voice: 999, setups: 999 },
+    };
+    const plan = (user.plan || 'Pending') as string;
+    const lim = limits[plan] || limits.Pending;
+
+    res.json({
+      success: true,
+      plan,
+      today: { analyses: todayAnalyses.length, voice: 0, setups: todayStrategies.length },
+      limits: lim,
+    });
+  } catch (err: any) {
+    console.error('[User Usage]', err);
+    res.status(500).json({ success: false, error: err?.message || 'Usage stats failed' });
+  }
+});
 
 // ==========================================
 // PIPNEX RULE-BASED TRADING ENGINE ENDPOINTS

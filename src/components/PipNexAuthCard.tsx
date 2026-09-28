@@ -60,7 +60,25 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
   const [showPassword, setShowPassword] = useState(false);
   
   // Referral code
-  const [referralCode, setReferralCode] = useState('PIU7501');
+  const [referralCode, setReferralCode] = useState('');
+
+  // Capture ?ref=XXX from URL on mount
+  React.useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlRef = params.get('ref');
+      if (urlRef) {
+        const clean = urlRef.trim().toUpperCase();
+        setReferralCode(clean);
+        try { localStorage.setItem('pending_referral', clean); } catch {}
+      } else {
+        try {
+          const stored = localStorage.getItem('pending_referral');
+          if (stored) setReferralCode(stored);
+        } catch {}
+      }
+    } catch {}
+  }, []);
   const [isReferralVerified, setIsReferralVerified] = useState(true);
   const [referralFeedback, setReferralFeedback] = useState<string | null>(
     '✓ Referral code verified successfully'

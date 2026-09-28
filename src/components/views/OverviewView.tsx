@@ -689,11 +689,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span className="font-mono font-bold text-[#0f172a] dark:text-white">0 / 2</span>{usageStats.analyses} / {usageStats.limitAnalyses === 999 ? "∞" : usageStats.limitAnalyses}</div>
           <div className="flex items-center justify-between border-b border-[#f1f5f9] dark:border-[#171a27] pb-2">
             <span className="text-[#475569] dark:text-slate-400">Voice Sessions</span>
-            <span className="font-mono font-bold text-[#0f172a] dark:text-white">0 / 0</span>
+            <span className="font-mono font-bold text-[#0f172a] dark:text-white">{usageStats.voice} / {usageStats.limitVoice === 999 ? "∞" : usageStats.limitVoice}</span>
           </div>
           <div className="flex items-center justify-between border-b border-[#f1f5f9] dark:border-[#171a27] pb-2">
             <span className="text-[#475569] dark:text-slate-400">Custom AI Setups</span>
-            <span className="font-mono font-bold text-[#0f172a] dark:text-white">0 / 0</span>
+            <span className="font-mono font-bold text-[#0f172a] dark:text-white">{usageStats.setups} / {usageStats.limitSetups === 999 ? "∞" : usageStats.limitSetups}</span>
           </div>
           <div className="flex items-center justify-between pt-1">
             <span className="text-[#475569] dark:text-slate-400">Current Plan: <strong className="text-[#5b3fe4] dark:text-purple-400">{user.plan && user.plan !== 'Pending' ? user.plan : 'Trial'}</strong></span>

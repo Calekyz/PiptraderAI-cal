@@ -188,6 +188,8 @@ export const pipnexUsers = pgTable('pipnex_users', {
   isVerified: boolean('is_verified').default(false).notNull(),
   authProvider: text('auth_provider').default('email').notNull(),
   mt5Connected: boolean('mt5_connected').default(false).notNull(),
+  referralCode: text('referral_code'),
+  referredBy: text('referred_by'),
   mt5AccountNumber: text('mt5_account_number'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
