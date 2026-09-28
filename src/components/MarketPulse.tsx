@@ -11,53 +11,32 @@ export interface MarketAsset {
   iconType: 'btc' | 'us30' | 'gold' | 'eur' | 'nas' | 'oil' | 'gbp' | 'jpy';
 }
 
-const INITIAL_ASSETS: MarketAsset[] = [
-  {
-    symbol: 'BTCUSD',
-    name: 'Bitcoin / US Dollar',
-    price: 67387.63,
-    decimals: 2,
-    change: -137.71,
-    changePercent: -3.60,
-    iconType: 'btc',
-  },
-  {
-    symbol: 'US30',
-    name: 'Wall Street 30 / Dow Jones',
-    price: 53550.4,
-    decimals: 1,
-    change: 5.9,
-    changePercent: 0.01,
-    iconType: 'us30',
-  },
-  {
-    symbol: 'XAUUSD',
-    name: 'Gold / US Dollar',
-    price: 4454.990,
-    decimals: 3,
-    change: -147.16,
-    changePercent: -0.52,
-    iconType: 'gold',
-  },
-  {
-    symbol: 'EURUSD',
-    name: 'Euro / US Dollar',
-    price: 1.08425,
-    decimals: 5,
-    change: 0.00185,
-    changePercent: 0.17,
-    iconType: 'eur',
-  },
-  {
-    symbol: 'NAS100',
-    name: 'US Tech 100 / Nasdaq',
-    price: 21450.8,
-    decimals: 1,
-    change: 188.4,
-    changePercent: 0.89,
-    iconType: 'nas',
-  },
-];
+// Symbols to display in the market pulse ticker
+const PULSE_SYMBOLS = ['XAU/USD', 'EUR/USD', 'BTC/USD', 'US30', 'NAS100', 'GBP/USD', 'WTI/USD'];
+
+// Icon mapping per symbol
+function getIconType(symbol: string): MarketAsset['iconType'] {
+  if (symbol.includes('BTC')) return 'btc';
+  if (symbol.includes('US30')) return 'us30';
+  if (symbol.includes('XAU')) return 'gold';
+  if (symbol.includes('EUR')) return 'eur';
+  if (symbol.includes('NAS')) return 'nas';
+  if (symbol.includes('WTI') || symbol.includes('OIL')) return 'oil';
+  if (symbol.includes('GBP')) return 'gbp';
+  if (symbol.includes('JPY')) return 'jpy';
+  return 'gold';
+}
+
+// Startup placeholders (will be replaced by live data on first fetch)
+const INITIAL_ASSETS: MarketAsset[] = PULSE_SYMBOLS.map((sym) => ({
+  symbol: sym.replace('/', ''),
+  name: sym,
+  price: 0,
+  decimals: sym.includes('JPY') ? 3 : sym.includes('USD') && sym.length > 4 ? 2 : 5,
+  change: 0,
+  changePercent: 0,
+  iconType: getIconType(sym),
+}));
 
 interface MarketPulseProps {
   onOpenFullMarket?: () => void;
@@ -72,37 +51,61 @@ export const MarketPulse: React.FC<MarketPulseProps> = ({
   const [flashSymbol, setFlashSymbol] = useState<{ symbol: string; dir: 'up' | 'down' } | null>(null);
   const [isPausedByUser, setIsPausedByUser] = useState(false);
 
-  // Live market price fluctuation tick simulation
+  // ═══ LIVE MARKET DATA — fetch from real quotes endpoint every 3 seconds ═══
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAssets((prevAssets) => {
-        // Pick one asset to fluctuate slightly
-        const targetIdx = Math.floor(Math.random() * prevAssets.length);
-        return prevAssets.map((asset, idx) => {
-          if (idx !== targetIdx) return asset;
+    let cancelled = false;
 
-          const tickDirection = Math.random() > 0.48 ? 1 : -1;
-          const fluctuationPercent = (Math.random() * 0.08) * tickDirection;
-          const delta = (asset.price * fluctuationPercent) / 100;
-          const newPrice = Math.max(0.00001, asset.price + delta);
-          const newChange = asset.change + delta;
-          const newChangePercent = Number(((newChange / (asset.price - asset.change)) * 100).toFixed(2));
+    const fetchLiveQuotes = async () => {
+      if (isPausedByUser) return;
+      try {
+        const symbolsParam = PULSE_SYMBOLS.join(',');
+        const res = await fetch(`/api/market-data/quotes?symbols=${encodeURIComponent(symbolsParam)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (!data.success || !Array.isArray(data.quotes)) return;
 
-          setFlashSymbol({ symbol: asset.symbol, dir: tickDirection > 0 ? 'up' : 'down' });
-          setTimeout(() => setFlashSymbol(null), 900);
+        // Map quotes → MarketAsset shape
+        const next: MarketAsset[] = data.quotes.map((q: any) => ({
+          symbol: (q.symbol || '').replace('/', ''),
+          name: q.name || q.symbol,
+          price: Number(q.price) || 0,
+          decimals: Number(q.decimals) || 2,
+          change: Number(q.change) || 0,
+          changePercent: Number(q.changePercent) || 0,
+          iconType: getIconType(q.symbol || ''),
+        }));
 
-          return {
-            ...asset,
-            price: Number(newPrice.toFixed(asset.decimals)),
-            change: Number(newChange.toFixed(asset.decimals > 2 ? 3 : 2)),
-            changePercent: newChangePercent,
-          };
+        // Detect which asset moved (for flash animation)
+        setAssets((prev) => {
+          const prevMap = new Map(prev.map(a => [a.symbol, a.price]));
+          let flash: { symbol: string; dir: 'up' | 'down' } | null = null;
+          for (const n of next) {
+            const oldPrice = prevMap.get(n.symbol);
+            if (oldPrice !== undefined && oldPrice !== n.price) {
+              flash = { symbol: n.symbol, dir: n.price > oldPrice ? 'up' : 'down' };
+              break;
+            }
+          }
+          if (flash) {
+            setFlashSymbol(flash);
+            setTimeout(() => setFlashSymbol(null), 1200);
+          }
+          return next;
         });
-      });
-    }, 2800);
+      } catch {
+        // silent — keep last known values
+      }
+    };
 
-    return () => clearInterval(interval);
-  }, []);
+    fetchLiveQuotes();
+    const interval = setInterval(fetchLiveQuotes, 3000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isPausedByUser]);
 
   const formatPrice = (price: number, decimals: number) => {
     return price.toLocaleString('en-US', {
