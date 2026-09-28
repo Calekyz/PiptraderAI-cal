@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { UserProfile } from '../../types';
 import { 
   Sparkles, 
   Zap, 
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 interface ManageBotsViewProps {
+  user?: UserProfile | null;
   onBack?: () => void;
   onNavigateToBuilder?: () => void;
   onNavigateToSubscription?: () => void;
@@ -45,11 +47,15 @@ interface BotProfile {
 }
 
 export const ManageBotsView: React.FC<ManageBotsViewProps> = ({ 
+  user,
   onBack,
   onNavigateToBuilder,
   onNavigateToSubscription
 }) => {
+  const isElite = user?.plan === 'Elite';
   const [activeSubTab, setActiveSubTab] = useState<'all' | 'live' | 'stats' | 'trades' | 'logs'>('all');
+  const [iframeLoading, setIframeLoading] = useState(true);
+  const [iframeKey, setIframeKey] = useState(0);
   
   const [bots, setBots] = useState<BotProfile[]>([
     {
@@ -117,6 +123,138 @@ export const ManageBotsView: React.FC<ManageBotsViewProps> = ({
 
   const displayedBots = activeSubTab === 'live' ? bots.filter(b => b.status === 'ACTIVE') : bots;
 
+  // ═══════════════════════════════════════════════════
+  // EARLY RETURN: Non-Elite users see upgrade prompt
+  // ═══════════════════════════════════════════════════
+  if (!isElite) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
+        <div className="bg-white dark:bg-[#080911] border border-purple-300 dark:border-purple-500/40 rounded-3xl p-8 text-center space-y-5 max-w-2xl mx-auto shadow-xl">
+          <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-500/40 flex items-center justify-center text-purple-600 dark:text-purple-400 mx-auto">
+            <Crown className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-[#0f172a] dark:text-white mb-2">
+              Elite Feature — Bot Platform
+            </h2>
+            <p className="text-sm text-[#64748b] dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              Run algorithmic trading bots on our dedicated VPS infrastructure. Automate scalping, swing, and news strategies across all major pairs. Requires <strong className="text-purple-600 dark:text-purple-400">Elite</strong> plan.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <button
+              onClick={onNavigateToSubscription}
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+            >
+              <Crown className="w-4 h-4" />
+              <span>Upgrade to Elite</span>
+            </button>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-[#141624] hover:bg-slate-200 dark:hover:bg-[#1c1f34] text-slate-700 dark:text-gray-300 font-bold text-sm transition-all cursor-pointer"
+              >
+                Go Back
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════
+  // ELITE USER: Iframe-embedded bot platform
+  // ═══════════════════════════════════════════════════
+  return (
+    <div className="space-y-4 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
+
+      {/* ═══ Header bar ═══ */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-[#080911] border border-[#eaecf0] dark:border-[#1b1f32] rounded-2xl px-5 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-[#0f172a] dark:text-white tracking-tight flex items-center gap-2">
+              PipNex Bot Platform
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/40 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                LIVE VPS
+              </span>
+            </h2>
+            <p className="text-[11px] text-[#64748b] dark:text-slate-400">
+              Run bots 24/7 on our dedicated cloud infrastructure
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setIframeLoading(true);
+              setIframeKey(prev => prev + 1);
+            }}
+            className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-[#141624] hover:bg-slate-200 dark:hover:bg-[#1c1f34] text-slate-700 dark:text-gray-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${iframeLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+
+          <a
+            href="https://app.piptraderai.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+          >
+            <ArrowUpRight className="w-3.5 h-3.5" />
+            <span>Open in New Tab</span>
+          </a>
+        </div>
+      </div>
+
+      {/* ═══ Iframe container ═══ */}
+      <div className="relative bg-white dark:bg-[#080911] border border-[#eaecf0] dark:border-[#1b1f32] rounded-2xl overflow-hidden shadow-sm">
+
+        {/* Loading overlay */}
+        {iframeLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-[#080911] z-10 gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-500/40 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <Bot className="w-6 h-6 animate-pulse" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-bold text-[#0f172a] dark:text-white">
+                Loading Bot Platform...
+              </p>
+              <p className="text-xs text-[#64748b] dark:text-slate-400">
+                Connecting to secure VPS infrastructure
+              </p>
+            </div>
+          </div>
+        )}
+
+        <iframe
+          key={iframeKey}
+          src="https://app.piptraderai.com"
+          title="PipNex Bot Platform"
+          onLoad={() => setIframeLoading(false)}
+          className="w-full border-0"
+          style={{ height: 'calc(100vh - 240px)', minHeight: '700px' }}
+          allow="clipboard-read; clipboard-write; fullscreen"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
+        />
+      </div>
+
+      {/* ═══ Footer hint ═══ */}
+      <div className="text-center text-[11px] text-[#94a3b8] dark:text-slate-500 px-4">
+        Powered by PipNex Cloud VPS · 24/7 uptime · Click "Open in New Tab" if the embed doesn't load
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════
+  // OLD UI (kept for reference — never reached now)
+  // ═══════════════════════════════════════════════════
   return (
     <div className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
       

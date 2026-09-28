@@ -896,6 +896,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 ]}
               >
                 <ManageBotsView 
+                  user={user}
                   onBack={() => setActiveTab('overview')} 
                   onNavigateToBuilder={() => setActiveTab('prompt-trading')}
                   onNavigateToSubscription={() => setActiveTab('subscription')}
