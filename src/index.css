@@ -660,15 +660,14 @@ html.dark .liquid-glass-body-glow::after {
     animation: none !important;
   }
 }
-
 /* ==========================================================================
-   LIGHT MODE OVERRIDE LAYER
+   LIGHT MODE OVERRIDE — V2 (block-aware)
    --------------------------------------------------------------------------
-   Fixes: components using hardcoded dark Tailwind colors that don't flip
-   when light mode is active. Uses html.light scope so dark mode unaffected.
+   Rule: preserve white text on dark/purple/gradient blocks.
+   Only flip white text on PLAIN light backgrounds.
    ========================================================================== */
 
-/* ═══ DARK BACKGROUNDS → WHITE / LIGHT ═══ */
+/* ═══ DARK BACKGROUNDS → WHITE ═══ */
 html.light .bg-\[\#06070c\],
 html.light .bg-\[\#07080d\],
 html.light .bg-\[\#080911\],
@@ -681,8 +680,8 @@ html.light .bg-\[\#0b0e11\],
 html.light .bg-\[\#0c0e18\],
 html.light .bg-\[\#0c0e1c\],
 html.light .bg-\[\#0c0e1e\],
-html.light .bg-\[\#0d0f1a\],
 html.light .bg-\[\#0d0f19\],
+html.light .bg-\[\#0d0f1a\],
 html.light .bg-\[\#0e101b\],
 html.light .bg-\[\#0f111c\],
 html.light .bg-\[\#10121e\],
@@ -739,16 +738,124 @@ html.light .border-\[\#2b304c\] {
   border-color: #e2e8f0 !important;
 }
 
-/* ═══ WHITE TEXT → DARK TEXT (only when not on accent bg) ═══ */
-html.light .text-white:not(.keep-white),
-html.light .text-white\/90:not(.keep-white),
-html.light .text-white\/80:not(.keep-white),
-html.light .text-\[\#d1d4dc\],
-html.light .text-\[\#f8fafc\] {
+/* ═══════════════════════════════════════════════════════
+   PRESERVE WHITE TEXT ON ALL PURPLE / INDIGO / VIOLET BLOCKS
+   ═══════════════════════════════════════════════════════ */
+html.light [class*="bg-purple-6"] ,
+html.light [class*="bg-purple-6"] *,
+html.light [class*="bg-purple-7"],
+html.light [class*="bg-purple-7"] *,
+html.light [class*="bg-purple-8"],
+html.light [class*="bg-purple-8"] *,
+html.light [class*="bg-purple-9"],
+html.light [class*="bg-purple-9"] *,
+html.light [class*="bg-indigo-6"],
+html.light [class*="bg-indigo-6"] *,
+html.light [class*="bg-indigo-7"],
+html.light [class*="bg-indigo-7"] *,
+html.light [class*="bg-indigo-8"],
+html.light [class*="bg-indigo-8"] *,
+html.light [class*="bg-violet-6"],
+html.light [class*="bg-violet-6"] *,
+html.light [class*="bg-violet-7"],
+html.light [class*="bg-violet-7"] *,
+html.light [class*="bg-\[\#5b3fe4\]"],
+html.light [class*="bg-\[\#5b3fe4\]"] *,
+html.light [class*="bg-\[\#7c3aed\]"],
+html.light [class*="bg-\[\#7c3aed\]"] *,
+html.light [class*="bg-\[\#6d28d9\]"],
+html.light [class*="bg-\[\#6d28d9\]"] *,
+html.light [class*="bg-\[\#4f46e5\]"],
+html.light [class*="bg-\[\#4f46e5\]"] *,
+html.light [class*="bg-\[\#2962ff\]"],
+html.light [class*="bg-\[\#2962ff\]"] *,
+html.light [class*="from-purple-"],
+html.light [class*="from-purple-"] *,
+html.light [class*="via-purple-"],
+html.light [class*="via-purple-"] *,
+html.light [class*="to-purple-"],
+html.light [class*="to-purple-"] *,
+html.light [class*="from-indigo-"],
+html.light [class*="from-indigo-"] *,
+html.light [class*="via-indigo-"],
+html.light [class*="via-indigo-"] *,
+html.light [class*="to-indigo-"],
+html.light [class*="to-indigo-"] *,
+html.light [class*="from-violet-"],
+html.light [class*="from-violet-"] *,
+html.light [class*="to-violet-"],
+html.light [class*="to-violet-"] *,
+html.light [class*="from-\[\#4f46e5\]"],
+html.light [class*="from-\[\#4f46e5\]"] *,
+html.light [class*="via-\[\#6366f1\]"],
+html.light [class*="via-\[\#6366f1\]"] *,
+html.light [class*="to-\[\#7c3aed\]"],
+html.light [class*="to-\[\#7c3aed\]"] *,
+html.light [class*="from-slate-950"],
+html.light [class*="from-slate-950"] *,
+html.light [class*="via-slate-900"],
+html.light [class*="via-slate-900"] *,
+html.light [class*="to-purple-950"],
+html.light [class*="to-purple-950"] *,
+html.light [class*="from-\[\#34294d\]"],
+html.light [class*="from-\[\#34294d\]"] *,
+html.light [class*="bg-\[\#34294d\]"],
+html.light [class*="bg-\[\#34294d\]"] *,
+html.light [class*="bg-\[\#2a1e42\]"],
+html.light [class*="bg-\[\#2a1e42\]"] *,
+html.light .keep-white,
+html.light .keep-white * {
+  color: #ffffff !important;
+}
+
+/* Ensure headings and text INSIDE colored blocks stay white */
+html.light [class*="from-purple-"] h1,
+html.light [class*="from-purple-"] h2,
+html.light [class*="from-purple-"] h3,
+html.light [class*="from-purple-"] p,
+html.light [class*="from-purple-"] span,
+html.light [class*="from-indigo-"] h1,
+html.light [class*="from-indigo-"] h2,
+html.light [class*="from-indigo-"] h3,
+html.light [class*="from-indigo-"] p,
+html.light [class*="from-indigo-"] span,
+html.light [class*="from-slate-950"] h1,
+html.light [class*="from-slate-950"] h2,
+html.light [class*="from-slate-950"] h3,
+html.light [class*="from-slate-950"] p,
+html.light [class*="from-slate-950"] span,
+html.light [class*="from-\[\#34294d\]"] h1,
+html.light [class*="from-\[\#34294d\]"] h2,
+html.light [class*="from-\[\#34294d\]"] h3,
+html.light [class*="from-\[\#34294d\]"] p,
+html.light [class*="from-\[\#34294d\]"] span {
+  color: #ffffff !important;
+}
+
+/* ═══════════════════════════════════════════════════════
+   WHITE TEXT ON LIGHT BLOCKS → DARK
+   (Only applies when NOT on a colored background)
+   ═══════════════════════════════════════════════════════ */
+
+/* Cards with light bg + white text → flip to dark */
+html.light .bg-white .text-white,
+html.light .bg-white .text-white\/90,
+html.light .bg-white .text-white\/80,
+html.light .bg-white .text-white\/70,
+html.light .bg-\[\#ffffff\] .text-white,
+html.light .bg-slate-50 .text-white,
+html.light .bg-slate-100 .text-white,
+html.light .bg-gray-50 .text-white,
+html.light .bg-gray-100 .text-white {
   color: #0f172a !important;
 }
 
-/* ═══ LIGHT GRAYS → READABLE DARK GRAYS ═══ */
+/* Standalone text-white (no colored ancestor) — flip to dark */
+html.light .text-white:not([class*="from-purple"]):not([class*="from-indigo"]):not([class*="from-slate-950"]):not([class*="from-\[\#34294d\]"]):not([class*="bg-purple-6"]):not([class*="bg-indigo-6"]):not([class*="bg-\[\#5b3fe4\]"]):not([class*="bg-\[\#2962ff\]"]):not(.keep-white) {
+  color: #0f172a !important;
+}
+
+/* ═══ LIGHT GRAYS ═══ */
 html.light .text-gray-100,
 html.light .text-gray-200,
 html.light .text-gray-300,
@@ -766,95 +873,14 @@ html.light .text-slate-500 {
   color: #94a3b8 !important;
 }
 
-/* ═══ PRESERVE WHITE TEXT ON ACCENT BUTTONS ═══ */
-html.light button.bg-purple-600,
-html.light button.bg-purple-600 *,
-html.light button.bg-emerald-600,
-html.light button.bg-emerald-600 *,
-html.light button.bg-indigo-600,
-html.light button.bg-indigo-600 *,
-html.light button.bg-\[\#5b3fe4\],
-html.light button.bg-\[\#5b3fe4\] *,
-html.light button.bg-\[\#2962ff\],
-html.light button.bg-\[\#2962ff\] *,
-html.light button.bg-rose-600,
-html.light button.bg-rose-600 *,
-html.light button.bg-blue-600,
-html.light button.bg-blue-600 *,
-html.light button[class*="from-purple-"],
-html.light button[class*="from-purple-"] *,
-html.light button[class*="from-indigo-"],
-html.light button[class*="from-indigo-"] *,
-html.light button[class*="from-emerald-"],
-html.light button[class*="from-emerald-"] *,
-html.light a[class*="from-purple-"],
-html.light a[class*="from-purple-"] *,
-html.light a[class*="from-indigo-"],
-html.light a[class*="from-indigo-"] *,
-html.light a[class*="from-emerald-"],
-html.light a[class*="from-emerald-"] *,
-html.light .keep-white,
-html.light .keep-white * {
-  color: #ffffff !important;
-}
-
-/* ═══ PROGRESS / SIDEBAR / TABS ═══ */
-html.light aside,
-html.light .sidebar,
-html.light nav {
-  background-color: #ffffff !important;
-}
-
+/* ═══ DIVIDERS ═══ */
 html.light .divide-\[\#151724\] > * + *,
 html.light .divide-\[\#171a2e\] > * + *,
 html.light .divide-slate-100 > * + * {
   border-color: #e2e8f0 !important;
 }
 
-/* ═══ HEADERS & TITLES with dark bg ═══ */
-html.light [class*="bg-[#0"] h1,
-html.light [class*="bg-[#0"] h2,
-html.light [class*="bg-[#0"] h3,
-html.light [class*="bg-[#1"] h1,
-html.light [class*="bg-[#1"] h2,
-html.light [class*="bg-[#1"] h3 {
-  color: #0f172a !important;
-}
-
-/* ═══ SPANS / DIVS / P inside dark-bg cards ═══ */
-html.light [class*="bg-[#0"] p,
-html.light [class*="bg-[#0"] span:not([class*="text-purple"]):not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-indigo"]),
-html.light [class*="bg-[#1"] p,
-html.light [class*="bg-[#1"] span:not([class*="text-purple"]):not([class*="text-emerald"]):not([class*="text-rose"]):not([class*="text-amber"]):not([class*="text-blue"]):not([class*="text-indigo"]) {
-  color: #334155;
-}
-
-/* ═══ MODALS ═══ */
-html.light [class*="fixed"][class*="bg-black/"],
-html.light [class*="fixed"][class*="bg-black"] {
-  /* leave backdrop dark — modal backdrop should stay */
-}
-
-html.light [role="dialog"],
-html.light .modal-content {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-}
-
-/* ═══ TABLES ═══ */
-html.light table {
-  color: #334155 !important;
-}
-
-html.light thead tr {
-  border-color: #e2e8f0 !important;
-}
-
-html.light tbody tr:hover {
-  background-color: #f1f5f9 !important;
-}
-
-/* ═══ INPUTS (double-ensure) ═══ */
+/* ═══ INPUTS ═══ */
 html.light input,
 html.light textarea,
 html.light select {
@@ -868,23 +894,24 @@ html.light textarea::placeholder {
   color: #94a3b8 !important;
 }
 
-/* ═══ CHART CONTAINERS — keep dark for readability ═══ */
-html.light .tradingview-widget-container,
-html.light iframe[src*="tradingview"] {
-  /* charts stay dark — that's intentional */
+/* ═══ TABLES ═══ */
+html.light table {
+  color: #334155 !important;
+}
+
+html.light thead tr {
+  border-color: #e2e8f0 !important;
 }
 
 /* ═══ SCROLLBAR ═══ */
 html.light .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #cbd5e1 !important;
 }
-
 html.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8 !important;
 }
 
-/* ═══ SHADOW ADJUSTMENT ═══ */
-html.light .shadow-2xl,
-html.light .shadow-xl {
+/* ═══ SHADOW ═══ */
+html.light .shadow-2xl {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06) !important;
 }
