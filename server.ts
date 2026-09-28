@@ -2694,6 +2694,8 @@ app.post('/api/auth/login', async (req, res) => {
       isVerified: user.isVerified,
       authProvider: user.authProvider,
       mt5Connected: user.mt5Connected,
+      referralCode: (user as any).referralCode,
+      referredBy: (user as any).referredBy,
       createdAt: user.createdAt
     };
 
@@ -2750,6 +2752,8 @@ app.post('/api/auth/google', (req, res) => {
       isVerified: user.isVerified,
       authProvider: user.authProvider,
       mt5Connected: user.mt5Connected,
+      referralCode: (user as any).referralCode,
+      referredBy: (user as any).referredBy,
       createdAt: user.createdAt
     };
 
@@ -2816,6 +2820,8 @@ app.get('/api/user/me', (req, res) => {
         mt5Connected: user.mt5Connected,
         mt5AccountNumber: user.mt5AccountNumber,
         status: user.status,
+        referralCode: (user as any).referralCode,
+        referredBy: (user as any).referredBy,
         createdAt: user.createdAt,
         subscriptionStartDate: user.subscriptionStartDate,
         subscriptionExpiry: user.subscriptionExpiry
