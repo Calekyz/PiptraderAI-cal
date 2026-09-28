@@ -443,16 +443,51 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
     }, 600);
   };
 
-  const handleQuickAction = (actionText: string) => {
+  const handleQuickAction = async (actionText: string) => {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Add user's question to chat
     setChatMessages((prev) => [
       ...prev,
-      { sender: 'user', text: actionText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
-      {
-        sender: 'straddle',
-        text: `[Engine]: ${actionText} processed. For ${selectedAsset.symbol}, primary structural support is at ${indicators?.supportLevels?.[0] || (quote?.price ? (quote.price * 0.995).toFixed(selectedAsset.decimals) : 'recent swing lows')} and resistance is at ${indicators?.resistanceLevels?.[0] || (quote?.price ? (quote.price * 1.006).toFixed(selectedAsset.decimals) : 'recent swing highs')}.`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
+      { sender: 'user', text: actionText, time }
     ]);
+
+    // Show a "thinking" state
+    setIsChatTyping(true);
+
+    try {
+      // Send to engine via chat endpoint
+      const response = await fetch('/api/engine/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `${actionText} for ${selectedAsset.symbol} on ${currentTfObj.api} timeframe`
+        })
+      });
+
+      const data = await response.json();
+      const reply = data.reply || 'No response from engine.';
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: 'straddle',
+          text: reply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } catch (err) {
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: 'straddle',
+          text: `Engine error: could not process "${actionText}". Please try again.`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
+      setIsChatTyping(false);
+    }
   };
 
   const handleSetAlert = (e: React.FormEvent) => {
