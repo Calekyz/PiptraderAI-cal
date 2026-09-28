@@ -401,6 +401,8 @@ function rowToUser(r: any): UserEntity {
     authProvider: (r.authProvider as any) || 'email',
     mt5Connected: Boolean(r.mt5Connected),
     mt5AccountNumber: r.mt5AccountNumber || undefined,
+    referralCode: r.referralCode ?? r.referral_code ?? undefined,
+    referredBy: r.referredBy ?? r.referred_by ?? undefined,
     createdAt: toIso(r.createdAt) || new Date().toISOString(),
     updatedAt: toIso(r.updatedAt) || new Date().toISOString(),
   };
