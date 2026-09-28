@@ -18,16 +18,27 @@ import {
   Radio
 } from 'lucide-react';
 import { HorizontalQuickAccessMenu } from '../HorizontalQuickAccessMenu';
+import { UserProfile } from '../../types';
+import { hasFeature } from '../../lib/planAccess';
 
 interface QuickAccessToolsProps {
+  user?: UserProfile | null;
   onNavigateToTab: (tabId: string) => void;
   onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
 }
 
 export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({ 
+  user,
   onNavigateToTab,
   onOpenUpgrade 
 }) => {
+  // Helper: does the user's plan give access to a required tier?
+  const planOrder: Record<string, number> = { Pending: 0, Starter: 1, Pro: 2, Elite: 3 };
+  const userLevel = planOrder[user?.plan || 'Pending'] ?? 0;
+  const canAccess = (requiredTier: 'Starter' | 'Pro' | 'Elite') => {
+    return userLevel >= (planOrder[requiredTier] ?? 0);
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
 
   const primaryTools = [
@@ -190,6 +201,56 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {filteredPrimary.map((tool) => {
           const Icon = tool.icon;
+          const unlocked = canAccess(tool.requiredTier);
+
+          // ─── UNLOCKED: full tool card ───────────────────────────────
+          if (unlocked) {
+            return (
+              <div
+                key={tool.id}
+                onClick={() => onNavigateToTab(tool.targetTab)}
+                className="group relative rounded-2xl bg-gradient-to-br from-[#0a0d1a] to-[#06070c] border border-emerald-500/30 hover:border-emerald-400/60 p-7 flex flex-col justify-between items-center text-center space-y-6 shadow-xl min-h-[260px] overflow-hidden cursor-pointer transition-all hover:scale-[1.02]"
+              >
+                {/* Top row: icon + tool name */}
+                <div className="w-full flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${tool.iconColor}`} />
+                    <span className="font-semibold text-white">{tool.title}</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    ACTIVE
+                  </span>
+                </div>
+
+                {/* Center icon */}
+                <div className="flex flex-col items-center justify-center space-y-3 flex-1 py-1">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-950 to-[#141524] border border-emerald-500/40 flex items-center justify-center text-emerald-300 shadow-md">
+                    <Icon className="w-6 h-6 stroke-[1.75]" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white tracking-wide">
+                    {tool.title}
+                  </h3>
+                  <p className="text-xs text-gray-400 max-w-xs leading-relaxed">
+                    {tool.description}
+                  </p>
+                </div>
+
+                {/* Open button */}
+                <div className="w-full pt-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onNavigateToTab(tool.targetTab); }}
+                    className="w-full max-w-xs mx-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                  >
+                    <span>Open Tool</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          // ─── LOCKED: upgrade card ────────────────────────────────────
           return (
             <div
               key={tool.id}
@@ -244,7 +305,7 @@ export const QuickAccessTools: React.FC<QuickAccessToolsProps> = ({
                   onClick={() => handleUpgradeClick(tool.requiredTier, tool.targetTab)}
                   className="w-full max-w-xs mx-auto py-2.5 px-6 rounded-xl bg-[#9d83e9] hover:bg-[#ad94f8] text-[#0d0f19] font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                 >
-                  <span>Upgrade Now</span>
+                  <span>Upgrade to {tool.requiredTier}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>

@@ -865,6 +865,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
             {/* Quick Start / Quick Access Tools */}
             {(activeTab === 'quick-start' || activeTab === 'quick-access') && (
               <QuickAccessTools 
+                user={user}
                 onNavigateToTab={(tabId) => setActiveTab(tabId)} 
                 onOpenUpgrade={handleOpenUpgrade}
               />
