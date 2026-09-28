@@ -715,7 +715,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
       )}
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden relative">
-        <div className={`lg:col-span-8 flex flex-col relative border-b lg:border-b-0 lg:border-r overflow-hidden transition-colors ${isLight ? 'bg-white border-slate-200' : 'bg-[#060814] border-[#16192e]'}`}>
+        <div className={`lg:col-span-7 flex flex-col relative border-b lg:border-b-0 lg:border-r overflow-hidden transition-colors ${isLight ? 'bg-white border-slate-200' : 'bg-[#060814] border-[#16192e]'}`}>
           <div className="flex-1 w-full min-h-[540px] lg:min-h-[660px] relative flex flex-col overflow-hidden">
             <TradingViewChart
               key={`${selectedAsset.symbol}-${selectedTimeframe}-${theme}-${chartStyle}`}

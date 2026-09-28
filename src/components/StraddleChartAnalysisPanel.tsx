@@ -193,7 +193,7 @@ Generated on live market price: ${priceDisplay}`;
   return (
     <div 
       id="straddle-ai-panel" 
-      className={`w-full lg:w-[410px] xl:w-[450px] border-t lg:border-t-0 lg:border-l flex flex-col shrink-0 overflow-hidden transition-colors ${
+      className={`w-full lg:col-span-5 border-t lg:border-t-0 lg:border-l flex flex-col overflow-hidden transition-colors ${
         isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#090b17] border-[#191d35] text-white'
       }`}
     >
