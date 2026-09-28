@@ -31,47 +31,7 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({
   const [takeProfitPips, setTakeProfitPips] = useState('35');
   const [stopLossPips, setStopLossPips] = useState('15');
 
-  const [liveTrades, setLiveTrades] = useState<BotTrade[]>([
-    {
-      id: 'BOT-8812',
-      pair: 'EUR/USD',
-      type: 'BUY',
-      entryPrice: 1.0838,
-      currentPrice: 1.0846,
-      lotSize: 1.50,
-      profitPips: 8.0,
-      pnlUsd: 120.00,
-      status: 'OPEN',
-      botStrategy: 'Pipnexai Scalper',
-      timestamp: '1 min ago'
-    },
-    {
-      id: 'BOT-8811',
-      pair: 'XAU/USD',
-      type: 'BUY',
-      entryPrice: 2886.50,
-      currentPrice: 2894.60,
-      lotSize: 0.75,
-      profitPips: 81.0,
-      pnlUsd: 607.50,
-      status: 'OPEN',
-      botStrategy: 'Nova Edge swing Ea',
-      timestamp: '8 mins ago'
-    },
-    {
-      id: 'BOT-8810',
-      pair: 'USD/JPY',
-      type: 'SELL',
-      entryPrice: 154.60,
-      currentPrice: 154.28,
-      lotSize: 1.00,
-      profitPips: 32.0,
-      pnlUsd: 256.00,
-      status: 'OPEN',
-      botStrategy: 'Pipnex News trader Ea',
-      timestamp: '22 mins ago'
-    }
-  ]);
+  // Fake liveTrades state removed — Auto Trading now links to the Bot Platform
 
   const handleUpgradeClick = () => {
     if (onOpenUpgrade) {
@@ -227,56 +187,34 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({
         </div>
       </div>
 
-      {/* Active Position Grid */}
-      <div className="bg-[#0b0c14] border border-[#1a1d2a] rounded-3xl p-5 space-y-4 shadow-lg">
-        <div className="flex items-center justify-between border-b border-[#161826] pb-3">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">Active Positions Monitored by Bot</h3>
-          </div>
-          <div className="text-xs font-mono text-emerald-400 font-bold">
-            Total Floating PnL: +$983.50 (+121.0 Pips)
-          </div>
+      {/* Bot Platform CTA — real execution lives there */}
+      <div className="bg-gradient-to-br from-purple-950/30 to-indigo-950/20 border-2 border-purple-500/40 rounded-3xl p-8 text-center space-y-5 shadow-lg">
+        <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-950/40 border border-purple-300 dark:border-purple-500/40 flex items-center justify-center text-purple-600 dark:text-purple-400 mx-auto">
+          <Bot className="w-8 h-8" />
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="text-gray-500 border-b border-[#161826] pb-2 font-mono">
-                <th className="py-2.5 font-medium">ORDER ID / PAIR</th>
-                <th className="py-2.5 font-medium">DIRECTION</th>
-                <th className="py-2.5 font-medium">LOT</th>
-                <th className="py-2.5 font-medium">ENTRY / MARKET</th>
-                <th className="py-2.5 font-medium">PIPS GAIN</th>
-                <th className="py-2.5 font-medium text-right">FLOATING USD</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#151724]">
-              {liveTrades.map((t) => (
-                <tr key={t.id} className="hover:bg-[#10121c] transition-colors">
-                  <td className="py-3 font-semibold text-white">
-                    <div className="flex items-center gap-2">
-                      <span>{t.pair}</span>
-                      <span className="text-[10px] text-gray-500 font-mono">({t.id})</span>
-                    </div>
-                    <div className="text-[10px] text-gray-400">{t.botStrategy}</div>
-                  </td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-[#122b1c] text-emerald-400 border border-emerald-500/30">
-                      {t.type}
-                    </span>
-                  </td>
-                  <td className="py-3 font-mono">{t.lotSize.toFixed(2)}</td>
-                  <td className="py-3 font-mono text-gray-300">
-                    {t.entryPrice} → {t.currentPrice}
-                  </td>
-                  <td className="py-3 font-mono font-bold text-emerald-400">+{t.profitPips} pips</td>
-                  <td className="py-3 text-right font-mono font-bold text-emerald-400">+${t.pnlUsd.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          <h3 className="text-base font-bold text-white">
+            Run Auto Trading on the Bot Platform
+          </h3>
+          <p className="text-xs text-gray-400 max-w-lg mx-auto leading-relaxed">
+            Configure your risk %, TP, and SL settings above, then launch live bots on our dedicated VPS infrastructure. All trades, positions, and monitoring appear on the Bot Platform.
+          </p>
         </div>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <a
+            href="https://app.piptraderai.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <Zap className="w-4 h-4" />
+            <span>Open Bot Platform</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </div>
+        <p className="text-[11px] text-gray-500 pt-1">
+          Opens in a new tab · 24/7 VPS uptime · Elite plan required
+        </p>
       </div>
     </div>
   );
