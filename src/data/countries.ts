@@ -196,3 +196,6 @@ const ALL_COUNTRIES = [
   { name: "Zambia", code: "ZM", dial: "+260" },
   { name: "Zimbabwe", code: "ZW", dial: "+263" }
 ];
+
+// Backward-compat export for PipNexAuthCard
+export const COUNTRIES = ALL_COUNTRIES;
