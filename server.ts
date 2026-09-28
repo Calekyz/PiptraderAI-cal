@@ -2432,8 +2432,7 @@ app.post('/api/auth/register', async (req, res) => {
       const otpCode = crypto.randomInt(100000, 999999).toString();
       db.createOrUpdateEmailVerification(existing.id, cleanEmail, otpCode, 10);
 
-      await sendVerificationEmail(cleanEmail, existing.firstName, otpCode);
-
+      // SMTP disabled — email verification removed
       return res.status(200).json({
         success: true,
         requireVerification: true,
@@ -2466,8 +2465,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     db.createOrUpdateEmailVerification(newUser.id, cleanEmail, otpCode, 10);
 
-    const emailResult = await sendVerificationEmail(cleanEmail, newUser.firstName, otpCode);
-
+    // SMTP disabled — email verification removed
     if (db.createAdminNotification) {
       db.createAdminNotification({
         type: 'USER_REGISTRATION',
@@ -2477,11 +2475,27 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
+    // AUTO-VERIFY: mark user verified immediately (SMTP disabled)
+    db.updateUser(newUser.id, { isVerified: true });
+
     res.status(201).json({
       success: true,
-      requireVerification: true,
+      requireVerification: false,
+      autoVerified: true,
       email: cleanEmail,
-      message: 'Registration successful. A 6-digit verification code has been sent to your email.'
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        plan: newUser.plan,
+        balance: newUser.balance,
+        credits: newUser.credits ?? 0,
+        isVerified: true,
+        authProvider: 'email',
+        mt5Connected: false
+      },
+      message: 'Account created successfully. Please log in.'
     });
   } catch (err: any) {
     console.error('[Auth Register Error]:', err);
@@ -2605,8 +2619,7 @@ app.post('/api/auth/resend-code', async (req, res) => {
     const newOtp = crypto.randomInt(100000, 999999).toString();
     db.createOrUpdateEmailVerification(user.id, cleanEmail, newOtp, 10);
 
-    await sendVerificationEmail(cleanEmail, user.firstName, newOtp);
-
+    // SMTP disabled — email verification removed
     res.json({
       success: true,
       message: 'A new 6-digit verification code has been sent to your email.'
@@ -2639,20 +2652,10 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid email or password.' });
     }
 
+    // AUTO-VERIFY: if user isn't verified, verify them now (SMTP disabled)
     if (!user.isVerified) {
-      const canResend = db.canResendVerification(cleanEmail);
-      if (canResend.allowed) {
-        const otpCode = crypto.randomInt(100000, 999999).toString();
-        db.createOrUpdateEmailVerification(user.id, cleanEmail, otpCode, 10);
-        sendVerificationEmail(cleanEmail, user.firstName, otpCode).catch(() => {});
-      }
-
-      return res.status(403).json({
-        success: false,
-        requireVerification: true,
-        email: cleanEmail,
-        error: 'Your email address is not verified. A 6-digit verification code has been sent to your email.'
-      });
+      db.updateUser(user.id, { isVerified: true });
+      user.isVerified = true;
     }
 
     const safeProfile = {
