@@ -61,6 +61,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   // ═══ REAL STATS FROM BACKEND ═══
   const [stats, setStats] = useState({ strategies: 0, trades: 0, analyses: 0, pnl: 0 });
+  const [referralStats, setReferralStats] = useState({ totalReferred: 0, subscribed: 0, pending: 0, earnings: 0 });
+  const [usageStats, setUsageStats] = useState({ analyses: 0, voice: 0, setups: 0, limitAnalyses: 2, limitVoice: 0, limitSetups: 0 });
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
@@ -85,6 +87,42 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     const i = setInterval(load, 30000);
     return () => { cancelled = true; clearInterval(i); };
   }, [user?.id]);
+
+  // ═══ REFERRAL + USAGE STATS FETCH ═══
+  useEffect(() => {
+    if (!user?.email) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [r, u] = await Promise.all([
+          fetch(`/api/referral/stats?email=${encodeURIComponent(user.email)}`).then(x => x.json()).catch(() => ({})),
+          fetch(`/api/user/usage?email=${encodeURIComponent(user.email)}`).then(x => x.json()).catch(() => ({})),
+        ]);
+        if (cancelled) return;
+        if (r?.success) {
+          setReferralStats({
+            totalReferred: r.totalReferred || 0,
+            subscribed: r.subscribed || 0,
+            pending: r.pending || 0,
+            earnings: r.earnings || 0,
+          });
+        }
+        if (u?.success) {
+          setUsageStats({
+            analyses: u.today?.analyses || 0,
+            voice: u.today?.voice || 0,
+            setups: u.today?.setups || 0,
+            limitAnalyses: u.limits?.analyses || 2,
+            limitVoice: u.limits?.voice || 0,
+            limitSetups: u.limits?.setups || 0,
+          });
+        }
+      } catch {}
+    };
+    load();
+    const i = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(i); };
+  }, [user?.email]);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const referralLink = user.referralCode ? `https://piptraderai.com/ref/${user.referralCode}` : '';
