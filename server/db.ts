@@ -65,6 +65,8 @@ export interface UserEntity {
   authProvider: 'email' | 'google';
   mt5Connected: boolean;
   mt5AccountNumber?: string;
+  referralCode?: string;
+  referredBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -436,6 +438,8 @@ function userToRow(u: UserEntity) {
     authProvider: u.authProvider || 'email',
     mt5Connected: Boolean(u.mt5Connected),
     mt5AccountNumber: u.mt5AccountNumber ?? null,
+    referralCode: u.referralCode ?? null,
+    referredBy: u.referredBy ?? null,
     createdAt: toDate(u.createdAt) || new Date(),
     updatedAt: toDate(u.updatedAt) || new Date(),
   };
