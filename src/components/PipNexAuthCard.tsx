@@ -245,25 +245,13 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
         });
 
         setIsLoading(false);
-        // NEW FLOW: SMTP disabled — auto-verify
-        if (result.autoVerified) {
-          // Show 4-second "verifying" screen
-          setVerificationEmail(result.email || email.trim().toLowerCase());
-          setVerificationNotice('⏳ Verifying your account...');
-          setShowVerificationStep(true);
-
-          // After 4 seconds, show success and switch to login
-          setTimeout(() => {
-            setVerificationNotice('✅ Account created successfully! Please log in to continue.');
-            setTimeout(() => {
-              setShowVerificationStep(false);
-              setIsSignUp(false); // switch to login tab
-              setErrorMessage(undefined);
-              // Pre-fill email for convenience
-              setEmail(result.email || email.trim().toLowerCase());
-              setPassword('');
-            }, 2500);
-          }, 4000);
+        // NEW FLOW: SMTP disabled — auto-verify + instant login
+        if (result.autoVerified && result.user) {
+          // Save session immediately
+          saveActiveSession(result.user);
+          // Open the app right away
+          onSuccessAuth(result.user);
+          return;
         } else if (result.requireVerification) {
           // Legacy path — still supported
           setVerificationEmail(result.email || email.trim().toLowerCase());

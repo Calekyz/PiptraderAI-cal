@@ -380,6 +380,47 @@ export function getActiveSession(): UserProfile | null {
 
 export function logoutUser(): void {
   saveActiveSession(null);
+  // Also clear the cached last-used email so account switching is clean
+  try { localStorage.removeItem(LAST_EMAIL_STORAGE_KEY); } catch {}
+}
+
+/**
+ * Validate the currently saved session against the API.
+ * If the user ID matches what we have cached, keep the session.
+ * If it mismatches (someone else logged in on another tab), clear it.
+ * Never overwrites a valid session with a different user's data.
+ */
+export async function validateActiveSession(): Promise<UserProfile | null> {
+  const cached = getActiveSession();
+  if (!cached?.email || !cached?.id) return null;
+
+  try {
+    const res = await fetch(`/api/user/me?email=${encodeURIComponent(cached.email)}`);
+    if (!res.ok) {
+      // Server said user is gone — clear session
+      if (res.status === 404) {
+        saveActiveSession(null);
+        return null;
+      }
+      // Network error — trust cache
+      return cached;
+    }
+    const data = await res.json();
+    if (!data?.success || !data?.user) return cached;
+    // Only trust if user ID matches — prevents cross-account contamination
+    if (data.user.id !== cached.id) {
+      console.warn('[Auth] Session user ID mismatch — clearing');
+      saveActiveSession(null);
+      return null;
+    }
+    // Merge fresh data, keep session
+    const merged: UserProfile = { ...cached, ...data.user };
+    saveActiveSession(merged);
+    return merged;
+  } catch {
+    // Network error — trust cache
+    return cached;
+  }
 }
 
 // ------------------- Feature access (trial system removed) -------------------

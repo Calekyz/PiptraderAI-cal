@@ -21,7 +21,8 @@ import {
   logoutUser,
   saveActiveSession,
   updateUserProfileAsync,
-  fetchFreshUserAsync
+  fetchFreshUserAsync,
+  validateActiveSession
 } from './lib/authService';
 import { isDevelopmentMode } from './lib/devMode';
 
@@ -100,6 +101,18 @@ export default function App() {
   // 🔥 NEW: Refresh user data on mount and whenever the window regains focus
   // This ensures admin-initiated changes (plan, credits, status) reflect immediately.
   useEffect(() => {
+    // Validate session on mount — ensures we don't have stale/cross-account state
+    (async () => {
+      const valid = await validateActiveSession();
+      if (valid) {
+        setCurrentUser(valid);
+      } else if (!valid) {
+        // Session was cleared because user was deleted or mismatched
+        const cached = getActiveSession();
+        if (!cached) setCurrentUser(null);
+      }
+    })();
+
     const session = getActiveSession();
     if (!session?.email) return;
 
