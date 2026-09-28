@@ -133,20 +133,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
           
-          {/* Logo / Brand (Screenshot 1: Black box with PIPTRADERAI logo + PipnexAi Algo + AI TRADING INTELLIGENCE) */}
+          {/* Logo / Brand (Screenshot 1: Black box with PIPTRADERAI logo + PipTraderAI Algo + AI TRADING INTELLIGENCE) */}
           <div 
             onClick={() => scrollToSection('hero')}
             className="flex items-center gap-3 cursor-pointer group select-none"
           >
             <div className="w-10 h-10 rounded-xl bg-[#090b14] border border-[#1e2338] p-1 shadow-lg shadow-blue-950/40 flex items-center justify-center">
               <div className="w-full h-full rounded-lg bg-black flex flex-col items-center justify-center p-0.5">
-                <span className="text-[7px] font-black tracking-tighter text-emerald-400 font-mono">PIPNEX</span>
+                <span className="text-[7px] font-black tracking-tighter text-emerald-400 font-mono">PIPTRADERAI</span>
                 <span className="text-[6px] font-bold tracking-widest text-white font-mono">AI</span>
               </div>
             </div>
             <div>
               <div className="text-lg font-bold text-white tracking-tight flex items-center gap-1.5 leading-tight">
-                <span>PipnexAi</span>
+                <span>PipTraderAI</span>
                 <span className="text-[#38bdf8] font-extrabold">Algo</span>
               </div>
               <div className="text-[9px] font-mono tracking-widest text-gray-400 uppercase font-semibold">
@@ -640,7 +640,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-white font-bold text-base">
                 <Bot className="w-4 h-4 text-purple-400" />
-                <span>PipnexAi Algo</span>
+                <span>PipTraderAI Algo</span>
               </div>
               <p className="text-xs text-gray-400">
                 Next-Gen AI Forex Trading Intelligence &amp; Chart Analysis.
@@ -658,10 +658,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Regulatory & Risk Disclaimer as mandated */}
           <div className="pt-6 border-t border-[#0f111e] space-y-2 text-[11px] text-gray-400 leading-relaxed">
             <p>
-              <strong>Disclaimer &amp; Decision Support Notice:</strong> PipnexAi Algo and Gemina AI are designed exclusively as AI-powered analysis, educational, and decision-support tools. PipTraderAI does not offer guaranteed profits, guaranteed signals, or get-rich-quick claims. Trading Foreign Exchange (Forex) and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with capital you cannot afford to lose.
+              <strong>Disclaimer &amp; Decision Support Notice:</strong> PipTraderAI Algo and Gemina AI are designed exclusively as AI-powered analysis, educational, and decision-support tools. PipTraderAI does not offer guaranteed profits, guaranteed signals, or get-rich-quick claims. Trading Foreign Exchange (Forex) and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with capital you cannot afford to lose.
             </p>
             <p className="text-gray-400">
-              © {new Date().getFullYear()} PipnexAi Algo. All rights reserved. Support: Pipnexaicustomer@gmail.com · +254726222093
+              © {new Date().getFullYear()} PipTraderAI Algo. All rights reserved. Support: Pipnexaicustomer@gmail.com · +254726222093
             </p>
           </div>
 

@@ -87,7 +87,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   }, [user?.id]);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
-  const referralLink = `https://piptraderai.com/ref/${user.referralCode || 'PTA782'}`;
+  const referralLink = user.referralCode ? `https://piptraderai.com/ref/${user.referralCode}` : '';
 
   const handleCopyLink = () => {
     if (navigator.clipboard) {
@@ -473,7 +473,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         {/* 4 Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338] text-center shadow-2xs">
-            <div className="text-lg font-bold font-mono text-[#0f172a] dark:text-white">0</div>
+            <div className="text-lg font-bold font-mono text-[#0f172a] dark:text-white">{referralStats.totalReferred}</div>
             <div className="text-[10px] text-[#64748b] dark:text-slate-400 uppercase tracking-wider font-semibold mt-0.5">
               Total Referred
             </div>
@@ -482,7 +482,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338] text-center shadow-2xs">
             <div className="flex items-center justify-center gap-1 text-lg font-bold font-mono text-[#0f172a] dark:text-white">
               <Users className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400" />
-              <span>0</span>
+              <span>{referralStats.subscribed}</span>
             </div>
             <div className="text-[10px] text-[#64748b] dark:text-slate-400 uppercase tracking-wider font-semibold mt-0.5">
               Subscribed
@@ -492,7 +492,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338] text-center shadow-2xs">
             <div className="flex items-center justify-center gap-1 text-lg font-bold font-mono text-[#0f172a] dark:text-white">
               <Clock className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400" />
-              <span>0</span>
+              <span>{referralStats.pending}</span>
             </div>
             <div className="text-[10px] text-[#64748b] dark:text-slate-400 uppercase tracking-wider font-semibold mt-0.5">
               Pending
@@ -500,7 +500,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </div>
 
           <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338] text-center shadow-2xs">
-            <div className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">$0.00</div>
+            <div className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">${referralStats.earnings.toFixed(2)}</div>
             <div className="text-[10px] text-[#64748b] dark:text-slate-400 uppercase tracking-wider font-semibold mt-0.5">
               Earnings
             </div>
@@ -511,7 +511,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         <div className="space-y-1 pt-1">
           <label className="text-[11px] text-[#475569] dark:text-slate-300 font-medium block">Your Account ID</label>
           <div className="px-3.5 py-2 bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338] rounded-xl text-[#0f172a] dark:text-white font-mono text-xs w-full max-w-sm">
-            {user.referralCode || 'DAVB669'}
+            {user.referralCode || '—'}
           </div>
         </div>
 
@@ -686,8 +686,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         <div className="space-y-3 pt-2 text-xs">
           <div className="flex items-center justify-between border-b border-[#f1f5f9] dark:border-[#171a27] pb-2">
             <span className="text-[#475569] dark:text-slate-400">AI Chart Analyses</span>
-            <span className="font-mono font-bold text-[#0f172a] dark:text-white">0 / 2</span>
-          </div>
+            <span className="font-mono font-bold text-[#0f172a] dark:text-white">0 / 2</span>{usageStats.analyses} / {usageStats.limitAnalyses === 999 ? "∞" : usageStats.limitAnalyses}</div>
           <div className="flex items-center justify-between border-b border-[#f1f5f9] dark:border-[#171a27] pb-2">
             <span className="text-[#475569] dark:text-slate-400">Voice Sessions</span>
             <span className="font-mono font-bold text-[#0f172a] dark:text-white">0 / 0</span>
