@@ -4328,27 +4328,48 @@ app.delete('/api/admin/broadcasts/:id', (req, res) => {
 // Zero AI. Zero external APIs. Pure rules.
 
 async function fetchFfEventsForEngine() {
-  try {
-    const ffRes = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!ffRes.ok) return [];
-    const raw: any[] = await ffRes.json();
-    return (raw || []).map((e: any, i: number) => ({
-      id: `ff_${i}`,
-      title: e.title,
-      currency: (e.country || 'USD').toUpperCase(),
-      country: e.country || 'USD',
-      impact: e.impact || 'Low',
-      actual: e.actual,
-      forecast: e.forecast,
-      previous: e.previous,
-      timestamp: e.date ? new Date(e.date).getTime() : undefined,
-    }));
-  } catch {
-    return [];
+  const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Referer': 'https://www.forexfactory.com/',
+  };
+
+  // Try twice with increasing timeout
+  for (const timeoutMs of [10000, 20000]) {
+    try {
+      const ffRes = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!ffRes.ok) {
+        console.warn(`[FF] HTTP ${ffRes.status} (timeout was ${timeoutMs}ms)`);
+        continue;
+      }
+      const raw: any[] = await ffRes.json();
+      if (!Array.isArray(raw) || raw.length === 0) {
+        console.warn(`[FF] Empty response (timeout was ${timeoutMs}ms)`);
+        continue;
+      }
+      console.log(`[FF] Fetched ${raw.length} events (timeout ${timeoutMs}ms)`);
+      return raw.map((e: any, i: number) => ({
+        id: `ff_${i}`,
+        title: e.title,
+        currency: (e.country || 'USD').toUpperCase(),
+        country: e.country || 'USD',
+        impact: e.impact || 'Low',
+        actual: e.actual,
+        forecast: e.forecast,
+        previous: e.previous,
+        timestamp: e.date ? new Date(e.date).getTime() : undefined,
+      }));
+    } catch (err: any) {
+      console.warn(`[FF] Attempt failed (timeout ${timeoutMs}ms):`, err?.message);
+    }
   }
+
+  return [];
 }
 
 app.post('/api/engine/chat', async (req, res) => {
@@ -4401,14 +4422,35 @@ app.get('/api/engine/news-bias', async (req, res) => {
   try {
     const events = await fetchFfEventsForEngine();
     if (!events.length) {
-      return res.status(503).json({ success: false, error: 'ForexFactory data unavailable' });
+      // Return a graceful empty response instead of 503 so the UI can show something
+      console.warn('[News Bias] FF events empty — returning empty bias');
+      return res.json({
+        success: true,
+        usd: { currency: 'USD', score: 0, label: 'Neutral', events: 0, reasons: [] },
+        otherCurrencies: [],
+        pairBiases: [],
+        upcomingHighImpact: [],
+        warnings: ['Live news feed is temporarily unavailable. Showing neutral state.'],
+        lockout: { isLocked: false },
+        dataAvailable: false,
+      });
     }
     const bias = analyzeNews(events);
     const lockout = isNewsLockoutActive(events);
-    res.json({ success: true, ...bias, lockout });
+    res.json({ success: true, ...bias, lockout, dataAvailable: true });
   } catch (err: any) {
     console.error('[Engine News Error]:', err);
-    res.status(500).json({ success: false, error: err?.message || 'News analysis failed' });
+    res.json({
+      success: false,
+      error: err?.message || 'News analysis failed',
+      usd: { currency: 'USD', score: 0, label: 'Neutral', events: 0, reasons: [] },
+      otherCurrencies: [],
+      pairBiases: [],
+      upcomingHighImpact: [],
+      warnings: ['News feed error.'],
+      lockout: { isLocked: false },
+      dataAvailable: false,
+    });
   }
 });
 
