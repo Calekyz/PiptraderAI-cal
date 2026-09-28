@@ -13,7 +13,8 @@ import { AdminApp } from './admin/AdminApp';
 import { MaintenancePage } from './components/MaintenancePage';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { UserProfile } from './types';
-import { X, ShieldAlert } from 'lucide-react';
+import { X, ShieldAlert, Bot } from 'lucide-react';
+import { GeminaAssistantModal } from './components/GeminaAssistantModal';
 import {
   enterAsDevUser,
   getActiveSession,
@@ -27,6 +28,7 @@ import { isDevelopmentMode } from './lib/devMode';
 const SITE_UNDER_MAINTENANCE = false;
 
 export default function App() {
+  const [isGeminaOpen, setIsGeminaOpen] = useState(false);
   const [isAdminPanel, setIsAdminPanel] = useState<boolean>(() => {
     try {
       const host = window.location.hostname.toLowerCase();
@@ -318,6 +320,30 @@ export default function App() {
       />
 
       <PWAInstallPrompt />
+      {/* ═══════════════════════════════════════════════════
+          FLOATING PIPAI CHAT BUTTON + MODAL
+          Available on every page (hidden in admin panel)
+      ═══════════════════════════════════════════════════ */}
+      <button
+        onClick={() => setIsGeminaOpen(true)}
+        title="Ask PipAI"
+        aria-label="Open PipAI Assistant"
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full 
+                   bg-gradient-to-br from-[#2962ff] to-[#7c3aed] 
+                   text-white shadow-2xl shadow-purple-900/30
+                   hover:scale-110 active:scale-95 
+                   transition-transform duration-200 
+                   flex items-center justify-center
+                   border border-purple-400/40"
+      >
+        <Bot className="w-6 h-6" />
+        <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#07080d] animate-pulse" />
+      </button>
+
+      <GeminaAssistantModal
+        isOpen={isGeminaOpen}
+        onClose={() => setIsGeminaOpen(false)}
+      />
     </div>
   );
 }
