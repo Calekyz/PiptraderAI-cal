@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
   Lock, 
@@ -58,6 +58,33 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   const [referralTab, setReferralTab] = useState<'Overview' | 'Referrals' | 'Withdrawals'>('Overview');
   const [copiedRef, setCopiedRef] = useState(false);
+
+  // ═══ REAL STATS FROM BACKEND ═══
+  const [stats, setStats] = useState({ strategies: 0, trades: 0, analyses: 0, pnl: 0 });
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [j, s, a] = await Promise.all([
+          fetch(`/api/journal?userId=${encodeURIComponent(user.id)}`).then(r => r.json()).catch(() => ({})),
+          fetch(`/api/strategies?userId=${encodeURIComponent(user.id)}`).then(r => r.json()).catch(() => ({})),
+          fetch(`/api/chart-analyses?userId=${encodeURIComponent(user.id)}`).then(r => r.json()).catch(() => ({})),
+        ]);
+        if (cancelled) return;
+        const trades = j.trades || [];
+        setStats({
+          strategies: (s.strategies || []).length,
+          trades: trades.length,
+          analyses: (a.analyses || []).length,
+          pnl: trades.reduce((sum: number, t: any) => sum + (Number(t.pnl) || 0), 0),
+        });
+      } catch { /* silent */ }
+    };
+    load();
+    const i = setInterval(load, 30000);
+    return () => { cancelled = true; clearInterval(i); };
+  }, [user?.id]);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const referralLink = `https://pipnex-ai.com/ref/${user.referralCode || 'PNX782'}`;
@@ -147,7 +174,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Connected Accounts</div>
                 <div className="text-xl md:text-2xl font-extrabold text-[#0f172a] dark:text-white mt-1">
-                  0 <span className="text-[#94a3b8] dark:text-slate-500 font-normal text-sm md:text-base">/ 0</span>
+                  {user?.mt5Connected ? '1' : '0'} <span className="text-[#94a3b8] dark:text-slate-500 font-normal text-sm md:text-base">/ 1</span>
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 text-[#3b82f6] dark:text-blue-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -155,7 +182,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
             </div>
             <div className="text-[11px] md:text-xs text-[#94a3b8] dark:text-slate-500 font-medium mt-3">
-              None running
+              {user?.mt5Connected ? 'MT5 linked' : 'None connected'}
             </div>
           </div>
 
@@ -169,7 +196,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Active EAs</div>
                 <div className="text-xl md:text-2xl font-extrabold text-[#0f172a] dark:text-white mt-1">
-                  0
+                  {stats.strategies}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 text-[#8b5cf6] dark:text-purple-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -177,7 +204,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
             </div>
             <div className="text-[11px] md:text-xs text-[#94a3b8] dark:text-slate-500 font-medium mt-3">
-              0 brokers connected
+              {stats.strategies === 0 ? 'None configured' : `${stats.strategies} running`}
             </div>
           </div>
 
@@ -191,7 +218,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Total Trades</div>
                 <div className="text-xl md:text-2xl font-extrabold text-[#0f172a] dark:text-white mt-1">
-                  0
+                  {stats.trades}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/40 text-[#f59e0b] dark:text-amber-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -212,8 +239,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Total P&amp;L</div>
-                <div className="text-xl md:text-2xl font-extrabold text-[#16a34a] dark:text-emerald-400 font-mono mt-1">
-                  +$0.00
+                <div className={`text-xl md:text-2xl font-extrabold font-mono mt-1 ${stats.pnl >= 0 ? 'text-[#16a34a] dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {stats.pnl >= 0 ? '+' : ''}${stats.pnl.toFixed(2)}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/40 text-[#10b981] dark:text-emerald-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -221,13 +248,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
             </div>
             <div className="text-[11px] md:text-xs text-[#64748b] dark:text-slate-400 font-medium mt-3">
-              Balance: $0.00
+              Balance: ${(user?.balance || 0).toFixed(2)}
             </div>
           </div>
         </div>
 
         {/* Quick Performance Snapshot Reference Widget */}
-        <QuickPerformanceSnapshot onStartAITrading={() => onNavigateToTab('ai-trading')} />
+        <QuickPerformanceSnapshot user={user} onStartAITrading={() => onNavigateToTab('ai-trading')} />
 
         {/* 3 Vibrant Action Banners */}
         <div className="space-y-3.5">
