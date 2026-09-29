@@ -191,70 +191,25 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
           {loading ? (
             <div className="py-14 flex flex-col items-center justify-center gap-3 text-gray-400">
               <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-medium">ForexFactory AI analyzing historical volatility &amp; order book depth...</span>
+              <span className="text-xs font-medium">Running live engine analysis on {event.currency} pairs...</span>
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Structured Metric Summary Box */}
-              <div className="grid grid-cols-2 gap-2 font-mono">
-                <div className="bg-gray-50 dark:bg-[#0e1122] p-3 rounded-xl border border-gray-200 dark:border-[#1b2240] space-y-1">
-                  <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">EXPECTED RANGE</div>
-                  <div className="text-xs font-bold text-gray-900 dark:text-white">45–80 Pips Volatility</div>
-                </div>
-
-                <div className="bg-gray-50 dark:bg-[#0e1122] p-3 rounded-xl border border-gray-200 dark:border-[#1b2240] space-y-1">
-                  <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold">PRIMARY PAIRS</div>
-                  <div className="text-xs font-bold text-[#5b3fe4] dark:text-purple-300">EUR/USD · XAU/USD · USD/JPY</div>
-                </div>
-              </div>
-
-              {/* Scenarios: Bullish & Bearish Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="bg-emerald-50/60 dark:bg-[#0d1717] border border-emerald-200 dark:border-emerald-500/30 p-3 rounded-xl space-y-1">
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span>Bullish Scenario</span>
-                  </div>
-                  <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-snug">
-                    Print beats consensus: USD strengthens, EUR/USD retests 1.0810, Gold tests $2,865 support.
-                  </p>
-                </div>
-
-                <div className="bg-rose-50/60 dark:bg-[#1a0e14] border border-rose-200 dark:border-rose-500/30 p-3 rounded-xl space-y-1">
-                  <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-bold text-xs">
-                    <TrendingDown className="w-3.5 h-3.5" />
-                    <span>Bearish Scenario</span>
-                  </div>
-                  <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-snug">
-                    Print misses consensus: USD weakens, EUR/USD expands to 1.0920, Gold breaks toward $2,910.
-                  </p>
-                </div>
-              </div>
-
-              {/* Bot Action Plan */}
-              <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-[#0e1122] border border-gray-200 dark:border-[#1b2240] space-y-2">
-                <div className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold text-xs">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                  <span>PipTraderAI Auto-Trading Guard Recommendations</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-600 dark:text-gray-300">
-                  <div className="flex items-start gap-2 bg-white dark:bg-[#090b16] p-2 rounded-lg border border-gray-200 dark:border-[#161a30]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#5b3fe4] dark:text-purple-400 shrink-0 mt-0.5" />
-                    <span>Trailing Stop Buffer: +15 Pips</span>
-                  </div>
-                  <div className="flex items-start gap-2 bg-white dark:bg-[#090b16] p-2 rounded-lg border border-gray-200 dark:border-[#161a30]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#5b3fe4] dark:text-purple-400 shrink-0 mt-0.5" />
-                    <span>Max Equity Drawdown Cap: 1.0%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional AI Overview */}
-              {analysisText && (
-                <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#0a0c16] border border-gray-200 dark:border-[#16192c] text-gray-600 dark:text-gray-400 text-[11px] whitespace-pre-wrap leading-relaxed">
+              {/* Live engine analysis text */}
+              {analysisText ? (
+                <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0a0c16] border border-gray-200 dark:border-[#16192c] text-gray-700 dark:text-gray-300 text-[12px] whitespace-pre-wrap leading-relaxed font-mono">
                   {analysisText}
                 </div>
+              ) : (
+                <div className="p-6 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs text-center">
+                  Live engine analysis temporarily unavailable. Try again in a moment.
+                </div>
               )}
+
+              {/* Disclaimer */}
+              <div className="p-3 rounded-xl bg-gray-100 dark:bg-[#0a0c16] border border-gray-200 dark:border-[#16192c] text-[10px] text-gray-500 dark:text-gray-500 leading-relaxed">
+                ⚠️ Analysis is generated by the rule-based engine from live candle data and ForexFactory news. Not financial advice. Always manage risk (1% per trade max).
+              </div>
             </div>
           )}
         </div>

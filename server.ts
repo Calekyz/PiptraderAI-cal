@@ -3341,9 +3341,7 @@ app.delete('/api/journal/:id', (req, res) => {
 app.get(['/api/forex-factory-calendar', '/api/macro-news', '/api/forex-factory-news'], async (req, res) => {
   try {
     const period = (req.query.period as string) || 'thisweek';
-    const targetUrl = period === 'nextweek'
-      ? 'https://nfs.faireconomy.media/ff_calendar_nextweek.json'
-      : 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+    const targetUrl = 'https://ready-chicken-5023.calekyz.deno.net';
 
     const countryFlags: Record<string, { flag: string; name: string; pairs: string[] }> = {
       USD: { flag: '🇺🇸', name: 'United States', pairs: ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'US30', 'NAS100'] },
@@ -4603,7 +4601,12 @@ app.get('/api/user/usage', (req, res) => {
 // Zero AI. Zero external APIs. Pure rules.
 
 async function fetchFfEventsForEngine() {
-  const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+  // Try the Deno proxy first (bypasses FF IP block on Render), then fall back to direct
+  const urls = [
+    'https://ready-chicken-5023.calekyz.deno.net',
+    'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+  ];
+
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'application/json, text/plain, */*',
@@ -4611,39 +4614,41 @@ async function fetchFfEventsForEngine() {
     'Referer': 'https://www.forexfactory.com/',
   };
 
-  // Try twice with increasing timeout
-  for (const timeoutMs of [10000, 20000]) {
-    try {
-      const ffRes = await fetch(url, {
-        headers,
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-      if (!ffRes.ok) {
-        console.warn(`[FF] HTTP ${ffRes.status} (timeout was ${timeoutMs}ms)`);
-        continue;
+  for (const url of urls) {
+    for (const timeoutMs of [10000, 20000]) {
+      try {
+        const ffRes = await fetch(url, {
+          headers,
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!ffRes.ok) {
+          console.warn(`[FF] ${url} → HTTP ${ffRes.status} (timeout ${timeoutMs}ms)`);
+          continue;
+        }
+        const raw: any[] = await ffRes.json();
+        if (!Array.isArray(raw) || raw.length === 0) {
+          console.warn(`[FF] ${url} → empty response`);
+          continue;
+        }
+        console.log(`[FF] ✅ Fetched ${raw.length} events from ${url}`);
+        return raw.map((e: any, i: number) => ({
+          id: `ff_${i}`,
+          title: e.title,
+          currency: (e.country || 'USD').toUpperCase(),
+          country: e.country || 'USD',
+          impact: e.impact || 'Low',
+          actual: e.actual,
+          forecast: e.forecast,
+          previous: e.previous,
+          timestamp: e.date ? new Date(e.date).getTime() : undefined,
+        }));
+      } catch (err: any) {
+        console.warn(`[FF] ${url} failed (timeout ${timeoutMs}ms):`, err?.message);
       }
-      const raw: any[] = await ffRes.json();
-      if (!Array.isArray(raw) || raw.length === 0) {
-        console.warn(`[FF] Empty response (timeout was ${timeoutMs}ms)`);
-        continue;
-      }
-      console.log(`[FF] Fetched ${raw.length} events (timeout ${timeoutMs}ms)`);
-      return raw.map((e: any, i: number) => ({
-        id: `ff_${i}`,
-        title: e.title,
-        currency: (e.country || 'USD').toUpperCase(),
-        country: e.country || 'USD',
-        impact: e.impact || 'Low',
-        actual: e.actual,
-        forecast: e.forecast,
-        previous: e.previous,
-        timestamp: e.date ? new Date(e.date).getTime() : undefined,
-      }));
-    } catch (err: any) {
-      console.warn(`[FF] Attempt failed (timeout ${timeoutMs}ms):`, err?.message);
     }
   }
 
+  console.warn('[FF] All sources failed — returning empty list');
   return [];
 }
 
