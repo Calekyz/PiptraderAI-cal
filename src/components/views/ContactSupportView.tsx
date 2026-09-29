@@ -41,6 +41,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
     }
   ]);
   const [chatInput, setChatInput] = useState('');
+  const [sessionTicketId, setSessionTicketId] = useState<string | null>(null);
 
   // FAQ Modal
   const [isFaqOpen, setIsFaqOpen] = useState(false);
@@ -87,48 +88,83 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
     setChatMessages(prev => [...prev, { sender: 'user', text: userMsg, time: 'Just now' }]);
     setChatInput('');
 
-    // Save the message as a real support ticket so admin sees it
     try {
-      const res = await fetch('/api/support/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          userEmail: email || user.email,
-          userName: name || `${user.firstName} ${user.lastName}`.trim(),
-          subject: userMsg.slice(0, 60) + (userMsg.length > 60 ? '…' : ''),
-          category: 'Live Chat',
-          message: userMsg,
-          priority: 'MEDIUM',
-        }),
-      });
-      const data = await res.json();
+      if (!sessionTicketId) {
+        // First message of session — create a ticket
+        const res = await fetch('/api/support/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            userEmail: email || user.email,
+            userName: name || `${user.firstName} ${user.lastName}`.trim(),
+            subject: userMsg.slice(0, 80) + (userMsg.length > 80 ? '…' : ''),
+            category: 'Live Chat',
+            message: userMsg,
+            priority: 'MEDIUM',
+          }),
+        });
+        const data = await res.json();
 
-      if (data.success) {
-        setChatMessages(prev => [
-          ...prev,
-          {
-            sender: 'agent',
-            text: `✅ Received! Your message has been forwarded to our support team (Ticket ${data.ticket?.id || 'created'}). A human agent will respond shortly.`,
-            time: 'Just now'
-          }
-        ]);
+        if (data.success && data.ticket?.id) {
+          setSessionTicketId(data.ticket.id);
+          setChatMessages(prev => [
+            ...prev,
+            {
+              sender: 'agent',
+              text: `✅ Message sent to our support team. Ticket ${data.ticket.id}. A human agent will reply here shortly.`,
+              time: 'Just now'
+            }
+          ]);
+        } else {
+          setChatMessages(prev => [
+            ...prev,
+            {
+              sender: 'agent',
+              text: `⚠️ Could not send. Please try again or email support@piptraderai.com.`,
+              time: 'Just now'
+            }
+          ]);
+        }
       } else {
-        setChatMessages(prev => [
-          ...prev,
-          {
-            sender: 'agent',
-            text: `⚠️ Could not deliver your message. Please try the "Send Message" form or email support@piptraderai.com.`,
-            time: 'Just now'
-          }
-        ]);
+        // Session ticket exists — append reply
+        const res = await fetch(`/api/support/tickets/${sessionTicketId}/reply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: userMsg,
+            sender: 'user',
+            senderName: name || `${user.firstName} ${user.lastName}`.trim(),
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          setChatMessages(prev => [
+            ...prev,
+            {
+              sender: 'agent',
+              text: `✅ Added to your conversation on ticket ${sessionTicketId}.`,
+              time: 'Just now'
+            }
+          ]);
+        } else {
+          setChatMessages(prev => [
+            ...prev,
+            {
+              sender: 'agent',
+              text: `⚠️ Could not append message. Please retry.`,
+              time: 'Just now'
+            }
+          ]);
+        }
       }
     } catch (err) {
       setChatMessages(prev => [
         ...prev,
         {
           sender: 'agent',
-          text: `⚠️ Network issue — message not delivered. Please retry.`,
+          text: `⚠️ Network error — message not delivered.`,
           time: 'Just now'
         }
       ]);
