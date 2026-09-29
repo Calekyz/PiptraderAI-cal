@@ -12,6 +12,8 @@
 // ============================================================================
 
 import {
+  calculatePips,
+  getTimeframeMultipliers,
   Candle,
   SwingPoint,
   Trend,
@@ -39,7 +41,7 @@ import {
 } from './indicators';
 
 export interface StrategySignal {
-  strategy: 'AsianSweep' | 'SMC' | 'CRT' | 'PriceAction';
+  strategy: 'AsianSweep' | 'SMC' | 'CRT' | 'PriceAction' | 'Fibonacci' | 'SRFlip';
   direction: 'BUY' | 'SELL';
   confidence: number;              // 0–100
   entry: number;
@@ -51,6 +53,10 @@ export interface StrategySignal {
   reasons: string[];
   warnings: string[];
   session: string;                 // 'London' | 'NewYork' | 'Asian' | 'Any'
+  // Pip distances (standard pips)
+  slPips: number;
+  tp1Pips: number;
+  tp2Pips: number;
 }
 
 // ============================================================================
@@ -101,7 +107,7 @@ function roundPrice(price: number): number {
 //   5. Entry, SL beyond sweep, TP to Mid then opposite side
 // ============================================================================
 
-export function detectAsianSweep(candles: Candle[]): StrategySignal | null {
+export function detectAsianSweep(candles: Candle[], symbol = 'XAUUSD', timeframe = 'M15'): StrategySignal | null {
   if (candles.length < 50) return null;
 
   const session = currentSession(candles);
@@ -247,19 +253,26 @@ export function detectAsianSweep(candles: Candle[]): StrategySignal | null {
     confidence -= 10;
   }
 
+  const _e = roundPrice(entry);
+  const _sl = roundPrice(stopLoss);
+  const _tp1 = roundPrice(tp1);
+  const _tp2 = roundPrice(tp2);
   return {
     strategy: 'AsianSweep',
     direction,
     confidence: Math.min(100, Math.max(0, confidence)),
-    entry: roundPrice(entry),
-    stopLoss: roundPrice(stopLoss),
-    takeProfit1: roundPrice(tp1),
-    takeProfit2: roundPrice(tp2),
+    entry: _e,
+    stopLoss: _sl,
+    takeProfit1: _tp1,
+    takeProfit2: _tp2,
     riskReward,
     setupType: `Asian ${direction === 'SELL' ? 'High' : 'Low'} Sweep + ${direction === 'SELL' ? 'Bearish OB' : 'Bullish OB'}`,
     reasons,
     warnings,
     session: 'London',
+    slPips: calculatePips(_e, _sl, symbol),
+    tp1Pips: calculatePips(_e, _tp1, symbol),
+    tp2Pips: calculatePips(_e, _tp2, symbol),
   };
 }
 
@@ -273,7 +286,7 @@ export function detectAsianSweep(candles: Candle[]): StrategySignal | null {
 //   • Equal Highs / Lows
 // ============================================================================
 
-export function detectSMC(candles: Candle[]): StrategySignal | null {
+export function detectSMC(candles: Candle[], symbol = 'XAUUSD', timeframe = 'M15'): StrategySignal | null {
   if (candles.length < 60) return null;
 
   const swings = findSwings(candles, 2);
@@ -394,19 +407,26 @@ export function detectSMC(candles: Candle[]): StrategySignal | null {
     confidence -= 10;
   }
 
+  const _e = roundPrice(entry);
+  const _sl = roundPrice(stopLoss);
+  const _tp1 = roundPrice(tp1);
+  const _tp2 = roundPrice(tp2);
   return {
     strategy: 'SMC',
     direction,
     confidence: Math.min(100, Math.max(0, confidence)),
-    entry: roundPrice(entry),
-    stopLoss: roundPrice(stopLoss),
-    takeProfit1: roundPrice(tp1),
-    takeProfit2: roundPrice(tp2),
+    entry: _e,
+    stopLoss: _sl,
+    takeProfit1: _tp1,
+    takeProfit2: _tp2,
     riskReward,
     setupType: isCHoCH ? 'CHoCH + BOS' : fvgFound ? 'BOS + FVG' : 'BOS Continuation',
     reasons,
     warnings,
     session: currentSession(candles),
+    slPips: calculatePips(_e, _sl, symbol),
+    tp1Pips: calculatePips(_e, _tp1, symbol),
+    tp2Pips: calculatePips(_e, _tp2, symbol),
   };
 }
 
@@ -419,7 +439,7 @@ export function detectSMC(candles: Candle[]): StrategySignal | null {
 //   4. Target the opposite side of the range
 // ============================================================================
 
-export function detectCRT(candles: Candle[]): StrategySignal | null {
+export function detectCRT(candles: Candle[], symbol = 'XAUUSD', timeframe = 'M15'): StrategySignal | null {
   if (candles.length < 30) return null;
 
   const atrArr = atr(candles, 14);
@@ -528,19 +548,26 @@ export function detectCRT(candles: Candle[]): StrategySignal | null {
     }
   }
 
+  const _e = roundPrice(entry);
+  const _sl = roundPrice(stopLoss);
+  const _tp1 = roundPrice(tp1);
+  const _tp2 = roundPrice(tp2);
   return {
     strategy: 'CRT',
     direction,
     confidence: Math.min(100, Math.max(0, confidence)),
-    entry: roundPrice(entry),
-    stopLoss: roundPrice(stopLoss),
-    takeProfit1: roundPrice(tp1),
-    takeProfit2: roundPrice(tp2),
+    entry: _e,
+    stopLoss: _sl,
+    takeProfit1: _tp1,
+    takeProfit2: _tp2,
     riskReward,
     setupType: `CRT ${direction === 'BUY' ? 'Bullish' : 'Bearish'} Reversal`,
     reasons,
     warnings,
     session: currentSession(candles),
+    slPips: calculatePips(_e, _sl, symbol),
+    tp1Pips: calculatePips(_e, _tp1, symbol),
+    tp2Pips: calculatePips(_e, _tp2, symbol),
   };
 }
 
@@ -552,7 +579,7 @@ export function detectCRT(candles: Candle[]): StrategySignal | null {
 //   • Inside bar breakout
 // ============================================================================
 
-export function detectPriceAction(candles: Candle[]): StrategySignal | null {
+export function detectPriceAction(candles: Candle[], symbol = 'XAUUSD', timeframe = 'M15'): StrategySignal | null {
   if (candles.length < 40) return null;
 
   const swings = findSwings(candles, 2);
@@ -675,18 +702,318 @@ export function detectPriceAction(candles: Candle[]): StrategySignal | null {
     }
   }
 
+  const _e = roundPrice(entry);
+  const _sl = roundPrice(stopLoss);
+  const _tp1 = roundPrice(tp1);
+  const _tp2 = roundPrice(tp2);
   return {
     strategy: 'PriceAction',
     direction,
     confidence: Math.min(100, Math.max(0, confidence)),
-    entry: roundPrice(entry),
-    stopLoss: roundPrice(stopLoss),
-    takeProfit1: roundPrice(tp1),
-    takeProfit2: roundPrice(tp2),
+    entry: _e,
+    stopLoss: _sl,
+    takeProfit1: _tp1,
+    takeProfit2: _tp2,
     riskReward,
     setupType,
     reasons,
     warnings,
     session: currentSession(candles),
+    slPips: calculatePips(_e, _sl, symbol),
+    tp1Pips: calculatePips(_e, _tp1, symbol),
+    tp2Pips: calculatePips(_e, _tp2, symbol),
+  };
+}
+
+// ============================================================================
+// STRATEGY 5 — FIBONACCI RETRACEMENT
+// ----------------------------------------------------------------------------
+//   • Find last impulse leg (swing low → swing high, or vice versa)
+//   • Compute Fib retracement levels
+//   • Signal when price retraces into the 38.2% – 61.8% golden pocket
+//   • Confirm with reversal candle
+//   • SL beyond 78.6% (invalidation), TP at 100% / 127% / 161.8%
+// ============================================================================
+
+export function detectFibonacci(candles: Candle[], symbol = 'XAUUSD', timeframe = 'M15'): StrategySignal | null {
+  if (candles.length < 40) return null;
+
+  const swings = findSwings(candles, 2);
+  if (swings.length < 4) return null;
+
+  const highs = recentSwings(swings, 'HIGH', 3);
+  const lows = recentSwings(swings, 'LOW', 3);
+  if (highs.length < 2 || lows.length < 2) return null;
+
+  const lastHigh = highs[highs.length - 1];
+  const lastLow = lows[lows.length - 1];
+
+  // Must have a valid impulse leg
+  const legRange = lastHigh.price - lastLow.price;
+  if (legRange <= 0) return null;
+
+  const currentPrice = candles[candles.length - 1].close;
+  const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2];
+
+  const atrArr = atr(candles, 14);
+  const currentAtr = lastValid(atrArr);
+  if (!currentAtr) return null;
+
+  // Determine impulse direction:
+  // If lastHigh came AFTER lastLow → bullish impulse (up leg)
+  // If lastLow came AFTER lastHigh → bearish impulse (down leg)
+  const impulseBullish = lastHigh.index > lastLow.index;
+
+  // Fib levels
+  const fib = {
+    l236: impulseBullish ? lastHigh.price - legRange * 0.236 : lastLow.price + legRange * 0.236,
+    l382: impulseBullish ? lastHigh.price - legRange * 0.382 : lastLow.price + legRange * 0.382,
+    l500: impulseBullish ? lastHigh.price - legRange * 0.500 : lastLow.price + legRange * 0.500,
+    l618: impulseBullish ? lastHigh.price - legRange * 0.618 : lastLow.price + legRange * 0.618,
+    l786: impulseBullish ? lastHigh.price - legRange * 0.786 : lastLow.price + legRange * 0.786,
+  };
+
+  const goldenTop = Math.max(fib.l382, fib.l618);
+  const goldenBottom = Math.min(fib.l382, fib.l618);
+
+  // Check if price is inside the golden pocket
+  const inGoldenPocket = currentPrice <= goldenTop && currentPrice >= goldenBottom;
+
+  if (!inGoldenPocket) return null;
+
+  // Confirm with reversal candle
+  const isBull = impulseBullish; // Looking for BUY in golden pocket of up leg
+  const reasons: string[] = [];
+  const warnings: string[] = [];
+  let confidence = 70;
+
+  reasons.push(`${impulseBullish ? 'Bullish' : 'Bearish'} impulse leg: ${roundPrice(lastLow.price)} → ${roundPrice(lastHigh.price)}`);
+  reasons.push(`Price in golden pocket: ${roundPrice(goldenBottom)} – ${roundPrice(goldenTop)}`);
+
+  if (isBull) {
+    const pin = isPinBar(last);
+    if (pin.isPin && pin.direction === 'BULLISH') {
+      confidence += 12;
+      reasons.push('Bullish pin bar confirmation');
+    }
+    if (isBullishEngulfing(prev, last)) {
+      confidence += 12;
+      reasons.push('Bullish engulfing confirmation');
+    }
+  } else {
+    const pin = isPinBar(last);
+    if (pin.isPin && pin.direction === 'BEARISH') {
+      confidence += 12;
+      reasons.push('Bearish pin bar confirmation');
+    }
+    if (isBearishEngulfing(prev, last)) {
+      confidence += 12;
+      reasons.push('Bearish engulfing confirmation');
+    }
+  }
+
+  // RSI confluence
+  const rsiArr = rsi(candles, 14);
+  const currentRsi = lastValid(rsiArr);
+  if (currentRsi !== null) {
+    if (isBull && currentRsi < 45) {
+      confidence += 5;
+      reasons.push(`RSI oversold-ish at ${currentRsi.toFixed(1)}`);
+    }
+    if (!isBull && currentRsi > 55) {
+      confidence += 5;
+      reasons.push(`RSI overbought-ish at ${currentRsi.toFixed(1)}`);
+    }
+  }
+
+  // Entry, SL, TP
+  const direction: 'BUY' | 'SELL' = isBull ? 'BUY' : 'SELL';
+  const entry = currentPrice;
+  const tfMult = getTimeframeMultipliers(timeframe);
+
+  let stopLoss: number;
+  let tp1: number;
+  let tp2: number;
+
+  if (isBull) {
+    stopLoss = Math.min(fib.l786, last.low) - currentAtr * 0.3 * tfMult.sl;
+    const risk = entry - stopLoss;
+    tp1 = lastHigh.price;              // 100% retracement (prior high)
+    tp2 = lastHigh.price + legRange * 0.272; // 127.2% extension
+  } else {
+    stopLoss = Math.max(fib.l786, last.high) + currentAtr * 0.3 * tfMult.sl;
+    const risk = stopLoss - entry;
+    tp1 = lastLow.price;
+    tp2 = lastLow.price - legRange * 0.272;
+  }
+
+  const riskReward = rr(entry, stopLoss, tp2);
+  if (riskReward < 2) return null;
+
+  if (riskReward >= 3) confidence += 5;
+
+  const _e = roundPrice(entry);
+  const _sl = roundPrice(stopLoss);
+  const _tp1 = roundPrice(tp1);
+  const _tp2 = roundPrice(tp2);
+
+  return {
+    strategy: 'Fibonacci',
+    direction,
+    confidence: Math.min(100, Math.max(0, confidence)),
+    entry: _e,
+    stopLoss: _sl,
+    takeProfit1: _tp1,
+    takeProfit2: _tp2,
+    riskReward,
+    setupType: `Fibonacci ${isBull ? 'Golden Pocket Buy' : 'Golden Pocket Sell'}`,
+    reasons,
+    warnings,
+    session: currentSession(candles),
+    slPips: calculatePips(_e, _sl, symbol),
+    tp1Pips: calculatePips(_e, _tp1, symbol),
+    tp2Pips: calculatePips(_e, _tp2, symbol),
+  };
+}
+
+// ============================================================================
+// STRATEGY 6 — SUPPORT/RESISTANCE FLIP
+// ----------------------------------------------------------------------------
+//   • Find a level that was resistance and is now support (or vice versa)
+//   • Wait for price to retest the flipped level
+//   • Confirm with reversal candle
+// ============================================================================
+
+export function detectSRFlip(candles: Candle[], symbol = 'XAUUSD', timeframe = 'M15'): StrategySignal | null {
+  if (candles.length < 50) return null;
+
+  const swings = findSwings(candles, 2);
+  if (swings.length < 6) return null;
+
+  const currentPrice = candles[candles.length - 1].close;
+  const last = candles[candles.length - 1];
+  const prev = candles[candles.length - 2];
+
+  const atrArr = atr(candles, 14);
+  const currentAtr = lastValid(atrArr);
+  if (!currentAtr) return null;
+
+  // Tolerance: within 0.4× ATR of a level
+  const tol = currentAtr * 0.4;
+
+  // Look for support flip (broken resistance → now support)
+  // Broken resistance = swing high that price closed above, then came back down
+  const swingHighs = recentSwings(swings, 'HIGH', 5);
+  const swingLows = recentSwings(swings, 'LOW', 5);
+
+  let flipLevel: number | null = null;
+  let flipDirection: 'BUY' | 'SELL' | null = null;
+
+  // Check for support flip (bullish): a prior swing high, price broke above, now retesting from above
+  for (const sh of swingHighs) {
+    if (Math.abs(currentPrice - sh.price) > tol) continue;
+    // Must have been broken (price traded above it)
+    const brokeAbove = candles.slice(sh.index + 1).some(c => c.close > sh.price);
+    if (brokeAbove && currentPrice >= sh.price * 0.998) {
+      flipLevel = sh.price;
+      flipDirection = 'BUY';
+      break;
+    }
+  }
+
+  // Check for resistance flip (bearish): prior swing low, price broke below, now retesting from below
+  if (!flipLevel) {
+    for (const sl of swingLows) {
+      if (Math.abs(currentPrice - sl.price) > tol) continue;
+      const brokeBelow = candles.slice(sl.index + 1).some(c => c.close < sl.price);
+      if (brokeBelow && currentPrice <= sl.price * 1.002) {
+        flipLevel = sl.price;
+        flipDirection = 'SELL';
+        break;
+      }
+    }
+  }
+
+  if (!flipLevel || !flipDirection) return null;
+
+  const reasons: string[] = [];
+  const warnings: string[] = [];
+  let confidence = 70;
+
+  reasons.push(
+    flipDirection === 'BUY'
+      ? `Prior resistance ${roundPrice(flipLevel)} flipped to support — retesting`
+      : `Prior support ${roundPrice(flipLevel)} flipped to resistance — retesting`
+  );
+
+  // Confirmation candle
+  if (flipDirection === 'BUY') {
+    const pin = isPinBar(last);
+    if (pin.isPin && pin.direction === 'BULLISH') {
+      confidence += 12;
+      reasons.push('Bullish pin bar rejection');
+    }
+    if (isBullishEngulfing(prev, last)) {
+      confidence += 10;
+      reasons.push('Bullish engulfing at flip');
+    }
+  } else {
+    const pin = isPinBar(last);
+    if (pin.isPin && pin.direction === 'BEARISH') {
+      confidence += 12;
+      reasons.push('Bearish pin bar rejection');
+    }
+    if (isBearishEngulfing(prev, last)) {
+      confidence += 10;
+      reasons.push('Bearish engulfing at flip');
+    }
+  }
+
+  const entry = currentPrice;
+  const tfMult = getTimeframeMultipliers(timeframe);
+
+  let stopLoss: number;
+  let tp1: number;
+  let tp2: number;
+
+  if (flipDirection === 'BUY') {
+    stopLoss = flipLevel - currentAtr * tfMult.sl;
+    const risk = entry - stopLoss;
+    tp1 = entry + risk * tfMult.tp1;
+    tp2 = entry + risk * tfMult.tp2;
+  } else {
+    stopLoss = flipLevel + currentAtr * tfMult.sl;
+    const risk = stopLoss - entry;
+    tp1 = entry - risk * tfMult.tp1;
+    tp2 = entry - risk * tfMult.tp2;
+  }
+
+  const riskReward = rr(entry, stopLoss, tp2);
+  if (riskReward < 2) return null;
+
+  if (riskReward >= 3) confidence += 5;
+
+  const _e = roundPrice(entry);
+  const _sl = roundPrice(stopLoss);
+  const _tp1 = roundPrice(tp1);
+  const _tp2 = roundPrice(tp2);
+
+  return {
+    strategy: 'SRFlip',
+    direction: flipDirection,
+    confidence: Math.min(100, Math.max(0, confidence)),
+    entry: _e,
+    stopLoss: _sl,
+    takeProfit1: _tp1,
+    takeProfit2: _tp2,
+    riskReward,
+    setupType: `S/R Flip ${flipDirection === 'BUY' ? 'Bullish' : 'Bearish'} Retest`,
+    reasons,
+    warnings,
+    session: currentSession(candles),
+    slPips: calculatePips(_e, _sl, symbol),
+    tp1Pips: calculatePips(_e, _tp1, symbol),
+    tp2Pips: calculatePips(_e, _tp2, symbol),
   };
 }

@@ -543,3 +543,77 @@ export function stddev(values: number[]): number {
   const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
   return Math.sqrt(variance);
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// PIP CALCULATION (standard industry pip sizes)
+// ────────────────────────────────────────────────────────────────────────────
+/**
+ * Returns the pip size for a given symbol.
+ *   • XAUUSD / XAGUSD: 0.10 (1 pip = $0.10 move)
+ *   • JPY pairs: 0.01
+ *   • Non-JPY forex: 0.0001
+ *   • Crypto (BTC, ETH): 1.00
+ *   • Indices (US30, NAS100): 1.00
+ */
+export function getPipSize(symbol: string): number {
+  const s = symbol.toUpperCase().replace('/', '');
+
+  // Gold, Silver — $0.10 move = 1 pip
+  if (s.includes('XAU') || s.includes('XAG')) return 0.10;
+
+  // JPY pairs
+  if (s.includes('JPY')) return 0.01;
+
+  // Crypto
+  if (s.includes('BTC') || s.includes('ETH') || s.includes('SOL')) return 1.0;
+
+  // Indices
+  if (s.includes('US30') || s.includes('NAS100') || s.includes('SPX500')) return 1.0;
+
+  // Oil
+  if (s.includes('WTI') || s.includes('OIL') || s.includes('USOIL')) return 0.01;
+
+  // Standard forex pairs
+  return 0.0001;
+}
+
+/**
+ * Calculate pip distance between two prices for a given symbol.
+ */
+export function calculatePips(from: number, to: number, symbol: string): number {
+  const pipSize = getPipSize(symbol);
+  return Number((Math.abs(to - from) / pipSize).toFixed(1));
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TIMEFRAME-AWARE SL/TP MULTIPLIERS
+// ────────────────────────────────────────────────────────────────────────────
+/**
+ * Scalp-friendly SL/TP ratios per timeframe.
+ *   slMultiplier: how many ATRs to risk
+ *   tp1Ratio: TP1 = SL distance × this
+ *   tp2Ratio: TP2 = SL distance × this
+ *
+ * Realistic targets:
+ *   M5:  SL 0.5 ATR, TP1 1.5R, TP2 2.5R  → 15-30 min trades
+ *   M15: SL 0.8 ATR, TP1 2.0R, TP2 3.0R  → 30 min - 2 hr trades
+ *   M30: SL 1.0 ATR, TP1 2.0R, TP2 3.5R
+ *   H1:  SL 1.5 ATR, TP1 2.5R, TP2 4.0R  → 2-6 hr trades
+ */
+export function getTimeframeMultipliers(tf: string): {
+  sl: number;
+  tp1: number;
+  tp2: number;
+} {
+  const t = (tf || 'M15').toUpperCase();
+  switch (t) {
+    case 'M1':  return { sl: 0.4, tp1: 1.5, tp2: 2.5 };
+    case 'M5':  return { sl: 0.5, tp1: 1.5, tp2: 2.5 };
+    case 'M15': return { sl: 0.8, tp1: 2.0, tp2: 3.0 };
+    case 'M30': return { sl: 1.0, tp1: 2.0, tp2: 3.5 };
+    case 'H1':  return { sl: 1.5, tp1: 2.5, tp2: 4.0 };
+    case 'H4':  return { sl: 2.0, tp1: 3.0, tp2: 5.0 };
+    case 'D1':  return { sl: 2.5, tp1: 3.0, tp2: 5.0 };
+    default:    return { sl: 0.8, tp1: 2.0, tp2: 3.0 };
+  }
+}

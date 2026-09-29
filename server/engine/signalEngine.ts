@@ -17,6 +17,8 @@ import {
   detectSMC,
   detectCRT,
   detectPriceAction,
+  detectFibonacci,
+  detectSRFlip,
 } from './strategies';
 
 // ============================================================================
@@ -41,6 +43,10 @@ export interface TradePlan {
   takeProfit1: number;
   takeProfit2: number;
   riskReward: number;
+  // Pip distances
+  slPips: number;
+  tp1Pips: number;
+  tp2Pips: number;
 
   // Context
   currentPrice: number;
@@ -165,17 +171,23 @@ export function analyzeMarket(params: {
   // ─── Run all 4 strategies ──────────────────────────────────────────
   const signals: StrategySignal[] = [];
 
-  const asianSignal = safeRun(() => detectAsianSweep(candles));
+  const asianSignal = safeRun(() => detectAsianSweep(candles, symbol, timeframe));
   if (asianSignal) signals.push(asianSignal);
 
-  const smcSignal = safeRun(() => detectSMC(candles));
+  const smcSignal = safeRun(() => detectSMC(candles, symbol, timeframe));
   if (smcSignal) signals.push(smcSignal);
 
-  const crtSignal = safeRun(() => detectCRT(candles));
+  const crtSignal = safeRun(() => detectCRT(candles, symbol, timeframe));
   if (crtSignal) signals.push(crtSignal);
 
-  const paSignal = safeRun(() => detectPriceAction(candles));
+  const paSignal = safeRun(() => detectPriceAction(candles, symbol, timeframe));
   if (paSignal) signals.push(paSignal);
+
+  const fibSignal = safeRun(() => detectFibonacci(candles, symbol, timeframe));
+  if (fibSignal) signals.push(fibSignal);
+
+  const srFlipSignal = safeRun(() => detectSRFlip(candles, symbol, timeframe));
+  if (srFlipSignal) signals.push(srFlipSignal);
 
   // ─── Sort by confidence (highest first) ────────────────────────────
   signals.sort((a, b) => b.confidence - a.confidence);
@@ -205,6 +217,9 @@ export function analyzeMarket(params: {
       takeProfit1: 0,
       takeProfit2: 0,
       riskReward: 0,
+      slPips: 0,
+      tp1Pips: 0,
+      tp2Pips: 0,
       currentPrice: roundPrice(currentPrice),
       atr: currentAtr,
       rsi: currentRsi,
@@ -246,6 +261,9 @@ export function analyzeMarket(params: {
     takeProfit1: best.takeProfit1,
     takeProfit2: best.takeProfit2,
     riskReward: best.riskReward,
+    slPips: best.slPips,
+    tp1Pips: best.tp1Pips,
+    tp2Pips: best.tp2Pips,
     currentPrice: roundPrice(currentPrice),
     atr: currentAtr,
     rsi: currentRsi,
