@@ -574,7 +574,42 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
                         : 'bg-white dark:bg-[#141624] text-[#0f172a] dark:text-[#f8fafc] border border-gray-200 dark:border-[#23273c] rounded-bl-none shadow-xs'
                     }`}
                   >
-                    {msg.text}
+                    {/* Text content */}
+                    {msg.text && <div>{msg.text}</div>}
+
+                    {/* Attachments */}
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        {msg.attachments.map((att, i) => {
+                          const isImage = att.type.startsWith('image/');
+                          return isImage ? (
+                            <a
+                              key={i}
+                              href={att.data}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block"
+                            >
+                              <img
+                                src={att.data}
+                                alt={att.name}
+                                className="rounded-lg max-w-full max-h-44 border border-white/20"
+                              />
+                            </a>
+                          ) : (
+                            <a
+                              key={i}
+                              href={att.data}
+                              download={att.name}
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/20 hover:bg-black/30 transition-colors"
+                            >
+                              <Paperclip className="w-3 h-3" />
+                              <span className="truncate text-[11px] max-w-[180px]">{att.name}</span>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 mt-1 px-1.5">{msg.time}</span>
                 </div>
@@ -582,20 +617,69 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSendLiveMessage} className="p-3 bg-[#0c0d16] border-t border-[#1a1d2e] flex items-center gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 px-3 py-2 bg-[#121420] border border-[#1e2233] rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
-              />
-              <button
-                type="submit"
-                className="p-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-              </button>
+            <form onSubmit={handleSendLiveMessage} className="p-3 bg-[#0c0d16] border-t border-[#1a1d2e] space-y-2">
+              {/* Attachment previews */}
+              {pendingAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {pendingAttachments.map((att, i) => (
+                    <div
+                      key={i}
+                      className="relative flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#121420] border border-[#1e2233] text-[10px] text-gray-300"
+                    >
+                      {att.type.startsWith('image/') ? (
+                        <img src={att.data} alt={att.name} className="w-6 h-6 rounded object-cover" />
+                      ) : (
+                        <span>📎</span>
+                      )}
+                      <span className="max-w-[90px] truncate">{att.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(i)}
+                        className="ml-0.5 p-0.5 rounded text-gray-500 hover:text-rose-400 cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                {/* Hidden file input */}
+                <input
+                  ref={chatFileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*,application/pdf,.txt,.zip,.doc,.docx,.xls,.xlsx"
+                  onChange={handleChatFileSelect}
+                  className="hidden"
+                />
+
+                {/* Attach button */}
+                <button
+                  type="button"
+                  onClick={() => chatFileInputRef.current?.click()}
+                  className="p-2 rounded-xl bg-[#121420] border border-[#1e2233] text-gray-400 hover:text-purple-300 hover:border-purple-500/50 transition-colors cursor-pointer"
+                  title="Attach file (max 5 MB)"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
+
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type your message..."
+                  className="flex-1 px-3 py-2 bg-[#121420] border border-[#1e2233] rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInput.trim() && pendingAttachments.length === 0}
+                  className="p-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
             </form>
           </div>
         </div>
