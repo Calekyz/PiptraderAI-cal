@@ -79,24 +79,60 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
     }
   };
 
-  const handleSendLiveMessage = (e: React.FormEvent) => {
+  const handleSendLiveMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    const userMsg = chatInput;
+    const userMsg = chatInput.trim();
     setChatMessages(prev => [...prev, { sender: 'user', text: userMsg, time: 'Just now' }]);
     setChatInput('');
 
-    setTimeout(() => {
+    // Save the message as a real support ticket so admin sees it
+    try {
+      const res = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          userEmail: email || user.email,
+          userName: name || `${user.firstName} ${user.lastName}`.trim(),
+          subject: userMsg.slice(0, 60) + (userMsg.length > 60 ? '…' : ''),
+          category: 'Live Chat',
+          message: userMsg,
+          priority: 'MEDIUM',
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            sender: 'agent',
+            text: `✅ Received! Your message has been forwarded to our support team (Ticket ${data.ticket?.id || 'created'}). A human agent will respond shortly.`,
+            time: 'Just now'
+          }
+        ]);
+      } else {
+        setChatMessages(prev => [
+          ...prev,
+          {
+            sender: 'agent',
+            text: `⚠️ Could not deliver your message. Please try the "Send Message" form or email support@piptraderai.com.`,
+            time: 'Just now'
+          }
+        ]);
+      }
+    } catch (err) {
       setChatMessages(prev => [
         ...prev,
         {
           sender: 'agent',
-          text: `Thank you for your inquiry about "${userMsg.slice(0, 30)}...". I have noted your account (${user.email}) and our MT5 engineering team is standing by to resolve this.`,
+          text: `⚠️ Network issue — message not delivered. Please retry.`,
           time: 'Just now'
         }
       ]);
-    }, 1000);
+    }
   };
 
   return (

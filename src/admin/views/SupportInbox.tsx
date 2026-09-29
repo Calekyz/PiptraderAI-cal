@@ -81,6 +81,11 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
 
   useEffect(() => {
     fetchTickets();
+    // Auto-refresh every 15s so new user messages show up instantly
+    const interval = setInterval(() => {
+      fetchTickets();
+    }, 15000);
+    return () => clearInterval(interval);
   }, [statusFilter, priorityFilter, categoryFilter, search]);
 
   const handleSelectTicket = async (ticket: AdminSupportTicket) => {

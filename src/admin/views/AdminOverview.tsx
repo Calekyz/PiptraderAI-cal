@@ -179,15 +179,23 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             </div>
           </div>
           <div className="text-2xl font-bold text-white tracking-tight">
-            {(stats?.ticketsBreakdown?.open || 0) + (stats?.ticketsBreakdown?.inProgress || 0)}
+            {((stats?.ticketsBreakdown?.open || 0) +
+              (stats?.ticketsBreakdown?.inProgress || 0) +
+              (stats?.ticketsBreakdown?.pending || 0) +
+              (stats?.ticketsBreakdown?.resolved || 0) +
+              (stats?.ticketsBreakdown?.closed || 0))}
           </div>
-          <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
+          <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 flex-wrap">
+            <span className="text-indigo-400 font-medium">
+              {(stats?.ticketsBreakdown?.open || 0) + (stats?.ticketsBreakdown?.inProgress || 0)} Active
+            </span>
+            <span>•</span>
             <span className="text-amber-400 font-medium">
               {stats?.ticketsBreakdown?.urgent || 0} Urgent
             </span>
             <span>•</span>
             <span className="text-emerald-400 font-medium">
-              {stats?.ticketsBreakdown?.resolved || 0} Resolved
+              {(stats?.ticketsBreakdown?.resolved || 0) + (stats?.ticketsBreakdown?.closed || 0)} Closed
             </span>
           </div>
         </div>
