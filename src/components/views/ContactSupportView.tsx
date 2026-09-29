@@ -11,7 +11,8 @@ import {
   Sparkles, 
   X, 
   Bot,
-  HelpCircle
+  HelpCircle,
+  Paperclip
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { playNotificationSound } from '../../lib/sounds';
@@ -34,7 +35,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
 
   // Live Agent Chat Modal State
   const [isLiveChatOpen, setIsLiveChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'agent' | 'user'; text: string; time: string }>>([
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'agent' | 'user'; text: string; time: string; attachments?: Array<{ name: string; type: string; data: string; size: number }> }>>([
     {
       sender: 'agent',
       text: 'Hello! I am Alex from the PipTraderAI Senior Engineering Desk. How can I assist you with your bots, bridge, or signals today?',
@@ -42,6 +43,8 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
     }
   ]);
   const [chatInput, setChatInput] = useState('');
+  const [pendingAttachments, setPendingAttachments] = useState<Array<{ name: string; type: string; data: string; size: number }>>([]);
+  const chatFileInputRef = React.useRef<HTMLInputElement>(null);
   const [sessionTicketId, setSessionTicketId] = useState<string | null>(null);
 
   // FAQ Modal
@@ -81,13 +84,61 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
     }
   };
 
+  // Handle file selection for chat attachments
+  const handleChatFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const MAX_SIZE = 5 * 1024 * 1024; // 5 MB per file
+
+    Array.from(files).forEach((file) => {
+      if (file.size > MAX_SIZE) {
+        alert(`File too large: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB). Max 5 MB.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUri = event.target?.result as string;
+        setPendingAttachments((prev) => [
+          ...prev,
+          {
+            name: file.name,
+            type: file.type,
+            data: dataUri,
+            size: file.size,
+          },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset input so same file can be selected again
+    if (chatFileInputRef.current) chatFileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSendLiveMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    const userMsg = chatInput.trim();
-    setChatMessages(prev => [...prev, { sender: 'user', text: userMsg, time: 'Just now' }]);
+    const userMsg = chatInput.trim() || (pendingAttachments.length > 0 ? `[${pendingAttachments.length} file(s) attached]` : '');
+    if (!userMsg && pendingAttachments.length === 0) return;
+
+    // Add user message with attachments
+    setChatMessages(prev => [...prev, {
+      sender: 'user',
+      text: userMsg,
+      time: 'Just now',
+      attachments: pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
+    }]);
+
+    const attachmentsToSend = [...pendingAttachments];
     setChatInput('');
+    setPendingAttachments([]);
 
     try {
       if (!sessionTicketId) {
@@ -103,6 +154,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
             category: 'Live Chat',
             message: userMsg,
             priority: 'MEDIUM',
+            attachments: attachmentsToSend,
           }),
         });
         const data = await res.json();
@@ -136,6 +188,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
             text: userMsg,
             sender: 'user',
             senderName: name || `${user.firstName} ${user.lastName}`.trim(),
+            attachments: attachmentsToSend,
           }),
         });
         const data = await res.json();
