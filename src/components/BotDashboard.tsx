@@ -408,8 +408,16 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                   <div className="text-xs font-bold text-[#0f172a] dark:text-white truncate group-hover:text-[#5b3fe4] dark:group-hover:text-purple-300 transition-colors">
                     {user.firstName} {user.lastName}
                   </div>
-                  <div className="text-[10px] text-[#5b3fe4] dark:text-purple-400 font-mono truncate font-semibold">
-                    {user.plan || 'Pro Plan'}
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="text-[10px] text-[#5b3fe4] dark:text-purple-400 font-mono truncate font-semibold">
+                      {user.plan || 'Pro Plan'}
+                    </div>
+                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/40">
+                      <Zap className="w-2.5 h-2.5 text-purple-600 dark:text-purple-300" />
+                      <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 font-mono">
+                        {(user as any).credits ?? 0}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -540,8 +548,16 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                       <div className="text-xs font-bold text-[#0f172a] dark:text-white truncate">
                         {user.firstName} {user.lastName}
                       </div>
-                      <div className="text-[10px] text-[#5b3fe4] dark:text-purple-400 font-mono truncate font-semibold">
-                        {user.plan || 'Pro Plan'}
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="text-[10px] text-[#5b3fe4] dark:text-purple-400 font-mono truncate font-semibold">
+                          {user.plan || 'Pro Plan'}
+                        </div>
+                        <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/40">
+                          <Zap className="w-2.5 h-2.5 text-purple-600 dark:text-purple-300" />
+                          <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 font-mono">
+                            {(user as any).credits ?? 0}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
