@@ -36,7 +36,7 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
   const [activeTicket, setActiveTicket] = useState<AdminSupportTicket | null>(null);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('active');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
@@ -213,6 +213,7 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-2.5 py-1.5 bg-[#161a30] border border-[#262b49] rounded-xl text-slate-200 text-xs"
               >
+                <option value="active">Active (Open + In Progress)</option>
                 <option value="all">All Statuses</option>
                 <option value="OPEN">OPEN</option>
                 <option value="IN_PROGRESS">IN PROGRESS</option>

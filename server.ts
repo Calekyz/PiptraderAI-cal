@@ -4162,7 +4162,9 @@ app.get('/api/admin/support/tickets', (req, res) => {
       );
     }
 
-    if (status && status !== 'all') {
+    if (status === 'active') {
+      tickets = tickets.filter(t => t.status !== 'CLOSED');
+    } else if (status && status !== 'all') {
       tickets = tickets.filter(t => t.status === status);
     }
 
