@@ -4802,11 +4802,36 @@ app.post('/api/engine/analyze', async (req, res) => {
   try {
     const symbol = (req.body.symbol as string) || 'XAUUSD';
     const timeframe = (req.body.timeframe as string) || 'M15';
+    const userId = (req.body.userId as string) || '';
     const data = await fetchRealCandles(symbol, timeframe);
     if (!data || !data.candles || data.candles.length < 30) {
       return res.status(400).json({ success: false, error: `Not enough candle data for ${symbol} ${timeframe}.` });
     }
     const plan = analyzeMarket({ symbol, timeframe, candles: data.candles });
+
+    // Save to chart_analyses if userId provided
+    if (userId && plan) {
+      try {
+        db.createChartAnalysis({
+          userId,
+          symbol,
+          timeframe,
+          direction: plan.direction,
+          entryPrice: String(plan.entry),
+          stopLoss: String(plan.stopLoss),
+          takeProfit1: String(plan.takeProfit1),
+          takeProfit2: String(plan.takeProfit2),
+          riskReward: `1:${(plan.riskReward || 0).toFixed(1)}`,
+          confidence: plan.confidence || 0,
+          setupType: plan.setupType || 'Setup',
+          analysisSummary: plan.marketSummary || '',
+        });
+        console.log(`[Engine Analyze] Saved analysis for user ${userId}: ${symbol} ${timeframe} ${plan.direction}`);
+      } catch (saveErr: any) {
+        console.warn('[Engine Analyze] Save failed:', saveErr?.message);
+      }
+    }
+
     res.json({ success: true, plan, quote: data.quote, engine: 'rule-based-v1' });
   } catch (err: any) {
     console.error('[Engine Analyze Error]:', err);

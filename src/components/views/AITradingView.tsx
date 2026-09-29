@@ -259,6 +259,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
         body: JSON.stringify({
           symbol: selectedAsset.symbol.replace('/', ''),
           timeframe: currentTfObj.api,
+          userId: user?.id,
         })
       });
 
@@ -343,6 +344,8 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
           };
 
           setAiAnalysis(structuredResult);
+          // Notify snapshot to refresh instantly
+          try { window.dispatchEvent(new Event('pipnex:analysis-completed')); } catch {}
           setChatMessages((prev) => [
             ...prev,
             {

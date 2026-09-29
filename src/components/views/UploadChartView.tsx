@@ -37,7 +37,11 @@ export interface TradePlan {
   adjustmentNote?: string;
 }
 
-export const UploadChartView: React.FC = () => {
+interface UploadChartViewProps {
+  user?: { id?: string; email?: string } | null;
+}
+
+export const UploadChartView: React.FC<UploadChartViewProps> = ({ user }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState('XAUUSD');
   const [selectedTimeframe, setSelectedTimeframe] = useState('M15');
@@ -152,6 +156,7 @@ export const UploadChartView: React.FC = () => {
         body: JSON.stringify({
           symbol: selectedSymbol,
           timeframe: selectedTimeframe,
+          userId: user?.id,
         })
       });
       const data = await res.json();

@@ -17,12 +17,14 @@ interface MacroAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   event: MacroEvent | null;
+  user?: { id?: string; email?: string } | null;
 }
 
 export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
   isOpen,
   onClose,
-  event
+  event,
+  user
 }) => {
   const [analysisText, setAnalysisText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
           fetch('/api/engine/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symbol: primaryPair, timeframe: 'M15' })
+            body: JSON.stringify({ symbol: primaryPair, timeframe: 'M15', userId: user?.id })
           }).then(r => r.json()).catch(() => ({})),
           fetch('/api/engine/news-bias').then(r => r.json()).catch(() => ({})),
         ]);

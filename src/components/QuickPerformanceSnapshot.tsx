@@ -69,7 +69,19 @@ export const QuickPerformanceSnapshot: React.FC<QuickPerformanceSnapshotProps> =
 
     load();
     const interval = setInterval(load, 30000); // refresh every 30s
-    return () => { cancelled = true; clearInterval(interval); };
+
+    // Instant refresh when analysis completes
+    const onComplete = () => {
+      console.log('[Snapshot] Refresh triggered by analysis event');
+      load();
+    };
+    window.addEventListener('pipnex:analysis-completed', onComplete);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('pipnex:analysis-completed', onComplete);
+    };
   }, [user?.id]);
 
   // ═══ BUILD STATS FROM REAL DATA ═══

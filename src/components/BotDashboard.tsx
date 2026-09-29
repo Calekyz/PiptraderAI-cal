@@ -894,7 +894,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
             {/* Upload Chart */}
             {activeTab === 'upload-chart' && (
-              <UploadChartView />
+              <UploadChartView user={user} />
             )}
 
             {/* FEATURE #4: Manage Bots (Locked without Pro/Active Trial) */}
@@ -1113,6 +1113,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         isOpen={Boolean(selectedMacroEvent)}
         onClose={() => setSelectedMacroEvent(null)}
         event={selectedMacroEvent}
+        user={user}
       />
 
       {/* Upgrade Plan Modal */}
