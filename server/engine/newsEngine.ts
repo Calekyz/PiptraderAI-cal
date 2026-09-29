@@ -137,30 +137,43 @@ function scoreEvent(event: ForexFactoryEvent): { score: number; reason: string }
   const forecast = parseNumericValue(event.forecast);
   const previous = parseNumericValue(event.previous);
 
-  // If we have actual vs forecast → measure surprise
+  // Priority 1: Actual vs Forecast (real surprise)
   if (actual !== null && forecast !== null) {
     const surprise = actual - forecast;
     const magnitude = forecast !== 0 ? Math.abs(surprise) / Math.abs(forecast) : 0;
-
-    // Any positive surprise = bullish for the currency
     let direction = Math.sign(surprise);
-    if (direction === 0) direction = 0;
-
-    // Scale by magnitude and impact weight
     const scaled = direction * Math.min(1, magnitude * 10) * impact;
-
     const label = direction > 0 ? 'beat forecast' : direction < 0 ? 'missed forecast' : 'in line';
     const reason = `${event.currency} ${event.title}: ${event.actual} vs ${event.forecast} (${label})`;
-
     return { score: scaled, reason };
   }
 
-  // If no actual yet, use keyword sentiment from title
+  // Priority 2: Forecast vs Previous (expected direction)
+  if (forecast !== null && previous !== null && previous !== 0) {
+    const expectedChange = forecast - previous;
+    const magnitude = Math.abs(expectedChange) / Math.abs(previous);
+    const direction = Math.sign(expectedChange);
+    // Half impact because it's still expected, not actual
+    const scaled = direction * Math.min(1, magnitude * 10) * impact * 0.5;
+    const label = direction > 0 ? 'forecast up' : direction < 0 ? 'forecast down' : 'flat forecast';
+    const reason = `${event.currency} ${event.title}: forecast ${event.forecast} vs previous ${event.previous} (${label})`;
+    return { score: scaled, reason };
+  }
+
+  // Priority 3: Keyword sentiment from title
   const sentiment = sentimentFromTitle(event.title);
   if (sentiment !== 0) {
     return {
       score: sentiment * impact * 0.5,
       reason: `${event.currency} ${event.title} (${sentiment > 0 ? 'hawkish tone' : 'dovish tone'})`,
+    };
+  }
+
+  // Priority 4: High-impact event presence alone = mild bias toward volatility (0 score but noted)
+  if (event.impact === 'High') {
+    return {
+      score: 0.1 * impact,  // tiny positive to show awareness
+      reason: `${event.currency} ${event.title}: high-impact release pending`,
     };
   }
 
