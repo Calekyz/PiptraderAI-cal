@@ -171,6 +171,82 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
     }
   };
 
+  // Load chat history when Live Chat opens + poll for agent replies
+  React.useEffect(() => {
+    if (!isLiveChatOpen) return;
+
+    let cancelled = false;
+    let lastReplyCount = 0;
+
+    const loadHistory = async () => {
+      try {
+        const res = await fetch(`/api/support/tickets/latest?email=${encodeURIComponent(user.email)}`);
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (data.success && data.ticket) {
+          setSessionTicketId(data.ticket.id);
+          const replies = (data.ticket.replies || []).map((r: any) => ({
+            sender: r.sender === 'user' ? ('user' as const) : ('agent' as const),
+            text: r.text,
+            time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          }));
+          lastReplyCount = replies.length;
+          setChatMessages(replies.length > 0 ? replies : [
+            {
+              sender: 'agent',
+              text: 'Hello! Alex from PipTraderAI Senior Engineering Desk here. How can I assist you?',
+              time: 'Welcome'
+            }
+          ]);
+        } else {
+          // No active ticket — fresh session
+          setSessionTicketId(null);
+          setChatMessages([
+            {
+              sender: 'agent',
+              text: 'Hello! Alex from PipTraderAI Senior Engineering Desk here. How can I assist you?',
+              time: 'Welcome'
+            }
+          ]);
+        }
+      } catch (e) {
+        console.warn('[Live Chat] History load failed:', e);
+      }
+    };
+
+    loadHistory();
+
+    // Poll every 5s for new agent replies
+    const poll = setInterval(async () => {
+      // Re-fetch latest ticket if we have sessionTicketId
+      const targetId = sessionTicketId;
+      if (!targetId) return;
+      try {
+        const res = await fetch(`/api/support/tickets/${targetId}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.success && data.ticket?.replies) {
+          const replies = data.ticket.replies;
+          if (replies.length > lastReplyCount) {
+            const newReplies = replies.slice(lastReplyCount).map((r: any) => ({
+              sender: r.sender === 'user' ? ('user' as const) : ('agent' as const),
+              text: r.text,
+              time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }));
+            setChatMessages(prev => [...prev, ...newReplies]);
+            lastReplyCount = replies.length;
+          }
+        }
+      } catch {}
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+    };
+  }, [isLiveChatOpen, sessionTicketId, user.email]);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl">
       {/* SCREENSHOT 4: Header */}

@@ -3244,6 +3244,30 @@ app.delete('/api/chart-analyses/:id', (req, res) => {
   res.json({ success: true, message: 'Analysis removed from database' });
 });
 
+// GET latest non-closed ticket for a user (for Live Chat resume)
+app.get('/api/support/tickets/latest', (req, res) => {
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+
+    const all = db.getAllSupportTickets();
+    const userTickets = all
+      .filter((t: any) => t.userEmail && t.userEmail.toLowerCase() === email)
+      .filter((t: any) => t.status !== 'CLOSED' && t.status !== 'RESOLVED')
+      .sort((a: any, b: any) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
+
+    const latest = userTickets[0];
+    if (!latest) {
+      return res.json({ success: true, ticket: null });
+    }
+
+    res.json({ success: true, ticket: latest });
+  } catch (err: any) {
+    console.error('[Latest Ticket]', err);
+    res.status(500).json({ success: false, error: err?.message || 'Failed' });
+  }
+});
+
 app.get('/api/support/tickets', (req, res) => {
   const user = (req.query.user as string) || 'all';
   const tickets = user === 'all' ? db.getAllSupportTickets() : db.getSupportTicketsByUser(user);
