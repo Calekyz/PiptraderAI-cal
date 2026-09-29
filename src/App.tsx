@@ -318,6 +318,8 @@ export default function App() {
                 setCurrentUser(profile);
                 setIsAuthModalOpen(false);
                 setCurrentView('dashboard');
+                // Trigger PWA install prompt check after login
+                try { window.dispatchEvent(new Event('pipnex:user-logged-in')); } catch {}
               }}
             />
           </div>

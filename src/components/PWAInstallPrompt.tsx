@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
 
-const DISMISS_KEY = 'pipnex_pwa_dismissed_v2';
-const DISMISS_DAYS = 14;
+const DISMISS_KEY = 'pipnex_pwa_dismissed_v3';
+const DISMISS_HOURS = 24;
 
 export const PWAInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -29,8 +29,8 @@ export const PWAInstallPrompt: React.FC = () => {
     try {
       const dismissedAt = localStorage.getItem(DISMISS_KEY);
       if (dismissedAt) {
-        const daysSince = (Date.now() - Number(dismissedAt)) / 86400000;
-        if (daysSince < DISMISS_DAYS) return;
+        const hoursSince = (Date.now() - Number(dismissedAt)) / 3600000;
+        if (hoursSince < DISMISS_HOURS) return;
       }
     } catch {}
 
@@ -54,9 +54,35 @@ export const PWAInstallPrompt: React.FC = () => {
     };
     window.addEventListener('appinstalled', installed);
 
+    // 7. Show prompt after login (once every 24h unless dismissed)
+    const onLogin = () => {
+      const dismissed = localStorage.getItem(DISMISS_KEY);
+      if (dismissed) {
+        const hoursSince = (Date.now() - Number(dismissed)) / 3600000;
+        if (hoursSince < DISMISS_HOURS) return;
+      }
+      // Check not installed
+      const standalone = window.matchMedia('(display-mode: standalone)').matches
+        || (window.navigator as any).standalone === true;
+      if (standalone) return;
+      // Show after 2s delay (let the app settle)
+      setTimeout(() => setVisible(true), 2000);
+    };
+    window.addEventListener('pipnex:user-logged-in', onLogin);
+
+    // 8. If already logged in on page load, check if we should show
+    const sessionRaw = localStorage.getItem('pipnex_active_session_v1');
+    if (sessionRaw) {
+      try {
+        JSON.parse(sessionRaw);
+        onLogin();
+      } catch {}
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('appinstalled', installed);
+      window.removeEventListener('pipnex:user-logged-in', onLogin);
     };
   }, []);
 
