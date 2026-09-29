@@ -290,6 +290,51 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
                         {t.status}
                       </span>
                     </div>
+
+                    {/* Quick Actions */}
+                    {t.status !== 'CLOSED' && (
+                      <div className="mt-2 pt-2 border-t border-[#181d36] flex items-center gap-1.5">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              const res = await AdminApi.setTicketStatus(t.id, 'CLOSED');
+                              if (res?.success) {
+                                setTickets(prev => prev.map(x => x.id === t.id ? { ...x, status: 'CLOSED' } : x));
+                              }
+                            } catch (err) {
+                              console.error('Close ticket failed:', err);
+                            }
+                          }}
+                          className="flex-1 py-1 px-2 rounded-md bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30 transition-colors cursor-pointer"
+                          title="Mark as closed"
+                        >
+                          ✓ Close
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm(`Permanently delete ticket ${t.id}? This cannot be undone.`)) return;
+                            try {
+                              const res = await AdminApi.deleteTicket(t.id);
+                              if (res?.success) {
+                                setTickets(prev => prev.filter(x => x.id !== t.id));
+                                if (selectedTicketId === t.id) {
+                                  setSelectedTicketId(null);
+                                  setActiveTicket(null);
+                                }
+                              }
+                            } catch (err) {
+                              console.error('Delete ticket failed:', err);
+                            }
+                          }}
+                          className="py-1 px-2 rounded-md bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 text-[10px] font-semibold border border-rose-500/30 transition-colors cursor-pointer"
+                          title="Delete permanently"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })

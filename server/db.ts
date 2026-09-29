@@ -1394,6 +1394,20 @@ class PersistentDatabase {
     return true;
   }
 
+  public deleteSupportTicket(id: string): boolean {
+    const existing = this.supportTickets.get(id);
+    if (!existing) return false;
+    this.supportTickets.delete(id);
+    try {
+      if (typeof (this as any).persistDeleteSupportTicket === 'function') {
+        (this as any).persistDeleteSupportTicket(id);
+      }
+    } catch (e) {
+      console.warn('[db] persistDeleteSupportTicket failed:', (e as any)?.message);
+    }
+    return true;
+  }
+
   // ─── Chart Analyses ───
   public createChartAnalysis(analysis: Omit<ChartAnalysisEntity, 'id' | 'createdAt'>): ChartAnalysisEntity {
     const id = `ana_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
