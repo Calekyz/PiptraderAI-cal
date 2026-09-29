@@ -44,6 +44,8 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
 
   // Reply state
   const [replyText, setReplyText] = useState('');
+  const [replyAttachments, setReplyAttachments] = useState<Array<{ name: string; type: string; data: string; size: number }>>([]);
+  const replyFileInputRef = React.useRef<HTMLInputElement>(null);
   const [replyStatus, setReplyStatus] = useState<string>('IN_PROGRESS');
   const [submittingReply, setSubmittingReply] = useState(false);
 
@@ -108,19 +110,22 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeTicket || !replyText.trim()) return;
+    if (!activeTicket) return;
+    if (!replyText.trim() && replyAttachments.length === 0) return;
 
     setSubmittingReply(true);
     try {
       const updated = await AdminApi.replyTicket(
         activeTicket.id,
-        replyText.trim(),
+        replyText.trim() || `[${replyAttachments.length} file(s) attached]`,
         'PipTraderAI Support Desk',
-        replyStatus
+        replyStatus,
+        replyAttachments.length > 0 ? replyAttachments : undefined
       );
 
       setActiveTicket(updated);
       setReplyText('');
+      setReplyAttachments([]);
       fetchTickets();
       if (onRefreshStats) onRefreshStats();
     } catch (err) {
@@ -128,6 +133,29 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
     } finally {
       setSubmittingReply(false);
     }
+  };
+
+  const handleAdminFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const MAX_SIZE = 5 * 1024 * 1024;
+    Array.from(files).forEach((file) => {
+      if (file.size > MAX_SIZE) {
+        alert(`File too large: ${file.name} (max 5 MB)`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setReplyAttachments((prev) => [
+          ...prev,
+          { name: file.name, type: file.type, data: event.target?.result as string, size: file.size },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (replyFileInputRef.current) replyFileInputRef.current.value = '';
   };
 
   const handleChangeStatus = async (newStatus: AdminSupportTicket['status']) => {
@@ -501,14 +529,58 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
               {/* Reply Form */}
               <div className="p-4 border-t border-[#1e233d] bg-[#111427]">
                 <form onSubmit={handleSendReply} className="space-y-3">
-                  <textarea
-                    rows={3}
-                    required
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="Type official response to trader..."
-                    className="w-full p-3 bg-[#161a30] border border-[#262b49] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
-                  />
+                  {/* Attachment previews */}
+                  {replyAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {replyAttachments.map((att, i) => (
+                        <div
+                          key={i}
+                          className="relative flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#161a30] border border-[#262b49] text-[10px] text-slate-300"
+                        >
+                          {att.type.startsWith('image/') ? (
+                            <img src={att.data} alt={att.name} className="w-6 h-6 rounded object-cover" />
+                          ) : (
+                            <Paperclip className="w-3 h-3 text-slate-400" />
+                          )}
+                          <span className="max-w-[120px] truncate">{att.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setReplyAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="ml-0.5 p-0.5 rounded text-slate-500 hover:text-rose-400 cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Textarea with attach button */}
+                  <div className="relative">
+                    <textarea
+                      rows={3}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Type official response to trader..."
+                      className="w-full p-3 pr-12 bg-[#161a30] border border-[#262b49] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
+                    />
+                    <input
+                      ref={replyFileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*,application/pdf,.txt,.zip,.doc,.docx,.xls,.xlsx"
+                      onChange={handleAdminFileSelect}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => replyFileInputRef.current?.click()}
+                      className="absolute bottom-2.5 right-2.5 p-1.5 rounded-lg bg-[#1a1f3a] border border-[#2b3152] text-slate-400 hover:text-purple-300 hover:border-purple-500/50 transition-colors cursor-pointer"
+                      title="Attach file (max 5 MB)"
+                    >
+                      <Paperclip className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -526,7 +598,7 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
 
                     <button
                       type="submit"
-                      disabled={submittingReply}
+                      disabled={submittingReply || (!replyText.trim() && replyAttachments.length === 0)}
                       className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-600/25 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                       <Send className="w-3.5 h-3.5" />

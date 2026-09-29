@@ -1460,7 +1460,7 @@ class PersistentDatabase {
     return Array.from(this.supportTickets.values())
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
-  public addTicketReply(ticketId: string, reply: { sender: 'user' | 'agent' | 'admin'; senderName: string; text: string }) {
+  public addTicketReply(ticketId: string, reply: { sender: 'user' | 'agent' | 'admin'; senderName: string; text: string; attachments?: Array<{ name: string; type: string; data: string; size: number }> }) {
     const existing = this.supportTickets.get(ticketId);
     if (!existing) return undefined;
     const now = new Date().toISOString();

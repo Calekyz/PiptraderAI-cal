@@ -4219,13 +4219,18 @@ app.get('/api/admin/support/tickets/:id', (req, res) => {
 
 app.post('/api/admin/support/tickets/:id/reply', (req, res) => {
   try {
-    const { text, senderName = 'PipNex Support Desk', updateStatusTo } = req.body;
-    if (!text) return res.status(400).json({ success: false, error: 'Reply text is required' });
+    const { text, senderName = 'PipNex Support Desk', updateStatusTo, attachments } = req.body;
+
+    const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+    if (!text && !hasAttachments) {
+      return res.status(400).json({ success: false, error: 'Reply text or attachments required' });
+    }
 
     const ticket = db.addTicketReply(req.params.id, {
       sender: 'agent',
       senderName,
-      text: text.trim()
+      text: text ? text.trim() : `[${attachments.length} file(s) attached]`,
+      attachments: hasAttachments ? attachments : undefined,
     });
 
     if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });

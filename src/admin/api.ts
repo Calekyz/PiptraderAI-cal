@@ -296,10 +296,16 @@ export const AdminApi = {
     return res.ticket;
   },
 
-  async replyTicket(id: string, text: string, senderName?: string, updateStatusTo?: string): Promise<AdminSupportTicket> {
+  async replyTicket(
+    id: string,
+    text: string,
+    senderName?: string,
+    updateStatusTo?: string,
+    attachments?: Array<{ name: string; type: string; data: string; size: number }>
+  ): Promise<AdminSupportTicket> {
     const res = await request<{ ticket: AdminSupportTicket }>(`/api/admin/support/tickets/${id}/reply`, {
       method: 'POST',
-      body: JSON.stringify({ text, senderName, updateStatusTo })
+      body: JSON.stringify({ text, senderName, updateStatusTo, attachments })
     });
     return res.ticket;
   },
