@@ -14,6 +14,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { playNotificationSound } from '../../lib/sounds';
 
 interface ContactSupportViewProps {
   user: UserProfile;
@@ -235,6 +236,11 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
               time: new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             }));
             setChatMessages(prev => [...prev, ...newReplies]);
+            // Play sound if the newest reply is from an agent
+            const hasAgentReply = newReplies.some((r: any) => r.sender === 'agent');
+            if (hasAgentReply) {
+              playNotificationSound('user_reply');
+            }
             lastReplyCount = replies.length;
           }
         }

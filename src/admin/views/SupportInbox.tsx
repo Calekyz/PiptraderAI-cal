@@ -31,6 +31,7 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
   onRefreshStats
 }) => {
   const [tickets, setTickets] = useState<AdminSupportTicket[]>([]);
+  const prevTicketCountRef = React.useRef<number>(0);
   const [loading, setLoading] = useState(true);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(initialTicketId || null);
   const [activeTicket, setActiveTicket] = useState<AdminSupportTicket | null>(null);
@@ -59,6 +60,12 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
         category: categoryFilter,
         search
       });
+      // Play sound if new tickets arrived
+      const newCount = data.length;
+      if (prevTicketCountRef.current > 0 && newCount > prevTicketCountRef.current) {
+        playNotificationSound('admin_notify');
+      }
+      prevTicketCountRef.current = newCount;
       setTickets(data);
 
       if (data.length > 0) {
