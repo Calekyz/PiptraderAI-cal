@@ -871,6 +871,11 @@ class PersistentDatabase {
       .onConflictDoUpdate({ target: pipnexSupportTickets.id, set: this.ticketToRow(t) as any })
       .catch((e) => console.error('[db] persistTicket failed:', e?.message));
   }
+
+  private persistDeleteSupportTicket(id: string) {
+    pgDb.delete(pipnexSupportTickets).where(eq(pipnexSupportTickets.id, id))
+      .catch((e) => console.error('[db] persistDeleteSupportTicket failed:', e?.message));
+  }
   private persistCreditTx(c: CreditTransactionEntity) {
     pgDb.insert(pipnexCreditTransactions).values(this.creditTxToRow(c) as any)
       .onConflictDoUpdate({ target: pipnexCreditTransactions.id, set: this.creditTxToRow(c) as any })

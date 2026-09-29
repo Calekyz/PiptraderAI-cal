@@ -4258,6 +4258,40 @@ app.post('/api/admin/support/tickets/:id/priority', (req, res) => {
   }
 });
 
+// DELETE a ticket permanently (admin only)
+app.delete('/api/admin/support/tickets/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`[Admin Delete Ticket] Requested delete for ${id}`);
+    
+    const result = db.deleteSupportTicket ? db.deleteSupportTicket(id) : false;
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Ticket not found or delete failed' });
+    }
+
+    // Audit log
+    try {
+      if ((db as any).createAuditLog) {
+        (db as any).createAuditLog({
+          adminEmail: 'Pipnexadmin',
+          adminName: 'Super Admin',
+          adminRole: 'SUPER_ADMIN',
+          action: 'TICKET_DELETE',
+          targetId: id,
+          details: `Ticket ${id} permanently deleted by admin`,
+          reason: 'Manual cleanup'
+        });
+      }
+    } catch {}
+
+    res.json({ success: true, message: 'Ticket permanently deleted' });
+  } catch (err: any) {
+    console.error('[Ticket Delete Error]', err);
+    res.status(500).json({ success: false, error: err?.message || 'Delete failed' });
+  }
+});
+
 app.post('/api/admin/support/tickets/:id/notes', (req, res) => {
   try {
     const { note, adminName = 'Support Admin' } = req.body;

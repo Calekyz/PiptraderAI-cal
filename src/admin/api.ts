@@ -304,6 +304,13 @@ export const AdminApi = {
     return res.ticket;
   },
 
+  async deleteTicket(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await request<{ success: boolean; message: string }>(`/api/admin/support/tickets/${id}`, {
+      method: 'DELETE',
+    });
+    return res;
+  },
+
   async setTicketStatus(id: string, status: AdminSupportTicket['status']): Promise<AdminSupportTicket> {
     const res = await request<{ ticket: AdminSupportTicket }>(`/api/admin/support/tickets/${id}/status`, {
       method: 'POST',
