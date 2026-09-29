@@ -10,9 +10,10 @@ import {
   Zap, 
   RotateCcw,
   Sparkles,
-  Lock
+  Lock,
+  ExternalLink
 } from 'lucide-react';
-import { BotTrade, UserProfile } from '../../types';
+import { UserProfile } from '../../types';
 
 interface AutoTradingViewProps {
   user?: UserProfile;
