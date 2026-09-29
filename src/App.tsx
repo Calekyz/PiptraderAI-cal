@@ -116,6 +116,26 @@ export default function App() {
     const session = getActiveSession();
     if (!session?.email) return;
 
+    // Initialize credits for this plan (idempotent — only tops up if credits are 0)
+    fetch('/api/credits/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: session.email })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.success && data.initialized) {
+          console.log(`[Credits] Initialized ${data.credits} credits for ${data.plan}`);
+          // Refresh session to show updated credits
+          if (session) {
+            const updated = { ...session, credits: data.credits };
+            saveActiveSession(updated);
+            setCurrentUser(updated);
+          }
+        }
+      })
+      .catch(() => {});
+
     const refresh = async () => {
       const fresh = await fetchFreshUserAsync(session.email);
       if (fresh) {

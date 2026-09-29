@@ -2488,7 +2488,7 @@ app.post('/api/auth/register', async (req, res) => {
       countryCode,
       plan: 'Pending',
       balance: 0,
-      credits: 0,
+      credits: 150,  // Welcome credits for new users
       isVerified: false,
       authProvider: 'email',
       mt5Connected: false,
@@ -4507,6 +4507,122 @@ app.get('/api/admin/users/:id/terms-pdf', async (req, res) => {
     if (!res.headersSent) {
       res.status(500).json({ success: false, error: err?.message || 'PDF generation failed' });
     }
+  }
+});
+
+// ==========================================
+// CREDITS SYSTEM
+// ==========================================
+
+/** Default credits per plan */
+const PLAN_CREDITS: Record<string, number> = {
+  Pending: 0,
+  Starter: 500,
+  Pro: 1000,
+  Elite: 2000,
+};
+
+/** Cost per action in credits */
+const ACTION_COSTS: Record<string, number> = {
+  chat_message: 1,
+  engine_analyze: 5,
+  engine_scan: 2,
+  vision_analyze: 10,
+  macro_analyze: 3,
+  chart_analysis: 5,
+  ai_trade: 10,
+};
+
+/** GET /api/credits/balance?email=... */
+app.get('/api/credits/balance', (req, res) => {
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+
+    const user = db.getUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const plan = user.plan || 'Pending';
+    const maxCredits = PLAN_CREDITS[plan] || 0;
+
+    res.json({
+      success: true,
+      credits: user.credits ?? 0,
+      maxCredits,
+      percentUsed: maxCredits > 0 ? Math.round(((maxCredits - (user.credits ?? 0)) / maxCredits) * 100) : 0,
+      plan,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed' });
+  }
+});
+
+/** POST /api/credits/deduct — { email, action } */
+app.post('/api/credits/deduct', (req, res) => {
+  try {
+    const { email, action } = req.body;
+    if (!email || !action) return res.status(400).json({ success: false, error: 'email + action required' });
+
+    const cost = ACTION_COSTS[action];
+    if (cost === undefined) return res.status(400).json({ success: false, error: 'Invalid action' });
+
+    const user = db.getUserByEmail(String(email).toLowerCase());
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const current = user.credits ?? 0;
+    if (current < cost) {
+      return res.status(402).json({
+        success: false,
+        error: 'Insufficient credits',
+        required: cost,
+        available: current,
+      });
+    }
+
+    const updated = db.updateUser(user.id, { credits: current - cost });
+
+    res.json({
+      success: true,
+      credits: updated?.credits ?? current - cost,
+      cost,
+      action,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Deduct failed' });
+  }
+});
+
+/** POST /api/credits/init — initialize credits for a plan (called on login) */
+app.post('/api/credits/init', (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, error: 'email required' });
+
+    const user = db.getUserByEmail(String(email).toLowerCase());
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const plan = user.plan || 'Pending';
+    const planCredits = PLAN_CREDITS[plan] || 0;
+
+    // Only top up if user has 0 AND is on a paid plan (never deplete below already-granted credits)
+    if ((user.credits ?? 0) === 0 && planCredits > 0) {
+      const updated = db.updateUser(user.id, { credits: planCredits });
+      return res.json({
+        success: true,
+        initialized: true,
+        credits: updated?.credits ?? planCredits,
+        plan,
+      });
+    }
+
+    res.json({
+      success: true,
+      initialized: false,
+      credits: user.credits ?? 0,
+      plan,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Init failed' });
   }
 });
 
