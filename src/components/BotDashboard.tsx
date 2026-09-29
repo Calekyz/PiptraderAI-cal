@@ -51,6 +51,7 @@ import { QuickAccessTools } from './views/QuickAccessToolsView';
 import { SubscriptionView } from './views/SubscriptionView';
 import { HowToUseView } from './views/HowToUseView';
 import { ContactSupportView } from './views/ContactSupportView';
+import { FloatingSupportButton } from './FloatingSupportButton';
 import { SettingsView } from './views/SettingsView';
 import { ForexFactoryNewsView } from './views/ForexFactoryNewsView';
 import { HorizontalQuickAccessMenu } from './HorizontalQuickAccessMenu';
@@ -1140,6 +1141,12 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         onClose={() => setIsMT5ModalOpen(false)}
         user={user}
         onOpenUpgrade={handleOpenUpgrade}
+      />
+
+      {/* Floating Support Button — bottom-left with ticket badge */}
+      <FloatingSupportButton
+        userEmail={user.email}
+        onOpenSupport={() => setActiveTab('contact-support')}
       />
     </div>
   );
