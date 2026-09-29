@@ -161,20 +161,46 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
     }
   };
 
-  // Canned responses
+  // Canned responses — categorized for quick admin scanning
   const cannedTemplates = [
-    {
-      title: 'Investigating MT5',
-      text: 'Hello Trader, our technical integration team is currently reviewing your MetaTrader connection logs. Please keep your terminal online.'
-    },
-    {
-      title: 'Credits Credited',
-      text: 'Your account balance has been reviewed and compensation tokens have been added to your credit ledger.'
-    },
-    {
-      title: 'Resolved & Closed',
-      text: 'The reported configuration has been updated and verified on our server. We are marking this ticket as resolved.'
-    }
+    // 🔧 Technical / MT5
+    { title: '🔧 Ask MT5 details', text: 'Please share your MT5 account number, server name, and a screenshot of the error. Our engineering team will debug immediately.', status: 'IN_PROGRESS' as const },
+    { title: '🔧 Bridge reconnected', text: 'We have re-established the MT5 bridge on our end. Please refresh your dashboard — your connection should be live now.', status: 'IN_PROGRESS' as const },
+    { title: '🔧 Investigating', text: 'Our MT5 engineering team is investigating this issue right now. You will receive an update within 30 minutes.', status: 'IN_PROGRESS' as const },
+    { title: '🔧 Cache clear', text: 'Please clear your browser cache (Ctrl+Shift+Delete), then log out and back in. If the issue persists, share a screenshot of the error.', status: 'IN_PROGRESS' as const },
+
+    // 💰 Payments / Credits
+    { title: '💰 Payment OK', text: '✅ Payment confirmed. Your credits/plan have been added to your account. Thank you!', status: 'RESOLVED' as const },
+    { title: '💰 Credits credited', text: 'We have manually credited your account. Please refresh your dashboard to see the updated balance.', status: 'RESOLVED' as const },
+    { title: '💰 Payment not found', text: 'We could not locate this payment in our records. Please share the M-Pesa receipt code or Binance TxID so we can verify.', status: 'IN_PROGRESS' as const },
+    { title: '💰 Plan activated', text: 'Your plan is now active. You have full access to all premium features. Enjoy the platform!', status: 'RESOLVED' as const },
+
+    // 📊 Signals / Analysis
+    { title: '📊 Signal timing', text: 'Our engine fires signals only at 75%+ confidence. Fewer signals = higher quality. You will see more activity during London (07:00–10:00 UTC) and NY (12:00–15:00 UTC) sessions.', status: 'RESOLVED' as const },
+    { title: '📊 No setup today', text: 'The engine has not found a qualifying setup today. Setups are strict — wait for the London/NY session for higher probability entries.', status: 'RESOLVED' as const },
+    { title: '📊 Chart upload', text: 'Please upload a chart screenshot from the Upload Chart page. Our engine will analyze it live. If you get an error, share it with us.', status: 'IN_PROGRESS' as const },
+    { title: '📊 Pip explanation', text: 'The pip target on each signal uses standard market pips (not points). Example: on Gold, 1 pip = $0.10 move, so 100 pips = $10.00 move.', status: 'RESOLVED' as const },
+
+    // 💎 Plan / Subscription
+    { title: '💎 Upgrade info', text: 'To unlock this feature, go to Subscription → choose Starter / Pro / Elite → complete payment. Activation is instant.', status: 'RESOLVED' as const },
+    { title: '💎 Trial extended', text: 'We have extended your access. You now have 3 additional days of Elite features. Enjoy!', status: 'RESOLVED' as const },
+    { title: '💎 Subscription expired', text: 'Your subscription expired on the date shown. Renew anytime to restore full access — no data is ever lost.', status: 'RESOLVED' as const },
+    { title: '💎 Renewal link', text: 'You can renew instantly from Subscription → Upgrade. All plans available (Starter, Pro, Elite).', status: 'RESOLVED' as const },
+
+    // 🔐 Account / Security
+    { title: '🔐 Password reset', text: 'Password reset link has been sent to your email. Check inbox + spam folder. The link expires in 15 minutes.', status: 'RESOLVED' as const },
+    { title: '🔐 Verify account', text: 'Please check your email for the 6-digit verification code. If not received, click "Resend Code" and check your spam folder.', status: 'RESOLVED' as const },
+    { title: '🔐 Suspicious activity', text: 'We detected unusual activity on your account and temporarily locked it. Please confirm your identity to restore access.', status: 'IN_PROGRESS' as const },
+    { title: '🔐 Account suspended', text: 'Your account has been temporarily suspended for a security review. We will reach out shortly with next steps.', status: 'IN_PROGRESS' as const },
+
+    // 🎫 General / Escalation
+    { title: '🎫 Need more info', text: 'Thanks for reaching out! Could you please share: 1) a screenshot, 2) your MT5 account details, 3) the exact error message? This will help us resolve faster.', status: 'IN_PROGRESS' as const },
+    { title: '🎫 Escalating', text: 'This has been escalated to our senior engineering team. You will receive an update within 2 hours.', status: 'IN_PROGRESS' as const },
+    { title: '🎫 Thank you', text: 'Thanks for your patience! Let us know if there is anything else we can help with.', status: 'RESOLVED' as const },
+    { title: '🎫 Auto-resolve', text: 'We have not heard back in 48 hours, so we are closing this ticket. Feel free to reopen anytime if you need further help.', status: 'CLOSED' as const },
+    { title: '🎫 Investigating MT5', text: 'Hello Trader, our technical integration team is currently reviewing your MetaTrader connection logs. Please keep your terminal online.', status: 'IN_PROGRESS' as const },
+    { title: '🎫 Credits Credited', text: 'Your account balance has been reviewed and compensation tokens have been added to your credit ledger.', status: 'RESOLVED' as const },
+    { title: '🎫 Resolved & Closed', text: 'The reported configuration has been updated and verified on our server. We are marking this ticket as resolved.', status: 'CLOSED' as const },
   ];
 
   return (
@@ -452,7 +478,12 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
                   <button
                     key={macro.title}
                     type="button"
-                    onClick={() => setReplyText(macro.text)}
+                    onClick={() => {
+                      setReplyText(macro.text);
+                      if ((macro as any).status) {
+                        setReplyStatus((macro as any).status);
+                      }
+                    }}
                     className="px-2.5 py-1 rounded-lg bg-[#1a1f3a] hover:bg-purple-600/30 text-slate-300 hover:text-purple-300 border border-[#2b3152] shrink-0 transition-colors cursor-pointer"
                   >
                     {macro.title}
