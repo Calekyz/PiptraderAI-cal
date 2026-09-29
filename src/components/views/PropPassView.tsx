@@ -655,7 +655,7 @@ export const PropPassView: React.FC<{ onNavigateToTab?: (tab: string) => void }>
                     </h3>
                   </div>
                   <div className="text-[12px] text-gray-400 mt-0.5">
-                    Verified: Aug 23, 2026 • Real-Time MT5 Telemetry
+                    Verified: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} • Real-Time MT5 Telemetry
                   </div>
                 </div>
               </div>

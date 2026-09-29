@@ -172,39 +172,11 @@ export const ForexTicker: React.FC<ForexTickerProps> = ({
     }
   };
 
-  // 2. Realistic micro-fluctuation every 3 seconds to simulate live TradingView WebSocket ticks
+  // 2. Live quotes refresh every 6 seconds (no fake wiggle — real data only)
   useEffect(() => {
     fetchLiveQuotes();
     const apiInterval = setInterval(fetchLiveQuotes, 6000);
-
-    const tickInterval = setInterval(() => {
-      setInstruments((prev) =>
-        prev.map((inst) => {
-          // Select 2 random instruments per tick cycle to fluctuate
-          if (Math.random() > 0.45) return inst;
-
-          const volatilityFactor = inst.price > 1000 ? 0.0002 : (inst.price > 100 ? 0.0003 : 0.0001);
-          const delta = (Math.random() - 0.49) * inst.price * volatilityFactor;
-          const newPrice = Math.max(0.0001, inst.price + delta);
-          const newChange = inst.change + delta;
-          const newPercent = (newChange / (newPrice - newChange)) * 100;
-          const isPos = newChange >= 0;
-
-          return {
-            ...inst,
-            price: Number(newPrice.toFixed(inst.decimals)),
-            change: Number(newChange.toFixed(inst.decimals)),
-            changePercent: Number(newPercent.toFixed(2)),
-            direction: isPos ? 'up' : 'down'
-          };
-        })
-      );
-    }, 3000);
-
-    return () => {
-      clearInterval(apiInterval);
-      clearInterval(tickInterval);
-    };
+    return () => clearInterval(apiInterval);
   }, []);
 
   const formatPrice = (price: number, decimals: number) => {

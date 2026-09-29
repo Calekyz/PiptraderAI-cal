@@ -32,15 +32,6 @@ interface OverviewViewProps {
   onNavigateToTab: (tabId: string) => void;
 }
 
-const MARKET_TICKERS = [
-  { symbol: 'XAUUSD', price: '4,602.990', change: '+84.035 (+1.86%)', isUp: true, icon: '🪙' },
-  { symbol: 'EURUSD', price: '1.16782', change: '+0.00 (+0.01%)', isUp: true, icon: '💶' },
-  { symbol: 'BTCUSD', price: '78,008.79', change: '+954.35 (+1.24%)', isUp: true, icon: '₿' },
-  { symbol: 'US30', price: '53,258.6', change: '+477.2 (+0.90%)', isUp: true, icon: '📈' },
-  { symbol: 'GBPUSD', price: '1.34120', change: '+0.0034 (+0.25%)', isUp: true, icon: '💷' },
-  { symbol: 'USDJPY', price: '154.62', change: '-0.38 (-0.24%)', isUp: false, icon: '💴' },
-  { symbol: 'NAS100', price: '21,450.2', change: '+188.4 (+0.89%)', isUp: true, icon: '📊' },
-];
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
   user,

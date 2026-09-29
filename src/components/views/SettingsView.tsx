@@ -790,26 +790,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
 
-              {/* Recent Sign-ups */}
-              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2.5">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-                  <UserCheck className="w-4 h-4 text-purple-400" />
-                  <span>Recent Sign-ups</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                  {['John Doe', 'Jane Smith', 'Alice Wonder'].map((member, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800/80 flex items-center gap-2 text-xs text-slate-200"
-                    >
-                      <div className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center font-bold text-[10px]">
-                        {member.charAt(0)}
-                      </div>
-                      <span className="font-medium">{member}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Recent Sign-ups — hidden (admin-only data) */}
+              {/* Removed fake team member names — this section was placeholder */}
 
             </div>
           )}
