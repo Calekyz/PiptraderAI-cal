@@ -36,6 +36,9 @@ interface PulseSignal {
   stopLoss: string;
   takeProfit1: string;
   takeProfit2: string;
+  slPips: number;
+  tp1Pips: number;
+  tp2Pips: number;
   riskReward: string;
   confidence: number;
   setupType: string;
@@ -91,6 +94,9 @@ export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
             stopLoss: String(p.stopLoss),
             takeProfit1: String(p.takeProfit1),
             takeProfit2: String(p.takeProfit2),
+            slPips: Number(p.slPips) || 0,
+            tp1Pips: Number(p.tp1Pips) || 0,
+            tp2Pips: Number(p.tp2Pips) || 0,
             riskReward: `1:${(p.riskReward || 0).toFixed(1)}`,
             confidence: p.confidence || 0,
             setupType: p.setupType || 'Setup',
@@ -303,26 +309,30 @@ Setup: ${sig.setupType}`;
                   </div>
                 </div>
 
-                {/* Compact Metric Value Matrix: ENTRY / SL / TP1 / TP2 */}
+                {/* Compact Metric Value Matrix: ENTRY / SL / TP1 / TP2 with pip distances */}
                 <div className="grid grid-cols-4 gap-1.5 text-center font-mono">
                   <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
                     <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">ENTRY</div>
                     <div className="text-[11px] font-bold text-gray-200 mt-0.5 truncate">{sig.entryPrice}</div>
+                    <div className="text-[9px] text-gray-500 mt-0.5">—</div>
                   </div>
 
                   <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
                     <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">SL</div>
                     <div className="text-[11px] font-bold text-rose-400 mt-0.5 truncate">{sig.stopLoss}</div>
+                    <div className="text-[9px] text-rose-400/70 font-semibold mt-0.5">-{sig.slPips}p</div>
                   </div>
 
                   <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
                     <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">TP 1</div>
                     <div className="text-[11px] font-bold text-emerald-400 mt-0.5 truncate">{sig.takeProfit1}</div>
+                    <div className="text-[9px] text-emerald-400/70 font-semibold mt-0.5">+{sig.tp1Pips}p</div>
                   </div>
 
                   <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
                     <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">TP 2</div>
                     <div className="text-[11px] font-bold text-emerald-400 mt-0.5 truncate">{sig.takeProfit2}</div>
+                    <div className="text-[9px] text-emerald-400/70 font-semibold mt-0.5">+{sig.tp2Pips}p</div>
                   </div>
                 </div>
 
