@@ -45,14 +45,38 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
   // FAQ Modal
   const [isFaqOpen, setIsFaqOpen] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!message.trim() || isSending) return;
     setIsSending(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          userEmail: email || user.email,
+          userName: name || `${user.firstName} ${user.lastName}`.trim(),
+          subject: message.slice(0, 60) + (message.length > 60 ? '…' : ''),
+          category: 'General',
+          message: message.trim(),
+          priority: 'MEDIUM',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsSent(true);
+        setMessage('');
+        console.log('[Support] Ticket created:', data.ticket?.id);
+      } else {
+        alert('Failed to submit ticket: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err: any) {
+      console.error('[Support] Submit error:', err);
+      alert('Network error. Please try again.');
+    } finally {
       setIsSending(false);
-      setIsSent(true);
-    }, 600);
+    }
   };
 
   const handleSendLiveMessage = (e: React.FormEvent) => {
