@@ -1091,7 +1091,26 @@ class PersistentDatabase {
 
   public getUserByEmail(email: string): UserEntity | undefined {
     const norm = email.trim().toLowerCase();
-    return Array.from(this.users.values()).find(u => u.email.toLowerCase() === norm);
+    const user = Array.from(this.users.values()).find(u => u.email.toLowerCase() === norm);
+    if (!user) return undefined;
+
+    // Auto-expire paid plans when subscriptionExpiry has passed
+    if (user.subscriptionExpiry && (user.plan === 'Starter' || user.plan === 'Pro' || user.plan === 'Elite')) {
+      const expiryTime = new Date(user.subscriptionExpiry).getTime();
+      if (!isNaN(expiryTime) && expiryTime < Date.now()) {
+        const updated = this.updateUser(user.id, {
+          plan: 'Pending',
+          subscriptionExpiry: undefined,
+          credits: 0,
+        });
+        if (updated) {
+          console.log(`[Auto-Expire] User ${user.email} subscription expired — downgraded to Pending`);
+          return updated;
+        }
+      }
+    }
+
+    return user;
   }
 
   public updateUser(id: string, updates: Partial<UserEntity>): UserEntity | undefined {
