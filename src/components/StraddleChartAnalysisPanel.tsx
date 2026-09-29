@@ -600,7 +600,7 @@ Generated on live market price: ${priceDisplay}`;
                   return (
                     <button
                       key={act.label}
-                      onClick={() => onQuickAction(act.label)}
+                      onClick={() => { setActiveTab('chat'); onQuickAction(act.label); }}
                       className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 active:scale-95 ${
                         isLight 
                           ? 'bg-white hover:bg-slate-100 border-slate-200 text-slate-800' 
@@ -662,7 +662,7 @@ Generated on live market price: ${priceDisplay}`;
               {['Key Levels', 'Trend', 'Liquidity'].map((label) => (
                 <button
                   key={label}
-                  onClick={() => onQuickAction(label)}
+                  onClick={() => { setActiveTab('chat'); onQuickAction(label); }}
                   className={`px-2 py-1 rounded-md text-[10px] cursor-pointer transition-colors ${
                     isLight 
                       ? 'bg-slate-100 hover:bg-slate-200 text-slate-800' 

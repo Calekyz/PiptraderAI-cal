@@ -91,7 +91,11 @@ export const PWAInstallPrompt: React.FC = () => {
       setShowIOSInstructions(true);
       return;
     }
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      // No native prompt available — show manual browser instructions
+      setShowIOSInstructions(true);  // reuse the instruction panel
+      return;
+    }
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
@@ -149,7 +153,7 @@ export const PWAInstallPrompt: React.FC = () => {
         <div className="mt-2 p-4 rounded-2xl bg-[#0d0f1a] border border-purple-500/40 shadow-2xl text-xs text-slate-300 space-y-2">
           <div className="flex items-center gap-2 text-white font-bold mb-2">
             <Smartphone className="w-4 h-4 text-purple-300" />
-            Install on iPhone / iPad
+            {isIOS ? 'Install on iPhone / iPad' : 'Install PipTraderAI'}
           </div>
           <div className="flex items-start gap-2">
             <span className="text-purple-300 font-bold">1.</span>

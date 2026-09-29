@@ -231,6 +231,28 @@ Setup: ${sig.setupType}`;
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSignals.length === 0 && (
+            <div className="p-8 rounded-2xl bg-[#0d0f1a] border border-[#1e2338] text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-purple-950/40 border border-purple-500/30 flex items-center justify-center mx-auto text-purple-300">
+                <Radio className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-white">
+                No active setups in {activeCategory === 'All' ? 'any market' : activeCategory}
+              </h3>
+              <p className="text-xs text-[#64748b] max-w-md mx-auto leading-relaxed">
+                The engine only fires at <strong className="text-white">75%+ confidence</strong>. Right now no symbols in this category meet that threshold.
+                Setups are most frequent during <strong className="text-emerald-400">London (07:00–10:00 UTC)</strong> and <strong className="text-emerald-400">NY (12:00–15:00 UTC)</strong> sessions.
+              </p>
+              <button
+                onClick={() => fetchSignals(false)}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Scan Again
+              </button>
+            </div>
+          )}
+
           {filteredSignals.map(sig => {
             const isBuy = sig.direction === 'BUY';
             const isTargetHit = sig.status === 'TARGET 1 HIT';
