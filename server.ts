@@ -3694,9 +3694,19 @@ app.get('/api/admin/stats', (req, res) => {
       urgent: tickets.filter(t => t.priority === 'URGENT' && t.status !== 'RESOLVED' && t.status !== 'CLOSED').length
     };
 
-    const totalRevenue = payments
+    // Payment revenue (actual money received)
+    const paymentRevenue = payments
       .filter(p => p.status === 'COMPLETED')
       .reduce((sum, p) => sum + (p.usdPrice || 0), 0);
+
+    // Plan revenue (value of active subscriptions)
+    const PLAN_PRICES: Record<string, number> = { Starter: 45, Pro: 95, Elite: 195 };
+    const planRevenue = users
+      .filter(u => u.status !== 'SUSPENDED')
+      .reduce((sum, u) => sum + (PLAN_PRICES[u.plan] || 0), 0);
+
+    // Combined
+    const totalRevenue = paymentRevenue + planRevenue;
 
     res.json({
       success: true,
@@ -3706,6 +3716,8 @@ app.get('/api/admin/stats', (req, res) => {
         suspendedUsers: suspendedUsers.length,
         totalCreditsInCirculation,
         totalRevenueUsd: totalRevenue,
+        paymentRevenueUsd: paymentRevenue,
+        planRevenueUsd: planRevenue,
         planBreakdown,
         ticketsBreakdown,
         totalAuditLogs: logs.length,
