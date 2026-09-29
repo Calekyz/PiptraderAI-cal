@@ -336,6 +336,59 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                 </select>
               </div>
 
+              {/* Duration Presets */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                  Quick Duration
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '3 days', days: 3 },
+                    { label: '15 days', days: 15 },
+                    { label: '30 days', days: 30 },
+                    { label: '90 days', days: 90 },
+                  ].map((preset) => {
+                    const start = modalData.startDate || new Date().toISOString().split('T')[0];
+                    const s = new Date(start);
+                    const e = new Date(s.getTime() + preset.days * 86400000);
+                    const targetExpiry = e.toISOString().split('T')[0];
+                    const isActive = modalData.expiryDate === targetExpiry;
+
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setModalData({
+                          ...modalData,
+                          expiryDate: targetExpiry,
+                        })}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                          isActive
+                            ? 'bg-purple-600 text-white border-purple-500 shadow-md'
+                            : 'bg-[#161a30] text-slate-300 hover:text-white border-[#262b49] hover:border-purple-500/50'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Custom — focus the date input, user picks manually
+                      const input = document.querySelector('input[type="date"]:last-of-type') as HTMLInputElement;
+                      input?.focus();
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-[#161a30] text-slate-400 hover:text-white border border-[#262b49] hover:border-slate-500 transition-all cursor-pointer"
+                  >
+                    Custom
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1.5">
+                  Preset sets expiry = start date + duration
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300 mb-1">Start Date</label>
