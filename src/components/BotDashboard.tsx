@@ -278,11 +278,18 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   const [isGeminaOpen, setIsGeminaOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [creditsToast, setCreditsToast] = useState<{ balance: number; message: string } | null>(null);
+  const [displayedCredits, setDisplayedCredits] = useState<number>((user as any)?.credits ?? 0);
+
+  // Sync displayed credits with the user prop when it changes (e.g. login, refresh)
+  useEffect(() => {
+    setDisplayedCredits((user as any)?.credits ?? 0);
+  }, [(user as any)?.credits, user?.email]);
 
   // Listen for global insufficient-credits events
   useEffect(() => {
     const handler = (e: any) => {
       const detail = e?.detail || {};
+      if (typeof detail.balance === 'number') setDisplayedCredits(detail.balance);
       setCreditsToast({ balance: detail.balance ?? 0, message: detail.message || 'Insufficient credits.' });
       setTimeout(() => setCreditsToast(null), 6000);
     };
@@ -291,6 +298,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
     // Also listen for post-action credit charges
     const creditHandler = (e: any) => {
       const detail = e?.detail || {};
+      if (typeof detail.balance === 'number') setDisplayedCredits(detail.balance);
       if (detail.charged) {
         setCreditsToast({
           balance: detail.balance ?? 0,
@@ -301,11 +309,31 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
     };
     window.addEventListener('pipnex:credits-changed', creditHandler);
 
+    // ── Fallback: poll /api/credits/balance every 30s so the number stays in sync
+    //    even if we miss an event (e.g. admin manually adjusts the balance)
+    const pollCredits = () => {
+      const email = user?.email;
+      if (!email) return;
+      fetch(`/api/credits/balance?email=${encodeURIComponent(email)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.success && typeof d.credits === 'number') {
+            setDisplayedCredits(d.credits);
+          }
+        })
+        .catch(() => { /* silent */ });
+    };
+    const poll = setInterval(pollCredits, 30000);
+    const onVis = () => { if (document.visibilityState === 'visible') pollCredits(); };
+    document.addEventListener('visibilitychange', onVis);
+
     return () => {
       window.removeEventListener('pipnex:insufficient-credits', handler);
       window.removeEventListener('pipnex:credits-changed', creditHandler);
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVis);
     };
-  }, []);
+  }, [user?.email]);
 
   // Show onboarding once on first login
   useEffect(() => {
@@ -540,7 +568,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                     <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/40">
                       <Zap className="w-2.5 h-2.5 text-purple-600 dark:text-purple-300" />
                       <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 font-mono">
-                        {(user as any).credits ?? 0}
+                        {displayedCredits}
                       </span>
                     </div>
                   </div>
@@ -680,7 +708,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                         <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-500/40">
                           <Zap className="w-2.5 h-2.5 text-purple-600 dark:text-purple-300" />
                           <span className="text-[9px] font-bold text-purple-700 dark:text-purple-300 font-mono">
-                            {(user as any).credits ?? 0}
+                            {displayedCredits}
                           </span>
                         </div>
                       </div>
