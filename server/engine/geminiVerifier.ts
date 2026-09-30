@@ -151,7 +151,14 @@ export async function verifySignal(input: VerifyInput): Promise<VerifyResult> {
     };
   }
 
-  // 3. Call Gemini
+  // 3. Call Gemini — retry across multiple models to survive 503 spikes
+  const MODEL_CHAIN = [
+    'gemini-3.8-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-lite-latest',
+  ];
+
   try {
     const ai = getClient();
     const parts: any[] = [{ text: buildPrompt(input) }];
@@ -160,29 +167,63 @@ export async function verifySignal(input: VerifyInput): Promise<VerifyResult> {
       parts.push({ inlineData: { mimeType: 'image/png', data: b64 } });
     }
 
-    const resp = await ai.models.generateContent({
-      model,
-      contents: [{ role: 'user', parts }],
-    });
+    let lastErr: any = null;
 
-    const raw = (resp as any)?.text || (resp as any)?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (!raw) throw new Error('empty response');
+    for (const tryModel of MODEL_CHAIN) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const resp = await ai.models.generateContent({
+            model: tryModel,
+            contents: [{ role: 'user', parts }],
+          });
 
-    const parsed = parseVerdict(raw);
-    const result: VerifyResult = { ...parsed, model, latencyMs: Date.now() - t0 };
+          const raw = (resp as any)?.text
+            || (resp as any)?.candidates?.[0]?.content?.parts?.[0]?.text
+            || '';
+          if (!raw) throw new Error('empty response');
 
-    hourlyCount += 1;
-    dedupeCache.set(key, { at: Date.now(), result });
+          const parsed = parseVerdict(raw);
+          const result: VerifyResult = {
+            ...parsed,
+            model: tryModel,
+            latencyMs: Date.now() - t0,
+          };
 
-    // Prune old cache entries
-    if (dedupeCache.size > 500) {
-      const cutoff = Date.now() - DEDUPE_WINDOW_MS;
-      for (const [k, v] of dedupeCache) if (v.at < cutoff) dedupeCache.delete(k);
+          hourlyCount += 1;
+          dedupeCache.set(key, { at: Date.now(), result });
+          if (dedupeCache.size > 500) {
+            const cutoff = Date.now() - DEDUPE_WINDOW_MS;
+            for (const [k, v] of dedupeCache) if (v.at < cutoff) dedupeCache.delete(k);
+          }
+
+          console.log(`[GeminiVerifier] OK via ${tryModel} in ${result.latencyMs}ms`);
+          return result;
+        } catch (err: any) {
+          lastErr = err;
+          const msg = String(err?.message || '');
+          const retryable = msg.includes('503')
+            || msg.includes('UNAVAILABLE')
+            || msg.includes('high demand')
+            || msg.includes('429')
+            || msg.includes('RESOURCE_EXHAUSTED');
+
+          if (retryable && attempt === 0) {
+            const delay = 500;
+            console.warn(`[GeminiVerifier] ${tryModel} busy — retry in ${delay}ms`);
+            await new Promise(r => setTimeout(r, delay));
+            continue;
+          }
+          // Non-retryable OR 2nd attempt failed → next model
+          console.warn(`[GeminiVerifier] ${tryModel} failed: ${msg.slice(0, 120)}`);
+          break;
+        }
+      }
     }
 
-    return result;
+    // All models exhausted
+    throw lastErr || new Error('all Gemini models exhausted');
   } catch (err: any) {
-    console.warn('[GeminiVerifier] failed — returning SKIPPED:', err?.message);
+    console.warn('[GeminiVerifier] all attempts failed — returning SKIPPED:', err?.message);
     return {
       verdict: 'SKIPPED',
       aiConfidence: 0,
