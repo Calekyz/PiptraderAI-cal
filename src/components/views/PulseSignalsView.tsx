@@ -17,6 +17,8 @@ import {
   ExternalLink 
 } from 'lucide-react';
 import { MarketPulse } from '../MarketPulse';
+import { useSignalVerification } from '../../hooks/useSignalVerification';
+import { AIVerificationPill } from '../AIVerificationPill';
 
 interface PulseSignalsViewProps {
   onBack?: () => void;
@@ -47,6 +49,174 @@ interface PulseSignal {
   timeAgo: string;
   briefThesis: string;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// PulseSignalCard — extracted so each card can use hooks safely
+// ─────────────────────────────────────────────────────────────────
+interface PulseSignalCardProps {
+  sig: PulseSignal;
+  copiedId: string | null;
+  onCopy: (sig: PulseSignal) => void;
+  onExecuteSignal?: (signal: any) => void;
+}
+
+const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy, onExecuteSignal }) => {
+  const isBuy = sig.direction === 'BUY';
+  const isTargetHit = sig.status === 'TARGET 1 HIT';
+
+  // Silent AI verification — invisible if it fails or is SKIPPED
+  const { result: aiVerify } = useSignalVerification({
+    symbol: sig.symbol,
+    timeframe: sig.interval,
+    direction: sig.direction,
+    confidence: sig.confidence,
+    setupType: sig.setupType,
+    entry: parseFloat(sig.entryPrice) || undefined,
+    stopLoss: parseFloat(sig.stopLoss) || undefined,
+    takeProfit1: parseFloat(sig.takeProfit1) || undefined,
+    takeProfit2: parseFloat(sig.takeProfit2) || undefined,
+    reasons: sig.briefThesis ? [sig.briefThesis] : [],
+  });
+
+  return (
+    
+              <div
+                key={sig.id}
+                className="bg-[#090b16] border border-[#171b30] hover:border-purple-500/40 rounded-2xl p-4.5 space-y-3.5 shadow-lg transition-all flex flex-col justify-between group"
+              >
+                {/* Card Header: Symbol & Direction Badge */}
+                <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
+                        isBuy ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30' : 'bg-rose-950/60 text-rose-400 border border-rose-500/30'
+                      }`}>
+                        {isBuy ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-sm tracking-tight flex items-center gap-1.5">
+                          <span>{sig.symbol}</span>
+                          <span className="text-[10px] text-gray-400 font-mono">({sig.interval})</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400">{sig.name}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider ${
+                        isBuy ? 'bg-[#0f2e1e] text-emerald-400 border border-emerald-500/30' : 'bg-[#2e1017] text-rose-400 border border-rose-500/30'
+                      }`}>
+                        {sig.direction}
+                      </span>
+                      <span className="text-[9px] text-gray-500 font-mono">{sig.timeAgo}</span>
+                    </div>
+                  </div>
+
+                  {/* Setup Type & Status Banner */}
+                  <div className="mt-3 flex items-center justify-between gap-1 text-[10px] font-mono bg-[#0f1222] p-1.5 rounded-lg border border-[#1c223f]">
+                    <span className="text-purple-300 font-semibold truncate">
+                      {sig.setupType}
+                    </span>
+                    <span className={`px-1.5 py-0.2 rounded font-bold ${
+                      isTargetHit ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-400'
+                    }`}>
+                      {sig.status}
+                    </span>
+                  </div>
+
+                  {/* AI verification badge — silent, invisible on skip */}
+                  {aiVerify && (
+                    <div className="mt-2">
+                      <AIVerificationPill result={aiVerify} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Compact Metric Value Matrix: ENTRY / SL / TP1 / TP2 with pip distances */}
+                <div className="grid grid-cols-4 gap-1.5 text-center font-mono">
+                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
+                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">ENTRY</div>
+                    <div className="text-[11px] font-bold text-gray-200 mt-0.5 truncate">{sig.entryPrice}</div>
+                    <div className="text-[9px] text-gray-500 mt-0.5">—</div>
+                  </div>
+
+                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
+                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">SL</div>
+                    <div className="text-[11px] font-bold text-rose-400 mt-0.5 truncate">{sig.stopLoss}</div>
+                    <div className="text-[9px] text-rose-400/70 font-semibold mt-0.5">-{sig.slPips}p</div>
+                  </div>
+
+                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
+                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">TP 1</div>
+                    <div className="text-[11px] font-bold text-emerald-400 mt-0.5 truncate">{sig.takeProfit1}</div>
+                    <div className="text-[9px] text-emerald-400/70 font-semibold mt-0.5">+{sig.tp1Pips}p</div>
+                  </div>
+
+                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
+                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">TP 2</div>
+                    <div className="text-[11px] font-bold text-emerald-400 mt-0.5 truncate">{sig.takeProfit2}</div>
+                    <div className="text-[9px] text-emerald-400/70 font-semibold mt-0.5">+{sig.tp2Pips}p</div>
+                  </div>
+                </div>
+
+                {/* Setup Stats: R:R / Confidence / Performance */}
+                <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 pt-1 border-t border-[#14172a]">
+                  <span className="flex items-center gap-1">
+                    <span>R:R</span>
+                    <strong className="text-white">{sig.riskReward}</strong>
+                  </span>
+
+                  <span className="flex items-center gap-1">
+                    <span>Confidence</span>
+                    <strong className="text-purple-300">{sig.confidence}%</strong>
+                  </span>
+
+                  <span className="text-emerald-400 font-bold">
+                    {sig.pipsGain}
+                  </span>
+                </div>
+
+                {/* Brief Thesis */}
+                <p className="text-[11px] text-gray-300 leading-snug bg-[#0d0f1e] p-2 rounded-lg border border-[#181d36]">
+                  {sig.briefThesis}
+                </p>
+
+                {/* Action Buttons: Copy Setup / Execute */}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => handleCopy(sig)}
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#121426] hover:bg-[#1a1e38] border border-[#222744] hover:border-purple-500/40 text-gray-300 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    {copiedId === sig.id ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-gray-400" />
+                        <span>Copy Setup</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onExecuteSignal) {
+                        onExecuteSignal(sig);
+                      } else {
+                        handleCopy(sig);
+                      }
+                    }}
+                    className="py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-current" />
+                    <span>Trade</span>
+                  </button>
+                </div>
+              </div>
+  );
+};
 
 export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
   onBack,
@@ -259,141 +429,15 @@ Setup: ${sig.setupType}`;
             </div>
           )}
 
-          {filteredSignals.map(sig => {
-            const isBuy = sig.direction === 'BUY';
-            const isTargetHit = sig.status === 'TARGET 1 HIT';
-
-            return (
-              <div
-                key={sig.id}
-                className="bg-[#090b16] border border-[#171b30] hover:border-purple-500/40 rounded-2xl p-4.5 space-y-3.5 shadow-lg transition-all flex flex-col justify-between group"
-              >
-                {/* Card Header: Symbol & Direction Badge */}
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
-                        isBuy ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30' : 'bg-rose-950/60 text-rose-400 border border-rose-500/30'
-                      }`}>
-                        {isBuy ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                      </div>
-                      <div>
-                        <div className="font-bold text-white text-sm tracking-tight flex items-center gap-1.5">
-                          <span>{sig.symbol}</span>
-                          <span className="text-[10px] text-gray-400 font-mono">({sig.interval})</span>
-                        </div>
-                        <div className="text-[10px] text-gray-400">{sig.name}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider ${
-                        isBuy ? 'bg-[#0f2e1e] text-emerald-400 border border-emerald-500/30' : 'bg-[#2e1017] text-rose-400 border border-rose-500/30'
-                      }`}>
-                        {sig.direction}
-                      </span>
-                      <span className="text-[9px] text-gray-500 font-mono">{sig.timeAgo}</span>
-                    </div>
-                  </div>
-
-                  {/* Setup Type & Status Banner */}
-                  <div className="mt-3 flex items-center justify-between gap-1 text-[10px] font-mono bg-[#0f1222] p-1.5 rounded-lg border border-[#1c223f]">
-                    <span className="text-purple-300 font-semibold truncate">
-                      {sig.setupType}
-                    </span>
-                    <span className={`px-1.5 py-0.2 rounded font-bold ${
-                      isTargetHit ? 'bg-emerald-500/20 text-emerald-300' : 'text-gray-400'
-                    }`}>
-                      {sig.status}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Compact Metric Value Matrix: ENTRY / SL / TP1 / TP2 with pip distances */}
-                <div className="grid grid-cols-4 gap-1.5 text-center font-mono">
-                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
-                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">ENTRY</div>
-                    <div className="text-[11px] font-bold text-gray-200 mt-0.5 truncate">{sig.entryPrice}</div>
-                    <div className="text-[9px] text-gray-500 mt-0.5">—</div>
-                  </div>
-
-                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
-                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">SL</div>
-                    <div className="text-[11px] font-bold text-rose-400 mt-0.5 truncate">{sig.stopLoss}</div>
-                    <div className="text-[9px] text-rose-400/70 font-semibold mt-0.5">-{sig.slPips}p</div>
-                  </div>
-
-                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
-                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">TP 1</div>
-                    <div className="text-[11px] font-bold text-emerald-400 mt-0.5 truncate">{sig.takeProfit1}</div>
-                    <div className="text-[9px] text-emerald-400/70 font-semibold mt-0.5">+{sig.tp1Pips}p</div>
-                  </div>
-
-                  <div className="bg-[#0f1120] p-2 rounded-xl border border-[#1b2038]">
-                    <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold">TP 2</div>
-                    <div className="text-[11px] font-bold text-emerald-400 mt-0.5 truncate">{sig.takeProfit2}</div>
-                    <div className="text-[9px] text-emerald-400/70 font-semibold mt-0.5">+{sig.tp2Pips}p</div>
-                  </div>
-                </div>
-
-                {/* Setup Stats: R:R / Confidence / Performance */}
-                <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 pt-1 border-t border-[#14172a]">
-                  <span className="flex items-center gap-1">
-                    <span>R:R</span>
-                    <strong className="text-white">{sig.riskReward}</strong>
-                  </span>
-
-                  <span className="flex items-center gap-1">
-                    <span>Confidence</span>
-                    <strong className="text-purple-300">{sig.confidence}%</strong>
-                  </span>
-
-                  <span className="text-emerald-400 font-bold">
-                    {sig.pipsGain}
-                  </span>
-                </div>
-
-                {/* Brief Thesis */}
-                <p className="text-[11px] text-gray-300 leading-snug bg-[#0d0f1e] p-2 rounded-lg border border-[#181d36]">
-                  {sig.briefThesis}
-                </p>
-
-                {/* Action Buttons: Copy Setup / Execute */}
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    onClick={() => handleCopy(sig)}
-                    className="flex-1 py-2 px-3 rounded-xl bg-[#121426] hover:bg-[#1a1e38] border border-[#222744] hover:border-purple-500/40 text-gray-300 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    {copiedId === sig.id ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400">Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-gray-400" />
-                        <span>Copy Setup</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (onExecuteSignal) {
-                        onExecuteSignal(sig);
-                      } else {
-                        handleCopy(sig);
-                      }
-                    }}
-                    className="py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
-                  >
-                    <Zap className="w-3.5 h-3.5 fill-current" />
-                    <span>Trade</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {filteredSignals.map(sig => (
+            <PulseSignalCard
+              key={sig.id}
+              sig={sig}
+              copiedId={copiedId}
+              onCopy={handleCopy}
+              onExecuteSignal={onExecuteSignal}
+            />
+          ))}
         </div>
       )}
 
