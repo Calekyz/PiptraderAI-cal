@@ -229,7 +229,16 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                   const now = new Date();
                   const isPending = user.plan === 'Pending';
                   const isExpired = expiry ? expiry < now : false;
-                  const daysLeft = expiry ? Math.ceil((expiry.getTime() - now.getTime()) / 86400000) : 0;
+                  // ── Calendar-day difference (timezone-safe) ──
+                  // Uses local midnight boundaries so the count decrements exactly at 00:00 local time
+                  let daysLeft = 0;
+                  if (expiry) {
+                    const todayMid = new Date();
+                    todayMid.setHours(0, 0, 0, 0);
+                    const expMid = new Date(expiry);
+                    expMid.setHours(0, 0, 0, 0);
+                    daysLeft = Math.round((expMid.getTime() - todayMid.getTime()) / 86400000);
+                  }
 
                   return (
                     <tr key={user.id} className="hover:bg-[#14182f]/60 transition-colors">
@@ -348,10 +357,18 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                     { label: '30 days', days: 30 },
                     { label: '90 days', days: 90 },
                   ].map((preset) => {
-                    const start = modalData.startDate || new Date().toISOString().split('T')[0];
-                    const s = new Date(start);
-                    const e = new Date(s.getTime() + preset.days * 86400000);
-                    const targetExpiry = e.toISOString().split('T')[0];
+                    // Start from today (local) and add N days — the LAST day is the expiry
+                    const start = modalData.startDate
+                      ? new Date(modalData.startDate + 'T12:00:00')
+                      : new Date();
+                    start.setHours(12, 0, 0, 0);
+                    const e = new Date(start);
+                    e.setDate(e.getDate() + preset.days);
+                    // Format as local YYYY-MM-DD (no timezone conversion)
+                    const yyyy = e.getFullYear();
+                    const mm = String(e.getMonth() + 1).padStart(2, '0');
+                    const dd = String(e.getDate()).padStart(2, '0');
+                    const targetExpiry = `${yyyy}-${mm}-${dd}`;
                     const isActive = modalData.expiryDate === targetExpiry;
 
                     return (

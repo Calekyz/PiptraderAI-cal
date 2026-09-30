@@ -1810,10 +1810,25 @@ class PersistentDatabase {
     const user = this.users.get(userId);
     if (!user) return undefined;
     const prevPlan = user.plan || 'Pending';
+
+    // Normalize date-only inputs (YYYY-MM-DD) to end-of-day UTC so the
+    // expiry day itself is fully usable, not truncated to 00:00 UTC.
+    const normalizeExpiry = (d?: string): string | undefined => {
+      if (!d) return undefined;
+      // If it's already an ISO timestamp, keep it
+      if (d.includes('T')) return d;
+      // Otherwise treat as a date — set to end of that day UTC
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d.trim());
+      if (match) {
+        return `${match[1]}-${match[2]}-${match[3]}T23:59:59.999Z`;
+      }
+      return d;
+    };
+
     const updated: UserEntity = {
       ...user, plan: newPlan,
       subscriptionStartDate: startDate || user.subscriptionStartDate,
-      subscriptionExpiry: expiryDate || user.subscriptionExpiry,
+      subscriptionExpiry: normalizeExpiry(expiryDate) || user.subscriptionExpiry,
       updatedAt: new Date().toISOString(),
     };
     this.users.set(userId, updated);
