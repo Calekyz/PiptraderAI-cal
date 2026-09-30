@@ -152,11 +152,16 @@ export async function verifySignal(input: VerifyInput): Promise<VerifyResult> {
   }
 
   // 3. Call Gemini — retry across multiple models to survive 503 spikes
+  // Ordered by reliability on free tier (tested 2026-09-30):
+  //   gemini-flash-lite-latest  → always 200, ~1.1s
+  //   gemini-3.1-flash-lite     → always 200, ~3s
+  //   gemini-flash-latest       → sometimes 429
+  //   gemini-3.8-flash          → often 503, last resort
   const MODEL_CHAIN = [
-    'gemini-3.8-flash',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite',
     'gemini-flash-lite-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.8-flash',
   ];
 
   try {
