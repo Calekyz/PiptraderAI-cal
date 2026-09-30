@@ -60,6 +60,7 @@ import { UpgradePlanModal } from './UpgradePlanModal';
 import { MT5ConnectionModal } from './MT5ConnectionModal';
 import { MyProfileModal } from './MyProfileModal';
 import { GeminaAssistantModal } from './GeminaAssistantModal';
+import { OnboardingWizard } from './OnboardingWizard';
 import { TrialCountdownBanner } from './TrialCountdownBanner';
 import { PremiumLock } from './PremiumLock';
 import { fetchTrialStatusAsync } from '../lib/authService';
@@ -274,6 +275,19 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   // Modals state
   const [isTrishOpen, setIsTrishOpen] = useState(false); // legacy — kept to avoid breaking callers
   const [isGeminaOpen, setIsGeminaOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  // Show onboarding once on first login
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('pipnex_onboarded');
+      if (!seen) {
+        // Small delay so the dashboard can render first
+        const t = setTimeout(() => setIsOnboardingOpen(true), 1200);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, [user?.email]);
   const [geminaTab, setGeminaTab] = useState<'chat' | 'vision'>('chat');
 
   const handleOpenGemina = (tab: 'chat' | 'vision' = 'chat') => {
@@ -1256,6 +1270,18 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         onClose={() => setIsMT5ModalOpen(false)}
         user={user}
         onOpenUpgrade={handleOpenUpgrade}
+      />
+
+      {/* Onboarding Wizard — first-login only */}
+      <OnboardingWizard
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        user={user}
+        onOpenSettings={() => { setIsOnboardingOpen(false); setActiveTab('settings'); }}
+        onOpenMT5={() => { setIsOnboardingOpen(false); setIsMT5ModalOpen(true); }}
+        onOpenSubscription={() => { setIsOnboardingOpen(false); setActiveTab('subscription'); }}
+        onOpenHowToUse={() => { setIsOnboardingOpen(false); setActiveTab('how-to-use'); }}
+        onOpenGemina={(tab) => { setIsOnboardingOpen(false); handleOpenGemina(tab || 'chat'); }}
       />
 
       {/* Gemina AI Assistant Modal */}
