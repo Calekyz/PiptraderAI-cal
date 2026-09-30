@@ -23,6 +23,7 @@ import { UserProfile, MacroEvent } from '../../types';
 import { ForexFactoryCalendar } from '../ForexFactoryCalendar';
 import { MarketPulse } from '../MarketPulse';
 import { QuickPerformanceSnapshot } from '../QuickPerformanceSnapshot';
+import { NewsEventSignalModal } from '../NewsEventSignalModal';
 
 interface OverviewViewProps {
   user: UserProfile;
@@ -40,6 +41,35 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   onOpenUpgrade,
   onNavigateToTab,
 }) => {
+  const [isNewsSignalModalOpen, setIsNewsSignalModalOpen] = React.useState(false);
+  const [macroEvents, setMacroEvents] = React.useState<MacroEvent[]>([]);
+
+  // Fetch THIS week + NEXT week events so the NFP/CPI/FOMC/PPI modal can
+  // (a) show the signal for an upcoming event, or
+  // (b) tell the user when the next one is (next week / next month)
+  React.useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      fetch('/api/forex-factory-calendar?period=thisweek').then(r => r.json()).catch(() => ({})),
+      fetch('/api/forex-factory-calendar?period=nextweek').then(r => r.json()).catch(() => ({})),
+    ])
+      .then(([thisWeek, nextWeek]: any[]) => {
+        if (cancelled) return;
+        const a = Array.isArray(thisWeek?.events) ? thisWeek.events : [];
+        const b = Array.isArray(nextWeek?.events) ? nextWeek.events : [];
+        // De-dup by event id
+        const seen = new Set<string>();
+        const merged = [...a, ...b].filter((ev: any) => {
+          const id = String(ev?.id ?? '');
+          if (!id || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+        setMacroEvents(merged);
+      })
+      .catch(() => { /* silent — modal just shows empty state */ });
+    return () => { cancelled = true; };
+  }, []);
 
   // Plan access helpers
   const planOrder: Record<string, number> = { Pending: 0, Starter: 1, Pro: 2, Elite: 3 };
@@ -438,7 +468,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <div className="pt-1">
             {hasPro ? (
               <button
-                onClick={() => onNavigateToTab('news-calendar')}
+                onClick={() => setIsNewsSignalModalOpen(true)}
                 className="px-7 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
               >
                 View NFP/CPI Signals
@@ -1023,6 +1053,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </div>
         )}
       </div>
+
+
+      <NewsEventSignalModal
+        isOpen={isNewsSignalModalOpen}
+        onClose={() => setIsNewsSignalModalOpen(false)}
+        events={macroEvents || []}
+      />
 
     </div>
   );

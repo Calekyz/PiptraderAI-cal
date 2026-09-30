@@ -20,6 +20,24 @@ interface MacroAnalysisModalProps {
   user?: { id?: string; email?: string } | null;
 }
 
+
+// ── Parse engine direction + confidence from the analysis text ──
+function parseSignal(text: string | null): { direction: 'BUY' | 'SELL' | 'WAIT'; confidence: number; symbol: string } {
+  if (!text) return { direction: 'WAIT', confidence: 0, symbol: '' };
+  // Look for: "Signal: BUY — 85% confidence"
+  const m = text.match(/Signal:\s*(BUY|SELL)\s*[—-]\s*(\d+)%\s*confidence/i);
+  if (m) {
+    return { direction: m[1].toUpperCase() as 'BUY' | 'SELL', confidence: parseInt(m[2], 10), symbol: '' };
+  }
+  // Fallback: engine bias line "Engine Bias for XAUUSD: BULLISH (78% confidence)"
+  const b = text.match(/Engine Bias for (\S+):\s*(BULLISH|BEARISH|NEUTRAL)\s*\((\d+)%\s*confidence\)/i);
+  if (b) {
+    const dir = b[2].toUpperCase() === 'BULLISH' ? 'BUY' : b[2].toUpperCase() === 'BEARISH' ? 'SELL' : 'WAIT';
+    return { direction: dir as 'BUY' | 'SELL' | 'WAIT', confidence: parseInt(b[3], 10), symbol: b[1] };
+  }
+  return { direction: 'WAIT', confidence: 0, symbol: '' };
+}
+
 export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
   isOpen,
   onClose,
@@ -197,6 +215,64 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
             </div>
           ) : (
             <div className="space-y-3">
+              {/* ═══ BIG SIGNAL BANNER ═══ */}
+              {analysisText && (() => {
+                const sig = parseSignal(analysisText);
+                const isBuy = sig.direction === 'BUY';
+                const isSell = sig.direction === 'SELL';
+                const isWait = sig.direction === 'WAIT';
+                const pairMatch = analysisText.match(/([A-Z]{6}|XAUUSD)/);
+                const symbol = sig.symbol || (pairMatch ? pairMatch[1] : event.currency || 'USD');
+                return (
+                  <div className={`relative overflow-hidden rounded-2xl border-2 p-5 md:p-6 shadow-lg ${
+                    isBuy ? 'bg-emerald-500/10 border-emerald-500 dark:bg-emerald-950/30' :
+                    isSell ? 'bg-rose-500/10 border-rose-500 dark:bg-rose-950/30' :
+                    'bg-amber-500/10 border-amber-500 dark:bg-amber-950/30'
+                  }`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
+                        isBuy ? 'bg-emerald-500' : isSell ? 'bg-rose-500' : 'bg-amber-500'
+                      }`}>
+                        {isBuy ? <TrendingUp className="w-7 h-7 text-white" strokeWidth={3} /> :
+                         isSell ? <TrendingDown className="w-7 h-7 text-white" strokeWidth={3} /> :
+                         <Clock className="w-7 h-7 text-white" strokeWidth={3} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-2xl md:text-3xl font-black tracking-tight ${
+                          isBuy ? 'text-emerald-600 dark:text-emerald-400' :
+                          isSell ? 'text-rose-600 dark:text-rose-400' :
+                          'text-amber-600 dark:text-amber-400'
+                        }`}>
+                          {isBuy ? 'STRONG BUY' : isSell ? 'STRONG SELL' : 'WAIT FOR ENTRY'}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 text-gray-800 dark:text-gray-200">
+                            {symbol}
+                          </span>
+                          <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                            {sig.confidence > 0 ? `${sig.confidence}% confidence` : 'Awaiting confirmation'}
+                          </span>
+                          {event.impact === 'High' && (
+                            <span className="text-[10px] font-bold uppercase font-mono px-2 py-0.5 rounded bg-rose-500 text-white">
+                              HIGH IMPACT
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <p className={`mt-3 text-xs leading-relaxed font-medium ${
+                      isBuy ? 'text-emerald-800 dark:text-emerald-200' :
+                      isSell ? 'text-rose-800 dark:text-rose-200' :
+                      'text-amber-800 dark:text-amber-200'
+                    }`}>
+                      {isBuy && `Engine sees upward pressure on ${symbol} around this ${event.currency} release.`}
+                      {isSell && `Engine sees downward pressure on ${symbol} around this ${event.currency} release.`}
+                      {isWait && `No high-confidence setup yet — the engine is waiting for candle confirmation near release time.`}
+                    </p>
+                  </div>
+                );
+              })()}
+
               {/* Live engine analysis text */}
               {analysisText ? (
                 <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0a0c16] border border-gray-200 dark:border-[#16192c] text-gray-700 dark:text-gray-300 text-[12px] whitespace-pre-wrap leading-relaxed font-mono">
