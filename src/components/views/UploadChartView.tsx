@@ -18,6 +18,8 @@ import {
   ArrowRight,
   Bot
 } from 'lucide-react';
+import { AIVerificationPill } from '../AIVerificationPill';
+import { useSignalVerification } from '../../hooks/useSignalVerification';
 
 export interface TradePlan {
   symbol: string;
@@ -48,6 +50,24 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user }) => {
   const [isMultiTimeframe, setIsMultiTimeframe] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [tradePlan, setTradePlan] = useState<TradePlan | null>(null);
+
+  // Silent AI verification of the resulting plan
+  const { result: aiVerify } = useSignalVerification(
+    tradePlan
+      ? {
+          symbol: tradePlan.symbol,
+          timeframe: selectedTimeframe,
+          direction: tradePlan.direction === 'LONG' ? 'BUY' : 'SELL',
+          confidence: tradePlan.confidence,
+          setupType: tradePlan.orderType || 'Chart Setup',
+          entry: parseFloat(tradePlan.entry) || undefined,
+          stopLoss: parseFloat(tradePlan.stopLoss) || undefined,
+          takeProfit1: parseFloat(tradePlan.takeProfit1) || undefined,
+          takeProfit2: parseFloat(tradePlan.takeProfit2) || undefined,
+          reasons: tradePlan.whyThisTrade ? [tradePlan.whyThisTrade] : [],
+        }
+      : null
+  );
   const [showHistory, setShowHistory] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -541,6 +561,13 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user }) => {
                 </span>
               </div>
             </div>
+
+            {/* AI verification badge — silent when SKIPPED */}
+            {aiVerify && (
+              <div className="pt-2">
+                <AIVerificationPill result={aiVerify} />
+              </div>
+            )}
 
             {/* Metric Rows with Crisp Clean Dividers */}
             <div className="divide-y divide-[#eaecf0] dark:divide-[#1e2238] text-xs sm:text-sm">

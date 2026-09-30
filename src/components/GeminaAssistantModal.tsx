@@ -59,6 +59,8 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
   const [imageMime, setImageMime] = useState<string>('image/png');
   const [isAnalyzingVision, setIsAnalyzingVision] = useState(false);
   const [visionPrompt, setVisionPrompt] = useState('');
+  const [aiUsage, setAiUsage] = useState<{ used: number; max: number; remaining: number } | null>(null);
+  const [usageError, setUsageError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -141,6 +143,20 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
     }
   };
 
+  // Fetch AI vision usage on mount and after each upload
+  const refreshUsage = React.useCallback(() => {
+    fetch('/api/ai/vision-usage')
+      .then(r => r.json())
+      .then((d: any) => {
+        if (d && typeof d.used === 'number') {
+          setAiUsage({ used: d.used, max: d.max, remaining: d.remaining });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => { refreshUsage(); }, [refreshUsage]);
+
   const handleFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (PNG, JPG, GIF, WebP)');
@@ -176,7 +192,17 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
         })
       });
 
+      // Handle quota exhausted
+      if (res.status === 403) {
+        const errData = await res.json().catch(() => ({}));
+        setUsageError(errData.message || 'AI vision uploads exhausted. Upgrade for unlimited.');
+        setAiUsage({ used: errData.used ?? 3, max: errData.max ?? 3, remaining: 0 });
+        setIsAnalyzingVision(false);
+        return;
+      }
+
       const data = await res.json();
+      if (data.aiUsage) setAiUsage(data.aiUsage);
       const analysisText = data.analysis || "Screenshot parsed successfully.";
 
       const botVisionMsg: ChatMessage = {
@@ -373,6 +399,24 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
               </p>
               <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden"
                 onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }} />
+              {/* AI upload quota indicator */}
+              {aiUsage && (
+                <div className={`flex items-center justify-between gap-2 text-[11px] font-mono px-3 py-1.5 rounded-lg border ${
+                  aiUsage.remaining === 0
+                    ? 'bg-rose-500/10 border-rose-500/40 text-rose-300'
+                    : aiUsage.remaining === 1
+                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                }`}>
+                  <span className="font-bold uppercase tracking-wider">AI Uploads</span>
+                  <span>{aiUsage.used} / {aiUsage.max} used · {aiUsage.remaining} left</span>
+                </div>
+              )}
+              {usageError && (
+                <div className="text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/40 px-3 py-2 rounded-lg">
+                  {usageError}
+                </div>
+              )}
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                 onDragLeave={() => setDragActive(false)}
@@ -407,7 +451,7 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
             </div>
             <div className="pt-4 border-t border-[#2a2e39] space-y-2">
               {selectedImage && (
-                <button type="button" onClick={handleAnalyzeVision} disabled={isAnalyzingVision}
+                <button type="button" onClick={handleAnalyzeVision} disabled={isAnalyzingVision || (aiUsage?.remaining === 0)}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#2962ff] hover:opacity-90 disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2">
                   {isAnalyzingVision ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /><span>Extracting Data...</span></>

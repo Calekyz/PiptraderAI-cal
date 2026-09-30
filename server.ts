@@ -1703,6 +1703,17 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
       return res.status(400).json({ error: 'imageBase64 is required' });
     }
 
+    // ── AI upload cap (3 total across the platform) ──
+    const usageBefore = db.getAIVisionUsage();
+    if (usageBefore.remaining <= 0) {
+      return res.status(403).json({
+        error: 'uploads_exhausted',
+        message: 'AI vision uploads exhausted. Upgrade your plan for unlimited chart analysis.',
+        used: usageBefore.used,
+        max: usageBefore.max,
+      });
+    }
+
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     const defaultVisionPrompt = customPrompt || "You are Gemina, a financial data extraction expert. Read this screenshot carefully. List every instrument (symbol), price, absolute change, and percentage change. Then give a brief market summary. Format as clear bullet points.";
 
@@ -1737,11 +1748,20 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
       analysis = `### 📊 Gemina AI Vision Extraction\n\n- **XAUUSD**: 4,454.990 | Change: -147.155 (-3.20%)\n- **EURUSD**: 1.15821 | Change: -0.00700 (-0.60%)\n- **BTCUSD**: 78,121.48 | Change: -282.29 (-0.36%)\n- **US30**: 53,554.4 | Change: -9.9 (-0.02%)\n- **GBPUSD**: 1.35370 | Change: -0.01170 (-0.86%)\n\n**Market Summary**: High market volatility observed across commodities and forex pairs. Gold (XAUUSD) has experienced an aggressive intraday pullback while US equities (US30) remain in tight consolidation.`;
     }
 
+    // Only consume an upload if Gemini actually ran (analysis non-empty and not the fallback)
+    const usedFallback = analysis.startsWith('### 📊 Gemina AI Vision Extraction');
+    if (!usedFallback) {
+      db.tryConsumeAIVisionUpload();
+    }
+
+    const usageAfter = db.getAIVisionUsage();
+
     res.json({
       success: true,
       analysis: analysis,
       assistant: 'Gemina AI',
-      provider: 'DeepSeek'
+      provider: 'DeepSeek',
+      aiUsage: usageAfter,
     });
   } catch (error: any) {
     console.error('Gemina Vision analyze error:', error);
@@ -4560,6 +4580,19 @@ app.post('/api/ai/verify-signal', async (req, res) => {
         latencyMs: 0,
       },
     });
+  }
+});
+
+
+// ==========================================
+// AI: USAGE COUNTERS
+// ==========================================
+app.get('/api/ai/vision-usage', (req, res) => {
+  try {
+    const usage = db.getAIVisionUsage();
+    res.json({ success: true, ...usage });
+  } catch (err: any) {
+    res.json({ success: false, used: 0, max: 3, remaining: 3 });
   }
 });
 

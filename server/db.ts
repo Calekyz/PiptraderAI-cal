@@ -262,6 +262,10 @@ export interface AdminSettingsEntity {
   autoCloseResolvedTicketsDays: number;
   securityEnforceMfa: boolean;
   sessionTimeoutMinutes: number;
+  // ── AI usage tracking ──
+  aiVisionUploadsUsed: number;   // 0..3
+  aiVisionUploadsMax: number;    // default 3
+  aiVerificationsUsed: number;   // rolling counter for /api/ai/verify-signal
 }
 
 export interface JournalTradeEntity {
@@ -1839,6 +1843,9 @@ class PersistentDatabase {
         autoCloseResolvedTicketsDays: 7,
         securityEnforceMfa: false,
         sessionTimeoutMinutes: 120,
+        aiVisionUploadsUsed: 0,
+        aiVisionUploadsMax: 3,
+        aiVerificationsUsed: 0,
       };
       this.persistSettings(this.adminSettings);
     }
@@ -1856,6 +1863,30 @@ class PersistentDatabase {
   }
 
   // ─── Ticket actions ───
+  // ─── AI usage helpers ───
+  public getAIVisionUsage(): { used: number; max: number; remaining: number } {
+    const s = this.getAdminSettings();
+    const used = Math.max(0, Number(s.aiVisionUploadsUsed) || 0);
+    const max = Math.max(1, Number(s.aiVisionUploadsMax) || 3);
+    return { used, max, remaining: Math.max(0, max - used) };
+  }
+
+  public tryConsumeAIVisionUpload(): { ok: boolean; used: number; max: number } {
+    const s = this.getAdminSettings();
+    const used = Math.max(0, Number(s.aiVisionUploadsUsed) || 0);
+    const max = Math.max(1, Number(s.aiVisionUploadsMax) || 3);
+    if (used >= max) return { ok: false, used, max };
+    const next = used + 1;
+    this.updateAdminSettings({ aiVisionUploadsUsed: next } as any);
+    return { ok: true, used: next, max };
+  }
+
+  public incrementAIVerifications(): void {
+    const s = this.getAdminSettings();
+    const n = Math.max(0, Number(s.aiVerificationsUsed) || 0) + 1;
+    this.updateAdminSettings({ aiVerificationsUsed: n } as any);
+  }
+
   public addTicketInternalNote(ticketId: string, note: string, adminName = 'Support Admin') {
     const ticket = this.supportTickets.get(ticketId);
     if (!ticket) return undefined;
