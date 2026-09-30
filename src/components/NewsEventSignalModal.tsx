@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { X, TrendingUp, TrendingDown, Clock, Calendar, AlertTriangle, Sparkles, Zap } from 'lucide-react';
 import { MacroEvent } from '../types';
+import { useSignalVerification } from '../hooks/useSignalVerification';
+import { AIVerificationPill } from './AIVerificationPill';
 
 interface Props {
   isOpen: boolean;
@@ -149,6 +151,23 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
 
   // ── Determine scenario A/B/D ────────────────────────────────
   const sig = parseSignal(analysisText);
+
+  // Silent AI verification — never blocks UI, never shows errors
+  const { result: aiVerify } = useSignalVerification(
+    hasSignal && sig.direction !== 'WAIT'
+      ? {
+          symbol: sig.symbol || target?.currency || 'XAUUSD',
+          timeframe: 'M15',
+          direction: sig.direction,
+          confidence: sig.confidence,
+          setupType: 'News Event Setup',
+          reasons: analysisText
+            ? analysisText.split('\n').filter(l => l.trim().startsWith('✓')).map(l => l.replace(/^\s*✓\s*/, ''))
+            : [],
+          newsContext: target ? `${target.title} (${target.currency || 'USD'}) impact: ${target.impact}` : undefined,
+        }
+      : null
+  );
   const targetTs = target.timestamp || (target.date ? new Date(target.date).getTime() : Date.now());
   const hoursAway = (targetTs - Date.now()) / 3_600_000;
   const name = shortName(target.title);
@@ -218,6 +237,11 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
             <p className={`mt-3 text-xs font-medium ${isBuy ? 'text-emerald-800 dark:text-emerald-200' : 'text-rose-800 dark:text-rose-200'}`}>
               Engine predicts a <strong>{isBuy ? 'bullish' : 'bearish'}</strong> move on this {name} release.
             </p>
+            {aiVerify && (
+              <div className="mt-3">
+                <AIVerificationPill result={aiVerify} />
+              </div>
+            )}
           </div>
 
           {/* Reasons */}
