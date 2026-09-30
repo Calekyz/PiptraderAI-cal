@@ -588,8 +588,9 @@ app.post('/api/payments/manual/submit', (req, res) => {
 
       claimReceipt(verifiedCode, paymentId, effectiveEmail);
 
-      isDirectlyCompleted = true;
-      completionMessage = `M-Pesa receipt ${verifiedCode} verified successfully. Subscription activated!`;
+      // ⚠️ PAYMENT LEAK FIX: Never auto-complete. Always route through admin audit.
+      isDirectlyCompleted = false;
+      completionMessage = `M-Pesa receipt ${verifiedCode} received. Payment is now under audit — activation usually completes within 1–30 minutes.`;
     } else if (paymentMethod === 'binance_usdt') {
       const txHash = (transactionRef || '').trim();
       if (!txHash || txHash.length < 6) {
@@ -608,8 +609,9 @@ app.post('/api/payments/manual/submit', (req, res) => {
 
       claimReceipt(txHash, paymentId, effectiveEmail);
       verifiedCode = txHash;
-      isDirectlyCompleted = true;
-      completionMessage = `Binance TxID verified successfully. Subscription activated!`;
+      // ⚠️ PAYMENT LEAK FIX: Never auto-complete Binance payments either.
+      isDirectlyCompleted = false;
+      completionMessage = `Binance TxID ${txHash.slice(0, 10)}... received. Payment is now under audit — activation usually completes within 1–30 minutes.`;
     }
 
     const nowIso = new Date().toISOString();
@@ -628,10 +630,11 @@ app.post('/api/payments/manual/submit', (req, res) => {
       transactionHash: paymentMethod === 'binance_usdt' ? verifiedCode : undefined,
       binanceId: paymentMethod === 'binance_usdt' ? binanceId : undefined,
       smsMessage: paymentMethod === 'mpesa_manual' ? smsMessage : undefined,
-      status: isDirectlyCompleted ? 'COMPLETED' : 'PROCESSING',
+      // ── Always PENDING until admin approves ──
+      status: 'PENDING' as any,
       statusMessage: completionMessage || (paymentMethod === 'mpesa_manual' 
-        ? 'M-Pesa confirmation submitted. Awaiting verification.' 
-        : 'Binance TxID submitted. Awaiting verification.'),
+        ? 'M-Pesa confirmation submitted. Awaiting admin audit.' 
+        : 'Binance TxID submitted. Awaiting admin audit.'),
       createdAt: nowIso,
       updatedAt: nowIso,
       completedAt: isDirectlyCompleted ? nowIso : undefined
@@ -639,20 +642,10 @@ app.post('/api/payments/manual/submit', (req, res) => {
 
     createPaymentRecord(paymentRecord);
 
-    try {
-      const existingUser = db.getUserByEmail(effectiveEmail);
-      if (existingUser) {
-        let assignedPlan: PlanTier = 'Starter';
-        if (product.id === 'pro') assignedPlan = 'Pro';
-        else if (product.id === 'elite') assignedPlan = 'Elite';
-        else if (product.id === 'starter') assignedPlan = 'Starter';
-        db.updateUser(existingUser.id, { plan: assignedPlan });
-      }
-    } catch (dbErr) {
-      console.warn('[User Plan Sync Warning]:', dbErr);
-    }
+    // ⚠️ PAYMENT LEAK FIX: DO NOT activate the plan here.
+    // Plan activation ONLY happens in /api/payments/admin/verify when admin approves.
 
-    console.log(`[Manual Payment Processed] ${paymentId} (${paymentMethod}) -> ${isDirectlyCompleted ? 'COMPLETED' : 'PROCESSING'} for ${product.name} by ${effectiveEmail}`);
+    console.log(`[Manual Payment Received] ${paymentId} (${paymentMethod}) -> PENDING AUDIT for ${product.name} by ${effectiveEmail}`);
 
     res.json({
       success: true,
@@ -853,28 +846,131 @@ app.get('/api/payments/admin/all', (req, res) => {
 });
 
 app.post('/api/payments/admin/verify', (req, res) => {
-  const { paymentId, action, notes } = req.body;
-  const payment = getPaymentRecord(paymentId);
+  try {
+    const { paymentId, action, notes } = req.body;
+    const payment = getPaymentRecord(paymentId);
 
-  if (!payment) {
-    return res.status(404).json({ success: false, error: 'Payment record not found' });
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment record not found' });
+    }
+
+    const isApproved = action === 'approve';
+
+    // ── 1. Update the payment record ──
+    const updated = updatePaymentRecord(paymentId, {
+      status: isApproved ? 'COMPLETED' : 'FAILED',
+      statusMessage: isApproved 
+        ? 'Payment verified and approved by admin.' 
+        : (notes || 'Payment was rejected during admin verification.'),
+      notes,
+      completedAt: new Date().toISOString(),
+    });
+
+    // ── 2. On approve: ACTIVATE the plan + grant credits + set dates ──
+    let activation: any = null;
+    if (isApproved && payment.userEmail) {
+      try {
+        const user = db.getUserByEmail(payment.userEmail);
+        if (user) {
+          // Map product → plan
+          let assignedPlan: PlanTier = 'Starter';
+          if (payment.productId === 'pro') assignedPlan = 'Pro';
+          else if (payment.productId === 'elite') assignedPlan = 'Elite';
+          else if (payment.productId === 'starter') assignedPlan = 'Starter';
+
+          // Duration per plan (days)
+          const DURATION_DAYS: Record<string, number> = {
+            Starter: 15,
+            Pro: 30,
+            Elite: 90,
+          };
+          const days = DURATION_DAYS[assignedPlan] || 30;
+          const start = new Date();
+          const expiry = new Date(start.getTime() + days * 86400000);
+
+          // Credits per plan (from PLAN_CREDITS)
+          const creditMap: Record<string, number> = { Starter: 500, Pro: 1000, Elite: 2000 };
+          const grantCredits = creditMap[assignedPlan] || 500;
+
+          const previousPlan = user.plan;
+          const previousCredits = user.credits ?? 0;
+
+          const activated = db.updateUser(user.id, {
+            plan: assignedPlan,
+            credits: previousCredits + grantCredits,
+            subscriptionStartDate: start.toISOString(),
+            subscriptionExpiry: expiry.toISOString(),
+          });
+
+          // Log the audit
+          try {
+            db.createAuditLog({
+              adminEmail: ADMIN_ALLOWED_USERNAME,
+              adminName: 'Super Admin',
+              adminRole: 'SUPER_ADMIN',
+              action: 'PAYMENT_APPROVED',
+              targetId: user.id,
+              targetEmail: user.email,
+              userAffected: `${user.firstName} ${user.lastName} (${user.email})`,
+              previousValue: `${previousPlan} · ${previousCredits} credits`,
+              newValue: `${assignedPlan} · ${previousCredits + grantCredits} credits`,
+              details: `Payment ${paymentId} (${payment.productName}) approved. Plan upgraded ${previousPlan} → ${assignedPlan}. +${grantCredits} credits. Expires ${expiry.toISOString().split('T')[0]}.`,
+              reason: notes || 'Payment verified by admin',
+            });
+          } catch (auditErr) {
+            console.warn('[Admin Verify] Audit log failed:', (auditErr as any)?.message);
+          }
+
+          // Notify the user via their notification bell
+          try {
+            db.createAdminNotification({
+              type: 'SUBSCRIPTION_CHANGE',
+              title: 'Your plan is now active!',
+              message: `Your ${assignedPlan} plan has been activated. +${grantCredits} credits added. Valid until ${expiry.toLocaleDateString()}.`,
+              isRead: false,
+            } as any);
+          } catch {}
+
+          activation = {
+            plan: assignedPlan,
+            creditsGranted: grantCredits,
+            newBalance: previousCredits + grantCredits,
+            expiresAt: expiry.toISOString(),
+          };
+
+          console.log(`[Admin Verify] Approved ${paymentId} → ${assignedPlan} activated for ${user.email}`);
+        }
+      } catch (err: any) {
+        console.error('[Admin Verify] Activation failed:', err?.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      payment: updated,
+      activation,
+      message: isApproved 
+        ? (activation ? `${activation.plan} activated + ${activation.creditsGranted} credits granted.` : 'Payment approved.') 
+        : 'Payment rejected.'
+    });
+  } catch (err: any) {
+    console.error('[Admin Verify Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Verification failed' });
   }
+});
 
-  const isApproved = action === 'approve';
-  const updated = updatePaymentRecord(paymentId, {
-    status: isApproved ? 'COMPLETED' : 'FAILED',
-    statusMessage: isApproved 
-      ? 'Payment verified and approved by admin.' 
-      : (notes || 'Payment was rejected during admin verification.'),
-    notes,
-    completedAt: isApproved ? new Date().toISOString() : undefined
-  });
-
-  res.json({
-    success: true,
-    payment: updated,
-    message: isApproved ? 'Payment approved and plan activated.' : 'Payment rejected.'
-  });
+// ── NEW: Public endpoint for users to check pending payments ──
+app.get('/api/payments/user/:email/pending', (req, res) => {
+  try {
+    const { email } = req.params;
+    const payments = getPaymentsByUser(email.toLowerCase());
+    const pending = payments.filter((p: any) => 
+      p.status === 'PENDING' || p.status === 'PROCESSING'
+    );
+    res.json({ success: true, pending, count: pending.length });
+  } catch (err: any) {
+    res.json({ success: true, pending: [], count: 0 });
+  }
 });
 
 // ==========================================
