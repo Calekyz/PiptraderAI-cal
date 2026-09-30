@@ -4,6 +4,7 @@ import {
   Image as ImageIcon, CheckCircle2, BrainCircuit, TrendingUp, ShieldAlert,
   Loader2, Trash2, FileText, Activity, ArrowRight, Maximize2
 } from 'lucide-react';
+import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 
 interface GeminaAssistantModalProps {
   isOpen: boolean;
@@ -188,9 +189,16 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
         body: JSON.stringify({
           imageBase64: selectedImage,
           mimeType: imageMime,
-          prompt: visionPrompt || "You are Gemina, a financial data extraction expert. Read this screenshot carefully. List every instrument (symbol), price, absolute change, and percentage change. Then give a brief market summary. Format as clear bullet points."
+          prompt: visionPrompt || "You are Gemina, a financial data extraction expert. Read this screenshot carefully. List every instrument (symbol), price, absolute change, and percentage change. Then give a brief market summary. Format as clear bullet points.",
+          email: getUserEmail(),
         })
       });
+
+      // Handle insufficient credits (402)
+      if (await handleCreditError(res)) {
+        setIsAnalyzingVision(false);
+        return;
+      }
 
       // Handle quota exhausted
       if (res.status === 403) {

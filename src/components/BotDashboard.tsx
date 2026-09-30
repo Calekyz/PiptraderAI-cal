@@ -61,6 +61,7 @@ import { MT5ConnectionModal } from './MT5ConnectionModal';
 import { MyProfileModal } from './MyProfileModal';
 import { GeminaAssistantModal } from './GeminaAssistantModal';
 import { OnboardingWizard } from './OnboardingWizard';
+import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { TrialCountdownBanner } from './TrialCountdownBanner';
 import { PremiumLock } from './PremiumLock';
 import { fetchTrialStatusAsync } from '../lib/authService';
@@ -276,6 +277,18 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   const [isTrishOpen, setIsTrishOpen] = useState(false); // legacy — kept to avoid breaking callers
   const [isGeminaOpen, setIsGeminaOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [creditsToast, setCreditsToast] = useState<{ balance: number; message: string } | null>(null);
+
+  // Listen for global insufficient-credits events
+  useEffect(() => {
+    const handler = (e: any) => {
+      const detail = e?.detail || {};
+      setCreditsToast({ balance: detail.balance ?? 0, message: detail.message || 'Insufficient credits.' });
+      setTimeout(() => setCreditsToast(null), 6000);
+    };
+    window.addEventListener('pipnex:insufficient-credits', handler);
+    return () => window.removeEventListener('pipnex:insufficient-credits', handler);
+  }, []);
 
   // Show onboarding once on first login
   useEffect(() => {
@@ -1276,6 +1289,38 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         user={user}
         onOpenUpgrade={handleOpenUpgrade}
       />
+
+      {/* Insufficient Credits Toast */}
+      {creditsToast && (
+        <div className="fixed top-4 right-4 z-[100] max-w-sm animate-in fade-in slide-in-from-top-2">
+          <div className="rounded-2xl border-2 border-rose-500/60 bg-gradient-to-br from-rose-950/95 to-rose-900/80 backdrop-blur-md p-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/50 flex items-center justify-center shrink-0">
+                <span className="text-rose-300 font-black text-base">₡</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-white">Insufficient credits</div>
+                <div className="text-xs text-rose-200/80 mt-0.5">{creditsToast.message}</div>
+                <div className="text-[11px] text-rose-300/70 mt-1 font-mono">
+                  Balance: {creditsToast.balance} credits
+                </div>
+                <button
+                  onClick={() => { setCreditsToast(null); setActiveTab('subscription'); }}
+                  className="mt-2 px-3 py-1.5 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white text-[11px] font-bold transition-all cursor-pointer"
+                >
+                  Top up credits →
+                </button>
+              </div>
+              <button
+                onClick={() => setCreditsToast(null)}
+                className="p-1 rounded-lg text-rose-300/60 hover:text-rose-100 transition-colors cursor-pointer shrink-0"
+              >
+                <span className="text-sm">✕</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Onboarding Wizard — first-login only */}
       <OnboardingWizard

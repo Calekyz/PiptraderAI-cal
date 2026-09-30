@@ -4,6 +4,7 @@ import {
   Bell, Play, RotateCcw, BarChart2, TrendingUp, Activity, Plus, CandlestickChart,
   LineChart, AreaChart, Sliders, CheckCircle2, Clock, Zap, DollarSign
 } from 'lucide-react';
+import { getUserEmail, handleCreditError } from '../../lib/creditsClient';
 import { UserProfile } from '../../types';
 import { StraddleChartAnalysisPanel, StructuredAnalysis, ChatMessage } from '../StraddleChartAnalysisPanel';
 import { TradingViewChart, formatToTvSymbol } from '../TradingViewChart';
@@ -515,8 +516,13 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
       const response = await fetch('/api/engine/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: engineQuery })
+        body: JSON.stringify({ message: engineQuery, email: getUserEmail() })
       });
+
+      if (await handleCreditError(response)) {
+        setIsChatTyping(false);
+        return;
+      }
 
       const data = await response.json();
       const reply = data.reply || 'No response from engine.';

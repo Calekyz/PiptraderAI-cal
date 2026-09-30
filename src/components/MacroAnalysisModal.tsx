@@ -12,6 +12,7 @@ import {
   BarChart2 
 } from 'lucide-react';
 import { MacroEvent } from '../types';
+import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { AIVerificationBadge } from './AIVerificationBadge';
 
 interface MacroAnalysisModalProps {
@@ -77,8 +78,8 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
           fetch('/api/engine/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symbol: primaryPair, timeframe: 'M15', userId: user?.id })
-          }).then(r => r.json()).catch(() => ({})),
+            body: JSON.stringify({ symbol: primaryPair, timeframe: 'M15', userId: user?.id, email: user?.email || getUserEmail() })
+          }).then(async (r) => { if (r.status === 402) { await handleCreditError(r); return { __creditError: true }; } return r.json(); }).catch(() => ({})),
           fetch('/api/engine/news-bias').then(r => r.json()).catch(() => ({})),
         ]);
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, TrendingUp, TrendingDown, Clock, Calendar, AlertTriangle, Sparkles, Zap } from 'lucide-react';
 import { MacroEvent } from '../types';
+import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { useSignalVerification } from '../hooks/useSignalVerification';
 import { AIVerificationPill } from './AIVerificationPill';
 
@@ -109,8 +110,8 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
           fetch('/api/engine/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symbol: primaryPair, timeframe: 'M15', userId: user?.id })
-          }).then(r => r.json()).catch(() => ({})),
+            body: JSON.stringify({ symbol: primaryPair, timeframe: 'M15', userId: user?.id, email: user?.email || getUserEmail() })
+          }).then(async (r) => { if (r.status === 402) { await handleCreditError(r); return { __creditError: true }; } return r.json(); }).catch(() => ({})),
           fetch('/api/engine/news-bias').then(r => r.json()).catch(() => ({})),
         ]);
 

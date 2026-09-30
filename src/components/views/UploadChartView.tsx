@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { AIVerificationPill } from '../AIVerificationPill';
 import { useSignalVerification } from '../../hooks/useSignalVerification';
+import { getUserEmail, handleCreditError } from '../../lib/creditsClient';
 
 export interface TradePlan {
   symbol: string;
@@ -180,6 +181,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
           body: JSON.stringify({
             imageBase64: imgData,
             mimeType: 'image/png',
+            email: user?.email || getUserEmail(),
             prompt: `You are Gemina, a professional trading analyst. Read this chart carefully and give a specific analysis:
 1. Identify the symbol and timeframe from the chart
 2. Identify the trend (bullish/bearish/ranging) based on structure
@@ -191,6 +193,11 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 Be specific and reference the actual price levels you see in the chart.`
           })
         });
+        if (visionRes.status === 402) {
+          await handleCreditError(visionRes);
+          setIsAnalyzing(false);
+          return;
+        }
         if (visionRes.ok) {
           const visionData = await visionRes.json();
           visionText = visionData.analysis || '';
@@ -211,8 +218,14 @@ Be specific and reference the actual price levels you see in the chart.`
           symbol: selectedSymbol,
           timeframe: selectedTimeframe,
           userId: user?.id,
+          email: user?.email || getUserEmail(),
         })
       });
+
+      if (await handleCreditError(res)) {
+        setIsAnalyzing(false);
+        return;
+      }
       const data = await res.json();
       const plan = data.plan;
 
