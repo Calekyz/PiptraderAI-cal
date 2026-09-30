@@ -3625,20 +3625,20 @@ app.get('/api/db/stats', (req, res) => {
 // PIPNEX AI ADMIN DASHBOARD API
 // ==========================================
 
-const ADMIN_ALLOWED_USERNAME = 'Pipnexadmin';
+const ADMIN_ALLOWED_USERNAME = 'piptraderadmin';
 const ADMIN_SECRET_TOKEN = 'pipnex_admin_sec_tok_9948271';
 
 app.post('/api/admin/login', (req, res) => {
   try {
     const { username, password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@Pipnex2026!';
+    const adminPassword = process.env.ADMIN_PASSWORD || '';
 
     if (!username || !password) {
       return res.status(400).json({ success: false, error: 'Username and password are required' });
     }
 
     const isValidUser = username.trim().toLowerCase() === ADMIN_ALLOWED_USERNAME.toLowerCase();
-    const isValidPass = password === adminPassword || password === 'Pipnexadmin123!' || password === 'Admin@Pipnex2026!' || password === 'admin123';
+    const isValidPass = password === adminPassword;
 
     if (!isValidUser || !isValidPass) {
       return res.status(401).json({ success: false, error: 'Invalid admin credentials' });
