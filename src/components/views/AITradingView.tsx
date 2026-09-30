@@ -761,6 +761,33 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
           </div>
         </div>
 
+        {/* Gemina AI upgrade banner — opens the advanced assistant */}
+        {onOpenGemina && (
+          <div
+            id="open-gemina-from-chat"
+            className="mb-3 px-4 py-3 rounded-xl border border-purple-500/40 bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-transparent flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-xs text-purple-100 font-bold truncate">
+                  Upgrade to Gemina AI
+                </div>
+                <div className="text-[10px] text-purple-300/70 truncate">
+                  Real explanations, chart vision, and deeper analysis
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onOpenGemina('chat')}
+              className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white text-[11px] font-bold cursor-pointer hover:shadow-md hover:shadow-purple-500/40 transition-all active:scale-95 whitespace-nowrap"
+            >
+              Open Gemina →
+            </button>
+          </div>
+        )}
+
         <StraddleChartAnalysisPanel
           theme={theme}
           symbol={selectedAsset.symbol}

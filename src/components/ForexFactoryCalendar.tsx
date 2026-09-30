@@ -88,7 +88,13 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
         if (data.periodLabel) {
           setPeriodLabel(data.periodLabel);
         }
-        setLastUpdated(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        setLastUpdated(
+          new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short',
+          })
+        );
         
         // Find the immediate next upcoming event
         const now = Date.now();
@@ -668,9 +674,11 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
                             ) : null}
                           </td>
 
-                          {/* 2. Time */}
-                          <td className="py-2.5 px-3 font-mono text-[11px] text-[#334155] whitespace-nowrap">
-                            {evt.time || 'All Day'}
+                          {/* 2. Time (local timezone) */}
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-[#334155] whitespace-nowrap" title="Your local time">
+                            {evt.timestamp
+                              ? new Date(Number(evt.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+                              : (evt.time || 'All Day')}
                           </td>
 
                           {/* 3. Currency */}
@@ -794,7 +802,16 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
                                     </span>
                                     <span className="text-xs">{evt.countryFlag}</span>
                                     <span className="text-[11px] font-mono text-gray-500">
-                                      {evt.formattedDate} · {evt.time}
+                                      {evt.timestamp
+                                        ? new Date(Number(evt.timestamp)).toLocaleString([], {
+                                            weekday: 'short',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: true,
+                                          })
+                                        : `${evt.formattedDate || ''} · ${evt.time || ''}`}
                                     </span>
                                   </div>
 
