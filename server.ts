@@ -4621,6 +4621,54 @@ No markdown code fences.`;
   }
 });
 
+
+// ==========================================
+// TUTORIAL VIDEOS (How-to-Use guides)
+// ==========================================
+app.get('/api/tutorials', (req, res) => {
+  try {
+    const videos = db.getTutorialVideos();
+    res.json({ success: true, videos });
+  } catch (err: any) {
+    res.json({ success: true, videos: {} });
+  }
+});
+
+app.post('/api/admin/tutorials', (req, res) => {
+  try {
+    const { id, url } = req.body || {};
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ success: false, error: 'Tutorial id is required' });
+    }
+    // Validate URL if provided (accept youtube watch/youtu.be/embed or raw 11-char ID)
+    if (url && typeof url === 'string' && url.trim()) {
+      const u = url.trim();
+      const isRawId = /^[A-Za-z0-9_-]{11}$/.test(u);
+      const isYouTube = /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.test(u);
+      if (!isRawId && !isYouTube) {
+        return res.status(400).json({ success: false, error: 'Invalid YouTube URL or video ID' });
+      }
+    }
+    const updated = db.updateTutorialVideo(id, url || null);
+
+    // Audit log
+    try {
+      db.createAuditLog({
+        adminEmail: ADMIN_ALLOWED_USERNAME,
+        adminName: 'Super Admin',
+        adminRole: 'SUPER_ADMIN',
+        action: 'TUTORIAL_VIDEO_UPDATED',
+        details: url ? `Set video for "${id}"` : `Removed video for "${id}"`,
+        reason: 'How-to-Use tutorial management',
+      });
+    } catch {}
+
+    res.json({ success: true, videos: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed to save tutorial video' });
+  }
+});
+
 // Vite / static file serving
 
 // ==========================================

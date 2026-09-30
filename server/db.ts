@@ -266,6 +266,8 @@ export interface AdminSettingsEntity {
   aiVisionUploadsUsed: number;   // 0..3
   aiVisionUploadsMax: number;    // default 3
   aiVerificationsUsed: number;   // rolling counter for /api/ai/verify-signal
+  // ── Tutorial videos (id -> youtube URL) ──
+  tutorialVideos: Record<string, string>;
 }
 
 export interface JournalTradeEntity {
@@ -1846,6 +1848,7 @@ class PersistentDatabase {
         aiVisionUploadsUsed: 0,
         aiVisionUploadsMax: 3,
         aiVerificationsUsed: 0,
+        tutorialVideos: {},
       };
       this.persistSettings(this.adminSettings);
     }
@@ -1885,6 +1888,23 @@ class PersistentDatabase {
     const s = this.getAdminSettings();
     const n = Math.max(0, Number(s.aiVerificationsUsed) || 0) + 1;
     this.updateAdminSettings({ aiVerificationsUsed: n } as any);
+  }
+
+  // ─── Tutorial videos ───
+  public getTutorialVideos(): Record<string, string> {
+    const s = this.getAdminSettings();
+    return (s.tutorialVideos && typeof s.tutorialVideos === 'object') ? { ...s.tutorialVideos } : {};
+  }
+
+  public updateTutorialVideo(tutorialId: string, url: string | null): Record<string, string> {
+    const current = this.getTutorialVideos();
+    if (url && url.trim()) {
+      current[tutorialId] = url.trim();
+    } else {
+      delete current[tutorialId];
+    }
+    this.updateAdminSettings({ tutorialVideos: current } as any);
+    return current;
   }
 
   public addTicketInternalNote(ticketId: string, note: string, adminName = 'Support Admin') {
