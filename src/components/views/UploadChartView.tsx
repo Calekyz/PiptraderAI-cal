@@ -170,7 +170,40 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
     if (!imgData || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
-      // Call the rule-based engine with the selected symbol + timeframe
+      // ── 1. Send image to Gemina vision (Gemini reads the actual chart) ──
+      let visionText = '';
+      let visionOk = false;
+      try {
+        const visionRes = await fetch('/api/gemina-vision-analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: imgData,
+            mimeType: 'image/png',
+            prompt: `You are Gemina, a professional trading analyst. Read this chart carefully and give a specific analysis:
+1. Identify the symbol and timeframe from the chart
+2. Identify the trend (bullish/bearish/ranging) based on structure
+3. Identify key levels: support, resistance, recent highs/lows
+4. Identify any chart patterns (flags, triangles, head & shoulders, etc.)
+5. Give a clear trading call: BUY / SELL / WAIT with entry, stop loss, and 2 take-profit targets
+6. Explain the reasoning in 3-4 sentences
+
+Be specific and reference the actual price levels you see in the chart.`
+          })
+        });
+        if (visionRes.ok) {
+          const visionData = await visionRes.json();
+          visionText = visionData.analysis || '';
+          visionOk = true;
+        } else if (visionRes.status === 403) {
+          const errData = await visionRes.json().catch(() => ({}));
+          visionText = `⚠️ ${errData.message || 'AI upload limit reached'}`;
+        }
+      } catch (e) {
+        console.warn('Vision call failed:', e);
+      }
+
+      // ── 2. In parallel, get the rule-based engine plan for the selected symbol ──
       const res = await fetch('/api/engine/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -182,6 +215,32 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
       });
       const data = await res.json();
       const plan = data.plan;
+
+      // ── 3. Attach the vision text so it's used below in the plan ──
+      if (visionOk && visionText) {
+        // If the engine returns a valid plan, we'll inject the vision text as the primary analysis
+        (plan as any).__visionText = visionText;
+      } else if (!plan) {
+        // No engine plan AND vision failed — build a vision-only card
+        const visionPlan: TradePlan = {
+          symbol: selectedSymbol,
+          subTitle: 'Gemina AI · Vision Analysis',
+          direction: 'LONG',
+          confidence: 60,
+          bias: 'Bullish',
+          entry: '—',
+          orderType: 'See AI analysis',
+          stopLoss: '—',
+          takeProfit1: '—',
+          takeProfit2: '—',
+          riskReward: '—',
+          recommendedRisk: 'See AI analysis',
+          whyThisTrade: visionText || 'Gemina is analyzing your chart. Please check back in a moment.',
+          adjustmentNote: 'Gemini vision model reads your uploaded chart directly.',
+        };
+        setTradePlan(visionPlan);
+        return;
+      }
 
       if (!plan) {
         setTradePlan(defaultBuyPlan);

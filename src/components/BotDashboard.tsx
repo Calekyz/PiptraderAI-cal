@@ -1214,7 +1214,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       <button
         id="floating-gemina-btn"
         onClick={() => handleOpenGemina('chat')}
-        className="fixed bottom-40 right-6 z-50 group flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white shadow-2xl hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all active:scale-95 cursor-pointer border border-purple-300/40"
+        className="fixed bottom-56 right-6 z-50 group flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white shadow-2xl hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all active:scale-95 cursor-pointer border border-purple-300/40"
         title="Open Gemina AI Assistant"
       >
         <Sparkles className="w-5 h-5 fill-current" />

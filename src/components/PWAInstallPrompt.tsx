@@ -122,7 +122,7 @@ export const PWAInstallPrompt: React.FC = () => {
   if (isInstalled || !visible) return null;
 
   return (
-    <div className="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-24 z-50 sm:max-w-sm animate-in fade-in slide-in-from-bottom-4">
+    <div className="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-40 z-50 sm:max-w-sm animate-in fade-in slide-in-from-bottom-4">
       <div className="bg-gradient-to-br from-[#1a1c2e] to-[#0d0f1a] border border-purple-500/40 rounded-2xl p-4 shadow-2xl flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
           <Download className="w-5 h-5 text-purple-300" />
