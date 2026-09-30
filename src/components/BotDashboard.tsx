@@ -60,6 +60,7 @@ import { MacroAnalysisModal } from './MacroAnalysisModal';
 import { UpgradePlanModal } from './UpgradePlanModal';
 import { MT5ConnectionModal } from './MT5ConnectionModal';
 import { MyProfileModal } from './MyProfileModal';
+import { GeminaAssistantModal } from './GeminaAssistantModal';
 import { TrialCountdownBanner } from './TrialCountdownBanner';
 import { PremiumLock } from './PremiumLock';
 import { fetchTrialStatusAsync } from '../lib/authService';
@@ -273,6 +274,13 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
   // Modals state
   const [isTrishOpen, setIsTrishOpen] = useState(false);
+  const [isGeminaOpen, setIsGeminaOpen] = useState(false);
+  const [geminaTab, setGeminaTab] = useState<'chat' | 'vision'>('chat');
+
+  const handleOpenGemina = (tab: 'chat' | 'vision' = 'chat') => {
+    setGeminaTab(tab);
+    setIsGeminaOpen(true);
+  };
   const [selectedMacroEvent, setSelectedMacroEvent] = useState<MacroEvent | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeDefaultTier, setUpgradeDefaultTier] = useState<any>('Pro');
@@ -993,7 +1001,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
             {/* Upload Chart */}
             {activeTab === 'upload-chart' && (
-              <UploadChartView user={user} />
+              <UploadChartView user={user} onOpenGemina={handleOpenGemina} />
             )}
 
             {/* FEATURE #4: Manage Bots (Locked without Pro/Active Trial) */}
@@ -1055,7 +1063,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 ]}
               >
                 <AITradingView
-                  user={user}
+                  user={user} onOpenGemina={handleOpenGemina}
                   theme={currentTheme}
                   onOpenTrish={() => setIsTrishOpen(true)}
                   onOpenUpgrade={handleOpenUpgrade}
@@ -1202,6 +1210,18 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       </div>
 
       {/* Trish Voice & Chat AI Assistant Modal */}
+      {/* ── Floating Gemina AI launcher ── */}
+      <button
+        id="floating-gemina-btn"
+        onClick={() => handleOpenGemina('chat')}
+        className="fixed bottom-6 right-6 z-40 group flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white shadow-2xl hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all active:scale-95 cursor-pointer border border-purple-300/40"
+        title="Open Gemina AI Assistant"
+      >
+        <Sparkles className="w-5 h-5 fill-current" />
+        <span className="text-sm font-bold tracking-tight hidden sm:inline">Ask Gemina AI</span>
+        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
+      </button>
+
       <TrishAssistantModal
         isOpen={isTrishOpen}
         onClose={() => setIsTrishOpen(false)}

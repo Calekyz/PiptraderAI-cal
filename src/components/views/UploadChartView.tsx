@@ -41,9 +41,10 @@ export interface TradePlan {
 
 interface UploadChartViewProps {
   user?: { id?: string; email?: string } | null;
+  onOpenGemina?: (tab?: 'chat' | 'vision') => void;
 }
 
-export const UploadChartView: React.FC<UploadChartViewProps> = ({ user }) => {
+export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGemina }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState('XAUUSD');
   const [selectedTimeframe, setSelectedTimeframe] = useState('M15');
@@ -260,7 +261,31 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user }) => {
     : 5;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
+    <div
+
+      {/* Gemina AI launcher */}
+      {onOpenGemina && (
+        <div className="rounded-2xl border-2 border-purple-500/40 bg-gradient-to-br from-[#1a0f2e] to-[#0c0e1a] p-5 sm:p-6 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] flex items-center justify-center shrink-0 shadow-lg">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="text-sm font-black text-white tracking-tight">Analyze with Gemina AI</div>
+              <div className="text-xs text-purple-200/70 mt-0.5 max-w-md leading-relaxed">
+                Get deep chart extraction, pattern recognition, and real explanations from our advanced vision model.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenGemina('vision')}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white font-bold text-xs shadow-md hover:shadow-purple-500/40 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+          >
+            Launch Gemina →
+          </button>
+        </div>
+      )}
+ className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
       
       {/* 1. Header & Description matching Screenshot 3 */}
       <div className="space-y-1">
