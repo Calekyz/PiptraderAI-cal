@@ -4510,6 +4510,24 @@ app.get('/api/notifications', (req, res) => {
 app.post('/api/ai/verify-signal', async (req, res) => {
   try {
     const body = req.body || {};
+    // TEMP DEBUG: return raw error when ?debug=1
+    if (req.query.debug === '1') {
+      try {
+        const { GoogleGenAI } = require('@google/genai');
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+        const resp = await ai.models.generateContent({
+          model: 'gemini-flash-latest',
+          contents: [{ role: 'user', parts: [{ text: 'Say: HELLO' }] }],
+        });
+        return res.json({ success: true, debug: true, rawResp: JSON.stringify(resp).slice(0, 2000), text: (resp as any)?.text });
+      } catch (e: any) {
+        return res.json({ success: true, debug: true, error: {
+          message: e?.message, name: e?.name, status: e?.status,
+          stack: String(e?.stack || '').split('\n').slice(0, 5),
+          responseData: e?.response?.data || null
+        }});
+      }
+    }
     const result = await verifySignal({
       symbol: String(body.symbol || 'XAUUSD'),
       timeframe: String(body.timeframe || 'M15'),
