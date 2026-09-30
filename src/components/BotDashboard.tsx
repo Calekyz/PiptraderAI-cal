@@ -85,6 +85,12 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string; title: string; message: string;
+    urgency: 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS';
+    createdAt: string;
+  }>>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Local theme state fallback if not controlled
   const [localTheme, setLocalTheme] = useState<'dark' | 'light'>(() => {
@@ -95,6 +101,73 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       return 'dark';
     }
   });
+
+  // ── Fetch user notifications (broadcasts) + poll every 30s ──
+  useEffect(() => {
+    const READ_KEY = 'pipnex_notif_read_ids';
+    const getReadIds = (): string[] => {
+      try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); } catch { return []; }
+    };
+
+    const fetchNotifications = async () => {
+      try {
+        const email = (user?.email || '').toLowerCase().trim();
+        const plan = (user?.plan || '').toUpperCase().trim();
+        if (!email) return;
+        const res = await fetch(`/api/notifications?email=${encodeURIComponent(email)}&plan=${encodeURIComponent(plan)}`);
+        const data = await res.json();
+        const list = Array.isArray(data?.notifications) ? data.notifications : [];
+        setNotifications(list);
+        const readIds = new Set(getReadIds());
+        setUnreadCount(list.filter((n: any) => !readIds.has(n.id)).length);
+      } catch { /* silent */ }
+    };
+
+    fetchNotifications();
+    const t = setInterval(fetchNotifications, 30000);
+    const onVis = () => { if (document.visibilityState === 'visible') fetchNotifications(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [user?.email, user?.plan]);
+
+  // ── Mark a single notification read ──
+  const markNotificationRead = (id: string) => {
+    try {
+      const READ_KEY = 'pipnex_notif_read_ids';
+      const cur: string[] = JSON.parse(localStorage.getItem(READ_KEY) || '[]');
+      if (!cur.includes(id)) {
+        cur.push(id);
+        localStorage.setItem(READ_KEY, JSON.stringify(cur.slice(-200)));
+      }
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch {}
+  };
+
+  // ── Mark all read ──
+  const markAllNotificationsRead = () => {
+    try {
+      const READ_KEY = 'pipnex_notif_read_ids';
+      const ids = notifications.map((n) => n.id);
+      localStorage.setItem(READ_KEY, JSON.stringify(ids.slice(-200)));
+      setUnreadCount(0);
+    } catch {}
+  };
+
+  // ── Relative time helper ──
+  const relTime = (iso: string): string => {
+    const diff = Date.now() - new Date(iso).getTime();
+    if (diff < 0) return 'just now';
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return `${m} min${m === 1 ? '' : 's'} ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+    const d = Math.floor(h / 24);
+    return `${d} day${d === 1 ? '' : 's'} ago`;
+  };
 
   const currentTheme = theme || localTheme;
 
@@ -650,33 +723,57 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                   className="w-9 h-9 rounded-full bg-white dark:bg-[#141624] hover:bg-gray-50 dark:hover:bg-[#1c2035] border border-[#e5e7eb] dark:border-[#22273d] flex items-center justify-center text-gray-700 dark:text-gray-200 transition-all shadow-xs active:scale-95 cursor-pointer relative"
                 >
                   <Bell className="w-4 h-4" />
-                  <span className="w-2 h-2 rounded-full bg-[#5b3fe4] absolute top-2 right-2 border-2 border-white dark:border-[#141624]" />
+                  {unreadCount > 0 && (
+                    <span className="min-w-[16px] h-4 px-1 rounded-full bg-[#ff3b5c] absolute -top-0.5 -right-0.5 border-2 border-white dark:border-[#141624] text-[9px] font-bold text-white flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </button>
 
                 {/* Notifications Popover */}
                 {isNotificationsOpen && (
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#0e101d] border border-[#e5e7eb] dark:border-[#20243d] rounded-2xl p-3 shadow-xl z-50 text-xs animate-in fade-in slide-in-from-top-2 text-[#0f172a] dark:text-white">
                     <div className="flex items-center justify-between pb-2 border-b border-[#e5e7eb] dark:border-[#20243d]">
-                      <span className="font-bold text-sm text-[#0f172a] dark:text-white">Notifications</span>
-                      <span className="text-[10px] text-[#5b3fe4] dark:text-purple-400 font-semibold cursor-pointer">Mark all as read</span>
+                      <span className="font-bold text-sm text-[#0f172a] dark:text-white">
+                        Notifications {unreadCount > 0 && <span className="text-[10px] font-semibold text-[#5b3fe4] dark:text-purple-400">({unreadCount} new)</span>}
+                      </span>
+                      {unreadCount > 0 && (
+                        <span
+                          onClick={markAllNotificationsRead}
+                          className="text-[10px] text-[#5b3fe4] dark:text-purple-400 font-semibold cursor-pointer hover:underline"
+                        >
+                          Mark all as read
+                        </span>
+                      )}
                     </div>
-                    <div className="py-2 space-y-2 max-h-64 overflow-y-auto">
-                      <div className="p-2.5 rounded-xl bg-[#faf9ff] dark:bg-[#151829] border border-purple-100 dark:border-purple-900/30 flex items-start gap-2.5">
-                        <CheckCircle2 className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400 shrink-0 mt-0.5" />
-                        <div>
-                          <div className="font-bold text-xs text-[#0f172a] dark:text-white">Signal Triggered: XAG/USD</div>
-                          <div className="text-[11px] text-[#475569] dark:text-slate-400 mt-0.5">Silver reached key resistance level at $68.96.</div>
-                          <div className="text-[10px] text-[#94a3b8] mt-1">2 mins ago</div>
+                    <div className="py-2 space-y-2 max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="py-8 text-center text-[11px] text-[#94a3b8] dark:text-slate-500">
+                          No notifications yet
                         </div>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-[#121422] border border-[#e5e7eb] dark:border-[#20243d] flex items-start gap-2.5">
-                        <Sparkles className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400 shrink-0 mt-0.5" />
-                        <div>
-                          <div className="font-bold text-xs text-[#0f172a] dark:text-white">ForexFactory Live Calendar</div>
-                          <div className="text-[11px] text-[#475569] dark:text-slate-400 mt-0.5">High impact USD releases synced directly from ForexFactory.</div>
-                          <div className="text-[10px] text-[#94a3b8] mt-1">1 hour ago</div>
-                        </div>
-                      </div>
+                      ) : (
+                        notifications.map((n) => {
+                          const urgencyColor =
+                            n.urgency === 'CRITICAL' ? 'text-rose-500' :
+                            n.urgency === 'WARNING' ? 'text-amber-500' :
+                            n.urgency === 'SUCCESS' ? 'text-emerald-500' :
+                            'text-[#5b3fe4] dark:text-purple-400';
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => markNotificationRead(n.id)}
+                              className="p-2.5 rounded-xl bg-[#faf9ff] dark:bg-[#151829] border border-purple-100 dark:border-purple-900/30 flex items-start gap-2.5 cursor-pointer hover:bg-white dark:hover:bg-[#1a1e30] transition-colors"
+                            >
+                              <Bell className={`w-4 h-4 shrink-0 mt-0.5 ${urgencyColor}`} />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-xs text-[#0f172a] dark:text-white truncate">{n.title}</div>
+                                <div className="text-[11px] text-[#475569] dark:text-slate-400 mt-0.5 line-clamp-3 whitespace-pre-wrap">{n.message}</div>
+                                <div className="text-[10px] text-[#94a3b8] mt-1">{relTime(n.createdAt)}</div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 )}

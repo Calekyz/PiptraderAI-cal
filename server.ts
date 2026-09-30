@@ -4459,6 +4459,49 @@ app.delete('/api/admin/broadcasts/:id', (req, res) => {
   }
 });
 
+
+// ==========================================
+// USER: NOTIFICATIONS (broadcasts targeted at this user)
+// ==========================================
+app.get('/api/notifications', (req, res) => {
+  try {
+    const userEmail = String(req.query.email || '').toLowerCase().trim();
+    const userPlanRaw = String(req.query.plan || '').toUpperCase().trim();
+    // Normalize plan aliases -> canonical segments
+    const planAlias: Record<string, string> = {
+      'FREE_TRIAL': 'PENDING',
+      'TRIAL': 'PENDING',
+      'PENDING': 'PENDING',
+      'STARTER': 'STARTER',
+      'PRO': 'PRO',
+      'ELITE': 'ELITE',
+      'PLATINUM': 'ELITE', // map PLATINUM -> ELITE for matching
+    };
+    const userPlan = planAlias[userPlanRaw] || userPlanRaw || 'PENDING';
+
+    const all = (typeof db.getAllBroadcasts === 'function')
+      ? db.getAllBroadcasts()
+      : [];
+
+    const visible = all
+      .filter((b: any) => b && b.isActive !== false)
+      .filter((b: any) => {
+        const seg = String(b.targetSegment || 'ALL').toUpperCase();
+        if (seg === 'ALL') return true;
+        const segNorm = planAlias[seg] || seg;
+        return segNorm === userPlan;
+      })
+      .sort((a: any, b: any) =>
+        new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      )
+      .slice(0, 50);
+
+    res.json({ success: true, notifications: visible });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message, notifications: [] });
+  }
+});
+
 // Vite / static file serving
 
 // ==========================================
