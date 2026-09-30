@@ -129,7 +129,7 @@ function parseVerdict(raw: string): { verdict: 'AGREE'|'CAUTION'|'DISAGREE'; aiC
 // ── Public API ─────────────────────────────────────────────────────────────
 export async function verifySignal(input: VerifyInput): Promise<VerifyResult> {
   const t0 = Date.now();
-  const model = 'gemini-3.7-flash';
+  const model = 'gemini-flash-latest';  // auto-updates to newest Flash model
 
   // 1. Dedupe check
   const key = dedupeKey(input);
