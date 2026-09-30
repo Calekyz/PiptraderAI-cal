@@ -63,6 +63,7 @@ import { MyProfileModal } from './MyProfileModal';
 import { GeminaAssistantModal } from './GeminaAssistantModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { PendingPaymentBanner } from './PendingPaymentBanner';
+import { StatusPill } from './StatusPill';
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { TrialCountdownBanner } from './TrialCountdownBanner';
 import { PremiumLock } from './PremiumLock';
@@ -819,20 +820,13 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
             {/* Right Header Action Items */}
             <div className="flex items-center gap-2 sm:gap-3">
               
-              {/* Header Theme Toggle Component */}
-              <ThemeToggle
-                id="header-theme-toggle-btn"
-                theme={currentTheme}
-                onToggle={handleToggleTheme}
-                variant="pill"
-                className="hidden sm:inline-flex"
-              />
-              <ThemeToggle
-                id="header-theme-toggle-mobile-btn"
-                theme={currentTheme}
-                onToggle={handleToggleTheme}
-                variant="circle"
-                className="sm:hidden"
+              {/* Account status pill — replaces theme toggle */}
+              <StatusPill
+                credits={displayedCredits}
+                plan={(user as any)?.plan || 'Pending'}
+                subscriptionExpiry={(user as any)?.subscriptionExpiry}
+                onOpenCredits={() => setActiveTab('subscription')}
+                onOpenSubscription={() => setActiveTab('subscription')}
               />
 
               {/* Notification Bell Button */}
