@@ -33,7 +33,8 @@ import {
   Globe,
   Home,
   Cpu,
-  Upload
+  Upload,
+  Clock,
 } from 'lucide-react';
 import { UserProfile, MacroEvent, TrialStatusResponse } from '../types';
 import { ForexTicker } from './ForexTicker';
@@ -61,6 +62,7 @@ import { MT5ConnectionModal } from './MT5ConnectionModal';
 import { MyProfileModal } from './MyProfileModal';
 import { GeminaAssistantModal } from './GeminaAssistantModal';
 import { OnboardingWizard } from './OnboardingWizard';
+import { PendingPaymentBanner } from './PendingPaymentBanner';
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { TrialCountdownBanner } from './TrialCountdownBanner';
 import { PremiumLock } from './PremiumLock';
@@ -382,23 +384,30 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   // ⚠️ SECURITY: never trust client-side plan changes.
   // This handler just closes the upgrade picker and opens the real payment flow.
   const [pendingPayment, setPendingPayment] = useState<{ productId: string; productName: string } | null>(null);
+  const [paymentToast, setPaymentToast] = useState<{ title: string; message: string } | null>(null);
 
-  const handleUpgradeSuccess = (newPlan: any) => {
-    // Map plan name → productId
+  // Called by UpgradePlanModal → DynamicPaymentModal when the user submits proof of payment
+  const handleUpgradeSuccess = async (newPlan: any) => {
     const productId = String(newPlan || '').toLowerCase();
     const validProducts = ['starter', 'pro', 'elite'];
     if (validProducts.includes(productId)) {
       setPendingPayment({ productId, productName: newPlan });
     }
     setIsUpgradeModalOpen(false);
-  };
 
-  // Called by DynamicPaymentModal when the user submits proof of payment
-  const handlePaymentSubmitted = async () => {
-    setPendingPayment(null);
-    // Refresh the user object from the server so the dashboard sees the pending state
+    // ── Show 'payment received' toast ──
+    setPaymentToast({
+      title: 'Payment received',
+      message: 'Your payment is now under audit. This usually takes 1–30 minutes. You will be notified once activated.',
+    });
+    setTimeout(() => setPaymentToast(null), 10000);
+
+    // ── Refresh user from server (plan stays the same — audit is pending) ──
     await refreshUserFromServer();
   };
+
+  // Alias for backward compat
+  const handlePaymentSubmitted = handleUpgradeSuccess;
 
   // Refetch the current user from the server (source of truth)
   const refreshUserFromServer = async () => {
@@ -1071,6 +1080,12 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
           }`}>
 
             {/* Overview Tab */}
+            {/* Pending payment audit banner — shows when a payment is under admin review */}
+            <PendingPaymentBanner
+              userEmail={user?.email}
+              onOpenSubscription={() => setActiveTab('subscription')}
+            />
+
             {activeTab === 'overview' && (
               <OverviewView
                 user={user}
@@ -1397,6 +1412,30 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 className="p-1 rounded-lg text-rose-300/60 hover:text-rose-100 transition-colors cursor-pointer shrink-0"
               >
                 <span className="text-sm">✕</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment received toast — shown after user submits payment proof */}
+      {paymentToast && (
+        <div className="fixed top-4 right-4 z-[100] max-w-sm animate-in fade-in slide-in-from-top-2">
+          <div className="rounded-2xl border-2 border-amber-500/60 bg-gradient-to-br from-amber-950/95 to-amber-900/85 backdrop-blur-md p-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center shrink-0 animate-pulse">
+                <Clock className="w-4 h-4 text-amber-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-white">{paymentToast.title}</div>
+                <div className="text-xs text-amber-200/90 mt-1 leading-relaxed">{paymentToast.message}</div>
+              </div>
+              <button
+                onClick={() => setPaymentToast(null)}
+                className="p-1 rounded-lg text-amber-300/60 hover:text-amber-100 transition-colors cursor-pointer shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
