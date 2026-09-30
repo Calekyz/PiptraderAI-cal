@@ -14,6 +14,7 @@ interface AITradingViewProps {
   onOpenTrish?: () => void;
   onOpenUpgrade?: () => void;
   onBack?: () => void;
+  onOpenGemina?: (tab?: 'chat' | 'vision') => void;
 }
 
 export interface MarketAsset {
@@ -78,7 +79,8 @@ export interface TechnicalIndicators {
 }
 
 export const AITradingView: React.FC<AITradingViewProps> = ({
-  user, theme = 'light', onOpenTrish, onOpenUpgrade, onBack
+  user, theme = 'light', onOpenTrish, onOpenUpgrade, onBack,
+  onOpenGemina
 }) => {
   const [selectedAsset, setSelectedAsset] = useState<MarketAsset>(SUPPORTED_MARKETS[0]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('60');

@@ -1261,6 +1261,13 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         onOpenUpgrade={handleOpenUpgrade}
       />
 
+      {/* Gemina AI Assistant Modal */}
+      <GeminaAssistantModal
+        isOpen={isGeminaOpen}
+        onClose={() => setIsGeminaOpen(false)}
+        initialTab={geminaTab}
+      />
+
       {/* Floating Support Button — bottom-left with ticket badge */}
       <FloatingSupportButton
         userEmail={user.email}

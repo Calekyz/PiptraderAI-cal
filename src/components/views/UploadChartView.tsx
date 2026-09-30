@@ -261,7 +261,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
     : 5;
 
   return (
-    <div
+    <div className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
 
       {/* Gemina AI launcher */}
       {onOpenGemina && (
@@ -285,7 +285,6 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
           </button>
         </div>
       )}
- className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
       
       {/* 1. Header & Description matching Screenshot 3 */}
       <div className="space-y-1">
