@@ -5120,7 +5120,39 @@ app.post('/api/engine/chat', async (req, res) => {
       newsEngine: analyzeNews,
       forexFactoryEvents: ffEvents,
     });
-    res.json(reply);
+
+    // ── Option B: if the reply contains a real setup, charge an extra 8 credits ──
+    //    (total 10 = chat_message 2 + ai_trade_setup 8)
+    let extraCharged = 0;
+    let newBalance: number | undefined = user ? (user.credits ?? 0) : undefined;
+
+    try {
+      const planData: any = (reply as any)?.data;
+      const hasRealSetup = planData
+        && (planData.direction === 'BUY' || planData.direction === 'SELL')
+        && Number(planData.confidence) >= 55;
+
+      if (hasRealSetup && email) {
+        const extra = db.consumeUserCredits(email, 8, 'AI Trading setup — post-chat charge');
+        if (extra.ok) {
+          extraCharged = 8;
+          newBalance = extra.newBalance;
+          console.log(`[Credits] Extra 8 charged to ${email} for setup. New balance: ${newBalance}`);
+        } else {
+          // Insufficient for the extra — allow the reply anyway (we already did the work)
+          console.warn(`[Credits] Could not charge extra 8 for ${email}: ${extra.error}`);
+        }
+      }
+    } catch (creditErr: any) {
+      console.warn('[Credits] Post-chat charge failed silently:', creditErr?.message);
+    }
+
+    res.json({
+      ...reply,
+      creditCharged: 2 + extraCharged,
+      extraCharged,
+      newBalance,
+    });
   } catch (err: any) {
     console.error('[Engine Chat Error]:', err);
     res.status(500).json({ reply: 'The engine hit an error. Please try again.', intent: 'error', confidence: 0 });

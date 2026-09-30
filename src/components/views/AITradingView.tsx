@@ -527,6 +527,13 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
       const data = await response.json();
       const reply = data.reply || 'No response from engine.';
 
+      // If the engine returned a real setup, we were charged the AI setup fee (10 total)
+      if (data.extraCharged && data.extraCharged > 0) {
+        window.dispatchEvent(new CustomEvent('pipnex:credits-changed', {
+          detail: { charged: 10, reason: 'AI Trading setup', balance: data.newBalance },
+        }));
+      }
+
       // Push the engine reply FIRST so user sees it immediately
       const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setChatMessages((prev) => [

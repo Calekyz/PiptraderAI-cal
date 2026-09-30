@@ -287,7 +287,24 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       setTimeout(() => setCreditsToast(null), 6000);
     };
     window.addEventListener('pipnex:insufficient-credits', handler);
-    return () => window.removeEventListener('pipnex:insufficient-credits', handler);
+
+    // Also listen for post-action credit charges
+    const creditHandler = (e: any) => {
+      const detail = e?.detail || {};
+      if (detail.charged) {
+        setCreditsToast({
+          balance: detail.balance ?? 0,
+          message: `${detail.reason || 'Action'} — ${detail.charged} credits used`,
+        });
+        setTimeout(() => setCreditsToast(null), 4000);
+      }
+    };
+    window.addEventListener('pipnex:credits-changed', creditHandler);
+
+    return () => {
+      window.removeEventListener('pipnex:insufficient-credits', handler);
+      window.removeEventListener('pipnex:credits-changed', creditHandler);
+    };
   }, []);
 
   // Show onboarding once on first login
