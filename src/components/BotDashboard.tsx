@@ -1386,6 +1386,30 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         onOpenUpgrade={handleOpenUpgrade}
       />
 
+      {/* Payment Received Toast — shows after user submits payment proof */}
+      {paymentToast && (
+        <div className="fixed top-4 right-4 z-[100] max-w-sm animate-in fade-in slide-in-from-top-2">
+          <div className="rounded-2xl border-2 border-amber-500/60 bg-gradient-to-br from-amber-950/95 to-amber-900/85 backdrop-blur-md p-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center shrink-0 animate-pulse">
+                <Clock className="w-4 h-4 text-amber-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-white">{paymentToast.title}</div>
+                <div className="text-xs text-amber-200/90 mt-1 leading-relaxed">{paymentToast.message}</div>
+              </div>
+              <button
+                onClick={() => setPaymentToast(null)}
+                className="p-1 rounded-lg text-amber-300/60 hover:text-amber-100 transition-colors cursor-pointer shrink-0"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Insufficient Credits Toast */}
       {creditsToast && (
         <div className="fixed top-4 right-4 z-[100] max-w-sm animate-in fade-in slide-in-from-top-2">
