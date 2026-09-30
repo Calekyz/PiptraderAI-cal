@@ -438,13 +438,50 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }]);
     setIsChatTyping(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsChatTyping(false);
+      const replyText = `For ${selectedAsset.symbol} on ${currentTfObj.label}: Current price is holding near ${quote?.price.toFixed(selectedAsset.decimals)}. Immediate resistance is at ${indicators?.resistanceLevels?.[0] || (quote?.price ? (quote.price * 1.006).toFixed(selectedAsset.decimals) : 'swing high')} and support is at ${indicators?.supportLevels?.[0] || (quote?.price ? (quote.price * 0.994).toFixed(selectedAsset.decimals) : 'swing low')}. Structure momentum is ${indicators?.marketStructure || 'Bullish'}.`;
+      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setChatMessages((prev) => [...prev, {
         sender: 'straddle',
-        text: `For ${selectedAsset.symbol} on ${currentTfObj.label}: Current price is holding near ${quote?.price.toFixed(selectedAsset.decimals)}. Immediate resistance is at ${indicators?.resistanceLevels?.[0] || (quote?.price ? (quote.price * 1.006).toFixed(selectedAsset.decimals) : 'swing high')} and support is at ${indicators?.supportLevels?.[0] || (quote?.price ? (quote.price * 0.994).toFixed(selectedAsset.decimals) : 'swing low')}. Structure momentum is ${indicators?.marketStructure || 'Bullish'}.`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        text: replyText,
+        time: replyTime
       }]);
+
+      // ── Fetch Gemina review in the background ──
+      try {
+        const reviewRes = await fetch('/api/ai/review-chat-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userQuestion: userText,
+            engineReply: replyText,
+            symbol: selectedAsset.symbol,
+            timeframe: currentTfObj.api,
+          }),
+        });
+        const reviewData = await reviewRes.json();
+        if (reviewData && (reviewData.review || reviewData.recommendations?.length)) {
+          setChatMessages((prev) => {
+            const copy = [...prev];
+            for (let i = copy.length - 1; i >= 0; i--) {
+              if (copy[i].sender === 'straddle' && copy[i].text === replyText) {
+                copy[i] = {
+                  ...copy[i],
+                  aiReview: reviewData.review || undefined,
+                  aiRecommendations: Array.isArray(reviewData.recommendations)
+                    ? reviewData.recommendations
+                    : [],
+                };
+                break;
+              }
+            }
+            return copy;
+          });
+        }
+      } catch (e) {
+        console.warn('[Review] failed silently', e);
+      }
     }, 600);
   };
 
@@ -484,14 +521,50 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
       const data = await response.json();
       const reply = data.reply || 'No response from engine.';
 
+      // Push the engine reply FIRST so user sees it immediately
+      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       setChatMessages((prev) => [
         ...prev,
-        {
-          sender: 'straddle',
-          text: reply,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
+        { sender: 'straddle', text: reply, time: replyTime }
       ]);
+
+      // ── Then fetch Gemina's silent review in the background ──
+      (async () => {
+        try {
+          const reviewRes = await fetch('/api/ai/review-chat-reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userQuestion: engineQuery,
+              engineReply: reply,
+              symbol: selectedAsset.symbol,
+              timeframe: currentTfObj.api,
+            }),
+          });
+          const reviewData = await reviewRes.json();
+          if (reviewData && (reviewData.review || reviewData.recommendations?.length)) {
+            // Attach review to the last engine message
+            setChatMessages((prev) => {
+              const copy = [...prev];
+              for (let i = copy.length - 1; i >= 0; i--) {
+                if (copy[i].sender === 'straddle' && copy[i].text === reply) {
+                  copy[i] = {
+                    ...copy[i],
+                    aiReview: reviewData.review || undefined,
+                    aiRecommendations: Array.isArray(reviewData.recommendations)
+                      ? reviewData.recommendations
+                      : [],
+                  };
+                  break;
+                }
+              }
+              return copy;
+            });
+          }
+        } catch (e) {
+          console.warn('[Review] failed silently', e);
+        }
+      })();
     } catch (err) {
       setChatMessages((prev) => [
         ...prev,

@@ -96,6 +96,10 @@ export interface ChatMessage {
   sender: 'gemina' | 'straddle' | 'user';
   text: string;
   time: string;
+  /** AI review of the engine's reply (only on 'straddle'/'gemina' messages) */
+  aiReview?: string;
+  /** Bullet recommendations from Gemina */
+  aiRecommendations?: string[];
 }
 
 interface StraddleChartAnalysisPanelProps {
@@ -643,6 +647,45 @@ Generated on live market price: ${priceDisplay}`;
                     }`}>
                       <div className="whitespace-pre-wrap">{msg.text}</div>
                     </div>
+
+                    {/* Gemina AI Review Card (only on non-user messages with a review) */}
+                    {msg.sender !== 'user' && (msg.aiReview || (msg.aiRecommendations && msg.aiRecommendations.length > 0)) && (
+                      <div className={`mt-2 w-[95%] p-3 rounded-2xl border-2 ${
+                        isLight
+                          ? 'bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200'
+                          : 'bg-gradient-to-br from-[#1a0f2e] to-[#0f0d1e] border-purple-500/40'
+                      }`}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Sparkles className={`w-3.5 h-3.5 ${isLight ? 'text-purple-600' : 'text-purple-400'}`} />
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${
+                            isLight ? 'text-purple-700' : 'text-purple-300'
+                          }`}>Gemina Review</span>
+                        </div>
+                        {msg.aiReview && (
+                          <p className={`text-[11px] leading-relaxed mb-2 ${
+                            isLight ? 'text-slate-800' : 'text-gray-200'
+                          }`}>{msg.aiReview}</p>
+                        )}
+                        {msg.aiRecommendations && msg.aiRecommendations.length > 0 && (
+                          <div className={`pt-2 border-t ${isLight ? 'border-purple-200' : 'border-purple-500/20'}`}>
+                            <div className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 ${
+                              isLight ? 'text-purple-700' : 'text-purple-300'
+                            }`}>Recommendations</div>
+                            <ul className="space-y-1">
+                              {msg.aiRecommendations.map((rec, idx) => (
+                                <li key={idx} className={`text-[11px] leading-relaxed flex items-start gap-1.5 ${
+                                  isLight ? 'text-slate-700' : 'text-gray-300'
+                                }`}>
+                                  <span className="text-purple-500 font-bold shrink-0">•</span>
+                                  <span>{rec}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <span className="text-[9px] font-mono text-gray-400 mt-1 px-1">{msg.time}</span>
                   </div>
                 ))
@@ -651,7 +694,7 @@ Generated on live market price: ${priceDisplay}`;
               {isChatTyping && (
                 <div className="flex items-center gap-1.5 text-xs text-purple-600 font-mono p-2">
                   <RefreshCw className="w-3 h-3 animate-spin" />
-                  <span>Gemina AI is evaluating market flow (DeepSeek)...</span>
+                  <span>Gemina AI is reviewing the setup...</span>
                 </div>
               )}
               <div ref={chatEndRef} />
