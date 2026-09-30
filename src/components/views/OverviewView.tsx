@@ -672,7 +672,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               DeepSeek-V3
             </span>
           </div>
-          <p className="text-xs text-[#64748b] dark:text-slate-400">DeepSeek-powered market analyst &amp; vision assistant</p>
+          <p className="text-xs text-[#64748b] dark:text-slate-400">Gemini-powered analyst &amp; vision assistant</p>
 
           <div className="space-y-1.5 pt-1 text-xs">
             <div className="text-[#475569] dark:text-slate-400 text-[11px] font-semibold mb-1">Capabilities:</div>

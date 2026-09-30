@@ -1830,7 +1830,7 @@ class PersistentDatabase {
   public getAdminSettings(): AdminSettingsEntity {
     if (!this.adminSettings) {
       this.adminSettings = {
-        platformName: 'PipNex AI Platform',
+        platformName: 'PipTraderAI Platform',
         supportEmail: 'support@pipnex.ai',
         maintenanceMode: false,
         allowNewRegistrations: true,
@@ -1951,7 +1951,7 @@ class PersistentDatabase {
         status: (p.status === 'COMPLETED' ? 'COMPLETED' : p.status === 'FAILED' ? 'FAILED' : 'PENDING') as any,
         reference: p.checkoutRequestId || p.transactionHash || p.id,
         receiptNumber: p.mpesaReceiptNumber,
-        description: `${p.productName || 'PipNex Order'} (${p.paymentMethod})`,
+        description: `${p.productName || 'PipTraderAI Order'} (${p.paymentMethod})`,
         tier: p.productId,
         isHighValue: (p.usdPrice || 0) >= 200,
         createdAt: p.createdAt, completedAt: p.completedAt,

@@ -75,7 +75,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 
   const defaultBuyPlan: TradePlan = {
     symbol: 'UNKNOW',
-    subTitle: 'Gemina AI Assistant Vision · DeepSeek',
+    subTitle: 'Gemina AI · Vision Analysis',
     direction: 'LONG',
     confidence: 65,
     bias: 'Bullish',
@@ -93,7 +93,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 
   const defaultSellPlan: TradePlan = {
     symbol: 'EUR/USD',
-    subTitle: 'Gemina AI Assistant Vision · DeepSeek',
+    subTitle: 'Gemina AI · Vision Analysis',
     direction: 'SHORT',
     confidence: 78,
     bias: 'Bearish',
@@ -216,17 +216,51 @@ Be specific and reference the actual price levels you see in the chart.`
       const data = await res.json();
       const plan = data.plan;
 
-      // ── 3. Attach the vision text so it's used below in the plan ──
+      // ── 3. VISION-FIRST: when Gemini reads the chart, show its analysis as primary ──
       if (visionOk && visionText) {
-        // If the engine returns a valid plan, we'll inject the vision text as the primary analysis
-        (plan as any).__visionText = visionText;
+        // Try to extract a direction from Gemini's text (BUY/SELL/WAIT)
+        const upper = visionText.toUpperCase();
+        const gemDirection: 'LONG' | 'SHORT' =
+          upper.includes('STRONG BUY') || upper.includes('BULLISH') ? 'LONG'
+          : upper.includes('STRONG SELL') || upper.includes('BEARISH') ? 'SHORT'
+          : (plan?.direction === 'SELL' ? 'SHORT' : 'LONG');
+
+        // Try to extract symbol Gemini detected
+        const symMatch = visionText.match(/\b([A-Z]{3}\/?[A-Z]{3}|XAU\/?USD|BTC\/?USD|ETH\/?USD|NAS100|US30|SPX500)\b/);
+        const detectedSymbol = symMatch ? symMatch[1].replace('\/', '') : selectedSymbol;
+
+        // Try to extract levels from Gemini's text (fall back to engine if not found)
+        const entryMatch = visionText.match(/entry[\s:]+([0-9.,]+)/i);
+        const slMatch = visionText.match(/(stop[\s-]*loss|SL)[\s:]+([0-9.,]+)/i);
+        const tp1Match = visionText.match(/(take[\s-]*profit\s*1|TP\s*1|target\s*1)[\s:]+([0-9.,]+)/i);
+        const tp2Match = visionText.match(/(take[\s-]*profit\s*2|TP\s*2|target\s*2)[\s:]+([0-9.,]+)/i);
+
+        const visionPlan: TradePlan = {
+          symbol: detectedSymbol,
+          subTitle: 'Gemina AI · Vision Analysis (read from your chart)',
+          direction: gemDirection,
+          confidence: plan?.confidence || 75,
+          bias: gemDirection === 'LONG' ? 'Bullish' : 'Bearish',
+          entry: entryMatch ? entryMatch[1] : (plan?.currentPrice ? plan.currentPrice.toFixed(selectedDecimals) : '—'),
+          orderType: gemDirection === 'LONG' ? 'Buy Limit / Market' : 'Sell Limit / Market',
+          stopLoss: slMatch ? slMatch[2] : (plan?.stopLoss ? plan.stopLoss.toFixed(selectedDecimals) : '—'),
+          stopLossDistance: '',
+          takeProfit1: tp1Match ? tp1Match[2] : (plan?.takeProfit1 ? plan.takeProfit1.toFixed(selectedDecimals) : '—'),
+          takeProfit2: tp2Match ? tp2Match[2] : (plan?.takeProfit2 ? plan.takeProfit2.toFixed(selectedDecimals) : '—'),
+          riskReward: plan?.riskReward ? `1:${plan.riskReward.toFixed(1)}` : '—',
+          recommendedRisk: '1.0% – 1.5% of equity',
+          whyThisTrade: visionText,
+          adjustmentNote: 'AI vision analysis — Gemini read your actual chart, including structure, levels, and patterns.',
+        };
+        setTradePlan(visionPlan);
+        return;
       } else if (!plan) {
-        // No engine plan AND vision failed — build a vision-only card
+        // No engine plan AND vision failed
         const visionPlan: TradePlan = {
           symbol: selectedSymbol,
-          subTitle: 'Gemina AI · Vision Analysis',
+          subTitle: 'Gemina AI · Analysis',
           direction: 'LONG',
-          confidence: 60,
+          confidence: 55,
           bias: 'Bullish',
           entry: '—',
           orderType: 'See AI analysis',
@@ -236,7 +270,7 @@ Be specific and reference the actual price levels you see in the chart.`
           riskReward: '—',
           recommendedRisk: 'See AI analysis',
           whyThisTrade: visionText || 'Gemina is analyzing your chart. Please check back in a moment.',
-          adjustmentNote: 'Gemini vision model reads your uploaded chart directly.',
+          adjustmentNote: 'AI vision is temporarily unavailable.',
         };
         setTradePlan(visionPlan);
         return;
@@ -515,7 +549,7 @@ Be specific and reference the actual price levels you see in the chart.`
         <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 px-1">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>
-            Analysis powered by the rule-based engine on <strong className="text-gray-700 dark:text-gray-200">{selectedSymbol}</strong> · <strong className="text-gray-700 dark:text-gray-200">{selectedTimeframe}</strong> live candles. Image is kept for your reference only.
+            Analysis by the Engine on <strong className="text-gray-700 dark:text-gray-200">{selectedSymbol}</strong> · <strong className="text-gray-700 dark:text-gray-200">{selectedTimeframe}</strong> live candles. Gemini reads your chart and provides the analysis above.
           </span>
         </div>
 
@@ -620,7 +654,7 @@ Be specific and reference the actual price levels you see in the chart.`
                   {tradePlan.symbol || 'UNKNOW'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  {tradePlan.subTitle || 'Gemina AI Assistant Vision · DeepSeek'}
+                  {tradePlan.subTitle || 'Gemina AI · Vision Analysis'}
                 </div>
               </div>
 

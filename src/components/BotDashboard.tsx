@@ -55,7 +55,6 @@ import { FloatingSupportButton } from './FloatingSupportButton';
 import { SettingsView } from './views/SettingsView';
 import { ForexFactoryNewsView } from './views/ForexFactoryNewsView';
 import { HorizontalQuickAccessMenu } from './HorizontalQuickAccessMenu';
-import { TrishAssistantModal } from './TrishAssistantModal';
 import { MacroAnalysisModal } from './MacroAnalysisModal';
 import { UpgradePlanModal } from './UpgradePlanModal';
 import { MT5ConnectionModal } from './MT5ConnectionModal';
@@ -273,7 +272,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   }, [isSidebarOpen]);
 
   // Modals state
-  const [isTrishOpen, setIsTrishOpen] = useState(false);
+  const [isTrishOpen, setIsTrishOpen] = useState(false); // legacy — kept to avoid breaking callers
   const [isGeminaOpen, setIsGeminaOpen] = useState(false);
   const [geminaTab, setGeminaTab] = useState<'chat' | 'vision'>('chat');
 
@@ -967,7 +966,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
             {activeTab === 'overview' && (
               <OverviewView
                 user={user}
-                onOpenTrish={() => setIsTrishOpen(true)}
+                onOpenTrish={() => handleOpenGemina('chat')}
                 onOpenMacroAnalysis={(evt) => setSelectedMacroEvent(evt)}
                 onOpenUpgrade={handleOpenUpgrade}
                 onNavigateToTab={(tabId) => setActiveTab(tabId)}
@@ -1065,7 +1064,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 <AITradingView
                   user={user} onOpenGemina={handleOpenGemina}
                   theme={currentTheme}
-                  onOpenTrish={() => setIsTrishOpen(true)}
+                  onOpenTrish={() => handleOpenGemina('chat')}
                   onOpenUpgrade={handleOpenUpgrade}
                   onBack={() => setActiveTab('overview')}
                 />
@@ -1222,10 +1221,8 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
       </button>
 
-      <TrishAssistantModal
-        isOpen={isTrishOpen}
-        onClose={() => setIsTrishOpen(false)}
-      />
+      {/* Removed Trish — using Gemina below */}
+
 
       {/* Macro Event Analysis Modal */}
       <MacroAnalysisModal

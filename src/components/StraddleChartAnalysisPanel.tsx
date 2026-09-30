@@ -690,7 +690,7 @@ Generated on live market price: ${priceDisplay}`;
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Message Gemina AI about this chart (DeepSeek)..."
+            placeholder="Message Gemina AI about this chart..."
             className={`flex-1 border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-indigo-500 transition-colors ${
               isLight 
                 ? 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400' 

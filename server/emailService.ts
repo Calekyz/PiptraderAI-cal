@@ -55,13 +55,13 @@ export async function sendVerificationEmail(
   userName: string,
   verificationCode: string
 ): Promise<EmailSendResult> {
-  const fromAddress = process.env.SMTP_FROM || '"PipNex AI" <no-reply@pipnex.ai>';
+  const fromAddress = process.env.SMTP_FROM || '"PipTraderAI" <no-reply@piptraderai.com>';
   const cleanName = userName?.trim() || 'Trader';
   const cleanEmail = toEmail.trim().toLowerCase();
 
   const textBody = `Hello ${cleanName},
 
-Thank you for registering with PipNex AI.
+Thank you for registering with PipTraderAI.
 
 Your verification code is:
 
@@ -74,7 +74,7 @@ This code will expire after 10 minutes.
 If you did not create this account, you can ignore this email.
 
 Regards,
-PipNex AI Team
+PipTraderAI Team
 `;
 
   const htmlBody = `<!DOCTYPE html>
@@ -99,7 +99,7 @@ PipNex AI Team
                     ✦
                   </td>
                   <td style="padding-left: 12px; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #ffffff;">
-                    PipNex <span style="color: #818cf8;">AI</span>
+                    PipTraderAI
                   </td>
                 </tr>
               </table>
@@ -144,10 +144,10 @@ PipNex AI Team
           <tr>
             <td style="padding: 20px 32px 28px 32px; background-color: #0a0c16; border-top: 1px solid #151928; text-align: center;">
               <p style="margin: 0 0 6px 0; font-size: 12px; color: #475569;">
-                Automated Security Delivery from PipNex AI Platform
+                Automated Security Delivery from PipTraderAI Platform
               </p>
               <p style="margin: 0; font-size: 11px; color: #334155;">
-                &copy; 2026 PipNex AI Technologies. All rights reserved.
+                &copy; 2026 PipTraderAI Technologies. All rights reserved.
               </p>
             </td>
           </tr>

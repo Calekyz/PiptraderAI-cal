@@ -1254,7 +1254,7 @@ app.post('/api/ai-trading-analyze', async (req, res) => {
     const latestCandle = candles[candles.length - 1] || {};
     const recentCandlesSummary = candles.slice(-10).map((c: any) => `[${c.time} O:${c.open} H:${c.high} L:${c.low} C:${c.close} V:${c.volume}]`).join('\n');
 
-    const prompt = `You are Straddle AI Assistant, an elite institutional chart analysis and market structure assistant.
+    const prompt = `You are Gemina, an elite institutional chart analysis and market structure assistant.
 Analyze this live financial market chart using the provided REAL data:
 Symbol: ${symbol}
 Timeframe: ${timeframe}
@@ -1347,7 +1347,7 @@ CRITICAL RULES:
     const rawText = await generateWithFallback({
       model: 'gemini-flash-latest',
       prompt,
-      systemInstruction: 'You are Straddle AI Assistant, an elite institutional Forex, Commodities, and Crypto chart analyst. Provide disciplined, highly accurate, probabilistic analysis based strictly on real candle data.',
+      systemInstruction: 'You are Gemina, an elite institutional Forex, Commodities, and Crypto chart analyst. Provide disciplined, highly accurate, probabilistic analysis based strictly on real candle data.',
       responseMimeType: 'application/json',
       temperature: 0.2
     });
@@ -1488,7 +1488,7 @@ CRITICAL RULES:
 // ==========================================
 // STRADDLE AI ASSISTANT SYSTEM DIRECTIVE
 // ==========================================
-export const STRADDLE_AI_SYSTEM_INSTRUCTION = `You are Straddle AI Assistant, the intelligent AI assistant built into Pipnex AI.
+export const STRADDLE_AI_SYSTEM_INSTRUCTION = `You are Gemina, the intelligent AI assistant built into PipTraderAI.
 
 Your mission is to provide clients with reliable, professional, responsible, and easy-to-understand assistance with everything related to Pipnex AI, trading education, market analysis, trade setups, entries, risk management, platform usage, and technical support.
 
@@ -1623,45 +1623,9 @@ Never claim that you performed an action unless the system actually performed an
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-66f62adcd6634988b3716806a4ffeb38';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
-const GEMINA_AI_SYSTEM_INSTRUCTION = `You are Gemina, a professional financial analyst assistant powered by DeepSeek. Respond clearly and concisely with expert market insights, technical analysis (support/resistance, market structure, trend direction, order blocks, FVG), risk management (1-2% risk per trade), and institutional trade plans.`;
+const GEMINA_AI_SYSTEM_INSTRUCTION = `You are Gemina, a professional financial analyst assistant. Respond clearly and concisely with expert market insights, technical analysis (support/resistance, market structure, trend direction, order blocks, FVG), risk management (1-2% risk per trade), and institutional trade plans.`;
 
-async function callDeepSeekAPI(messages: Array<{ role: string; content: string }>, model = 'deepseek-chat', temperature = 0.5): Promise<string> {
-  try {
-    const response = await fetch(DEEPSEEK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: temperature,
-        max_tokens: 2048
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.warn(`DeepSeek API returned ${response.status}:`, errText);
-      throw new Error(`DeepSeek API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data?.choices?.[0]?.message?.content || '';
-  } catch (error: any) {
-    console.warn('DeepSeek direct call failed, falling back to Gemini Engine:', error?.message);
-    const ai = getAIClient();
-    const promptCombined = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
-    const fallbackReply = await generateWithFallback({
-      model: 'gemini-flash-latest',
-      prompt: promptCombined,
-      systemInstruction: GEMINA_AI_SYSTEM_INSTRUCTION,
-      temperature: temperature
-    });
-    return fallbackReply || 'Market analysis completed.';
-  }
-}
+// [removed] callDeepSeekAPI — replaced by Gemini via @google/genai
 
 app.post(['/api/gemina-chat', '/api/deepseek-chat', '/api/straddle-chat', '/api/trish-chat'], async (req, res) => {
   try {
@@ -1684,14 +1648,14 @@ app.post(['/api/gemina-chat', '/api/deepseek-chat', '/api/straddle-chat', '/api/
     res.json({
       reply: reply || 'I have reviewed your request. Let me know what specific pair, level, strategy, or platform feature you would like assistance with.',
       assistant: 'Gemina AI',
-      provider: 'DeepSeek'
+      provider: 'Gemini'
     });
   } catch (error: any) {
     console.error('Gemina AI Chat error:', error);
     res.json({
       reply: `I am Gemina AI Assistant, powered by DeepSeek. I am ready to assist you with live forex/crypto chart analysis, risk parameters, key support/resistance levels, and algorithmic trade setups. What asset would you like to review?`,
       assistant: 'Gemina AI',
-      provider: 'DeepSeek'
+      provider: 'Gemini'
     });
   }
 });
@@ -1738,7 +1702,7 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
           }
         ],
         config: {
-          systemInstruction: "You are Gemina, a professional financial analyst and vision data extraction expert powered by DeepSeek. Extract prices, symbols, changes, and provide clear bullet points.",
+          systemInstruction: "You are Gemina, a professional financial analyst and vision data extraction expert. Extract prices, symbols, changes, and provide clear bullet points.",
           temperature: 0.2
         }
       });
@@ -1760,7 +1724,7 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
       success: true,
       analysis: analysis,
       assistant: 'Gemina AI',
-      provider: 'DeepSeek',
+      provider: 'Gemini',
       aiUsage: usageAfter,
     });
   } catch (error: any) {
@@ -2176,7 +2140,7 @@ app.post('/api/analyze-chart', async (req, res) => {
 
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-    const systemPrompt = `You are PipNex AI Chart Vision & Straddle AI Assistant. Analyze the provided chart screenshot and return a JSON object with this EXACT structure:
+    const systemPrompt = `You are Gemina AI Chart Vision Assistant. Analyze the provided chart screenshot and return a JSON object with this EXACT structure:
 {
   "symbol": "EUR/USD" or "XAU/USD" or "UNKNOW" (detect from chart or fallback to UNKNOW),
   "subTitle": "Straddle AI Vision",
@@ -4593,6 +4557,67 @@ app.get('/api/ai/vision-usage', (req, res) => {
     res.json({ success: true, ...usage });
   } catch (err: any) {
     res.json({ success: false, used: 0, max: 3, remaining: 3 });
+  }
+});
+
+
+// ==========================================
+// AI: REVIEW AN ENGINE CHAT REPLY
+// ==========================================
+app.post('/api/ai/review-chat-reply', async (req, res) => {
+  try {
+    const { userQuestion, engineReply, symbol, timeframe } = req.body || {};
+    if (!userQuestion || !engineReply) {
+      return res.status(400).json({ error: 'userQuestion and engineReply required' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.json({ success: true, review: '', recommendations: [], skipped: true });
+    }
+
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey });
+
+    const prompt = `You are Gemina, a professional trading analyst. The user asked a question. A rule-based engine gave a reply. Your job is to:
+
+1. REVIEW the engine's answer in 2-3 short sentences — was it correct? What did it miss? What's the biggest risk?
+2. Give 3-5 RECOMMENDATIONS as short bullet points (each one an action: adjust entry, wait for confirmation, watch this level, reduce size, etc.)
+
+Context:
+- User question: ${userQuestion}
+- Engine reply: ${engineReply}
+${symbol ? `- Symbol: ${symbol}` : ''}
+${timeframe ? `- Timeframe: ${timeframe}` : ''}
+
+Return STRICT JSON:
+{
+  "review": "2-3 sentence review",
+  "recommendations": ["bullet 1", "bullet 2", "bullet 3"]
+}
+
+No markdown code fences.`;
+
+    const resp = await ai.models.generateContent({
+      model: 'gemini-flash-latest',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+    const raw = (resp as any)?.text || '';
+    const first = raw.indexOf('{');
+    const last = raw.lastIndexOf('}');
+    const json = first >= 0 && last > first ? raw.slice(first, last + 1) : raw;
+    const parsed = JSON.parse(json);
+
+    res.json({
+      success: true,
+      review: String(parsed.review || '').slice(0, 800),
+      recommendations: Array.isArray(parsed.recommendations)
+        ? parsed.recommendations.map(String).slice(0, 6)
+        : [],
+    });
+  } catch (err: any) {
+    console.warn('[AI Review Chat Reply] failed:', err?.message);
+    res.json({ success: false, review: '', recommendations: [], skipped: true });
   }
 });
 

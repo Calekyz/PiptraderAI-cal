@@ -61,7 +61,7 @@ export const PRODUCTS_CATALOGUE: Record<string, ProductPlan> = {
       '10 Chart Uploads per day',
       'Advanced Chart Analysis',
       'Multi-Timeframe Analysis',
-      'PipNex Pulse Signals (2/day)',
+      'PipTraderAI Pulse Signals (2/day)',
       'AI News Trading Analysis',
       'Position Size Calculator',
       '3 Custom AI Setups per day',
@@ -83,10 +83,10 @@ export const PRODUCTS_CATALOGUE: Record<string, ProductPlan> = {
       '24 Chart Uploads per day',
       'Multi-Timeframe Analysis',
       'Signal of the Day (90%+ accurate)',
-      'PipNex Pulse Signals (2/day)',
+      'PipTraderAI Pulse Signals (2/day)',
       'AI News Trading Analysis (NFP/CPI)',
       'AI Auto trading',
-      'PipNex PropPass',
+      'PipTraderAI PropPass',
       'Smart Chart Analyzer',
       'Unlimited Custom Setups',
       '24/7 Priority Support'
@@ -102,7 +102,7 @@ export const PRODUCTS_CATALOGUE: Record<string, ProductPlan> = {
     highlighted: false,
     color: 'from-amber-600 to-orange-600',
     features: [
-      'Unlimited PipNex Pulse Signals',
+      'Unlimited PipTraderAI Pulse Signals',
       'Direct AI Chart Analysis (no uploads)',
       'Prompt Trading UI',
       'MT5 Account Connection',
@@ -1105,7 +1105,7 @@ export async function initiateMpesaStkPushGateway(params: {
         PhoneNumber: normalized,
         CallBackURL: callbackUrl,
         AccountReference: externalRef.substring(0, 12),
-        TransactionDesc: `PipNex ${params.productName.substring(0, 10)}`
+        TransactionDesc: `PipTraderAI ${params.productName.substring(0, 10)}`
       };
 
       const stkRes = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {

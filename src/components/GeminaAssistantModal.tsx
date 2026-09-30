@@ -473,6 +473,3 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
     </div>
   );
 };
-
-export const TrishAssistantModal = GeminaAssistantModal;
-export const StraddleAssistantModal = GeminaAssistantModal;

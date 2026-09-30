@@ -276,7 +276,7 @@ Status turns green within 5 seconds. Once connected, you can use Auto Trading, C
 If you get an error, double-check your server name — it must match exactly what appears in your MT5 terminal.`,
 
   // ─── Pricing / Plans ───
-  platform_pricing: `**PipNex AI offers 3 membership tiers:**
+  platform_pricing: `**PipTraderAI offers 3 membership tiers:**
 
 **Starter — $45 / ½ month**
 • 10 chart uploads per day
@@ -288,7 +288,7 @@ If you get an error, double-check your server name — it must match exactly wha
 • 24 chart uploads per day
 • Signal of the Day (90%+ accuracy)
 • AI auto trading
-• PipNex PropPass
+• PipTraderAI PropPass
 • Unlimited custom setups
 
 **Elite — $195 / 3 months**
@@ -407,7 +407,7 @@ Response time: under 1 hour (24/7 priority desk for Pro & Elite).
 Include a screenshot and describe the issue clearly — it speeds up resolution.`,
 
   // ─── About ───
-  platform_about: `**About PipNex AI:**
+  platform_about: `**About PipTraderAI:**
 
 We're an institutional-grade AI trading intelligence platform for Forex, Commodities, Indices, and Crypto.
 
@@ -419,10 +419,10 @@ We're an institutional-grade AI trading intelligence platform for Forex, Commodi
 • 🛡️ PropPass (prop firm challenge engine)
 • 📸 Upload chart → instant analysis
 
-**Important:** PipNex AI is a decision-support tool. We are not a broker, financial advisor, or trade executor. Trading involves risk — never trade money you cannot afford to lose.`,
+**Important:** PipTraderAI is a decision-support tool. We are not a broker, financial advisor, or trade executor. Trading involves risk — never trade money you cannot afford to lose.`,
 
   // ─── Referral ───
-  platform_referral: `**PipNex Referral Program:**
+  platform_referral: `**PipTraderAI Referral Program:**
 
 Earn real money when your referrals subscribe.
 
@@ -441,7 +441,7 @@ Earn real money when your referrals subscribe.
 • Paid to M-Pesa or Binance USDT`,
 
   // ─── Greeting ───
-  greeting: `👋 Hey there! I'm PipNex Assistant.
+  greeting: `👋 Hey there! I'm Gemina Assistant.
 
 I can help you with:
 • 📈 Trading setups — try "Give me a setup for Gold"

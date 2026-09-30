@@ -318,7 +318,7 @@ export async function fetchRealCandles(symbol: string, timeframe: string): Promi
   if (twelveDataKey) {
     try {
       const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(mapping.twelveData)}&interval=${tfConfig.twelveData}&outputsize=60&apikey=${twelveDataKey}`;
-      const res = await fetch(url, { headers: { 'User-Agent': 'PipNex/1.0' } });
+      const res = await fetch(url, { headers: { 'User-Agent': 'PipTraderAI/1.0' } });
       const data = await res.json();
 
       if (data.values && Array.isArray(data.values) && data.values.length > 0) {

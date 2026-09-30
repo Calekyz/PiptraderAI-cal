@@ -123,7 +123,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   Admin
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-mono">pipnexai.adminpanel</p>
+              <p className="text-[11px] text-slate-400 font-mono">piptraderai.adminpanel</p>
             </div>
           </div>
 

@@ -533,7 +533,7 @@ The 14-period Relative Strength Index (RSI) is hovering at 38.5, indicating moun
 
 According to the latest World Gold Council bullion report, central bank net purchases expanded by 14% quarter-on-quarter, led by emerging market reserves diversification.
 
-PipNex Straddle AI Engine identifies a clean Bullish Order Block at $2,640.00 with upside expansion targets positioned at $2,675 and the all-time resistance zone at $2,700.`,
+PipTraderAI Engine identifies a clean Bullish Order Block at $2,640.00 with upside expansion targets positioned at $2,675 and the all-time resistance zone at $2,700.`,
       affectedPairs: ['XAU/USD', 'XAG/USD', 'US30'],
       tags: ['Gold', 'XAUUSD', 'Commodities', 'Safe Haven', 'Central Banks'],
       url: 'https://www.forexfactory.com/news',
