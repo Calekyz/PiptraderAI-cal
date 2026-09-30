@@ -167,6 +167,14 @@ export async function verifySignal(input: VerifyInput): Promise<VerifyResult> {
       parts.push({ inlineData: { mimeType: 'image/png', data: b64 } });
     }
 
+    // Hard cap: 9 seconds total for the entire retry chain.
+    // If Gemini is slow (503 spikes), we bail to SKIPPED so user never waits.
+    const HARD_TIMEOUT_MS = 9000;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('verifier hard timeout')), HARD_TIMEOUT_MS)
+    );
+
+    const attemptAll = async (): Promise<VerifyResult> => {
     let lastErr: any = null;
 
     for (const tryModel of MODEL_CHAIN) {
@@ -222,6 +230,9 @@ export async function verifySignal(input: VerifyInput): Promise<VerifyResult> {
 
     // All models exhausted
     throw lastErr || new Error('all Gemini models exhausted');
+    }; // end attemptAll
+
+    return await Promise.race([attemptAll(), timeoutPromise]);
   } catch (err: any) {
     console.warn('[GeminiVerifier] all attempts failed — returning SKIPPED:', err?.message);
     return {
