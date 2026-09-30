@@ -944,8 +944,8 @@ app.post('/api/wallet/deposit/mpesa/stk-push', async (req, res) => {
       paymentId: depositId,
       phoneNumber: formattedPhone,
       amount: kesAmount,
-      productName: `PipNex Deposit $${numAmountUsd}`,
-      accountReference: 'PipNexDeposit'
+      productName: `PipTraderAI Deposit $${numAmountUsd}`,
+      accountReference: 'PipTraderAIDeposit'
     });
 
     if (!stkResult.success) {
@@ -1902,7 +1902,7 @@ Provide:
 1. Predicted Market Volatility & Expected Pip Movement (e.g. 40-75 pips on USD pairs).
 2. Primary Pairs Impacted (e.g. EUR/USD, USD/JPY, XAU/USD).
 3. Bullish Scenario & Bearish Scenario breakdown.
-4. Recommended PipNex Bot Strategy adjustment (e.g. Pause scalper 15m before release, enable trailing stop).
+4. Recommended PipTraderAI Bot Strategy adjustment (e.g. Pause scalper 15m before release, enable trailing stop).
 Keep it crisp, structured, and trader-focused.`;
 
     const text = await generateWithFallback({
@@ -1921,7 +1921,7 @@ Keep it crisp, structured, and trader-focused.`;
 - **Primary Pairs Affected:** EUR/USD, GBP/USD, USD/JPY, XAU/USD
 - **Bullish USD Scenario:** If actual print beats consensus (${req.body.consensus || 'estimate'}), expect sudden downward pressure on EUR/USD toward 1.0810.
 - **Bearish USD Scenario:** Disappointing data will trigger a breakout in XAU/USD toward $2,910.
-- **PipNex Bot Advisory:** Activate news volatility filters 10 minutes prior to release; enable auto-breakeven on open orders.`
+- **PipTraderAI Bot Advisory:** Activate news volatility filters 10 minutes prior to release; enable auto-breakeven on open orders.`
     });
   }
 });
@@ -2581,7 +2581,7 @@ app.post('/api/auth/verify-code', (req, res) => {
     if (db.createAuditLog) {
       db.createAuditLog({
         adminEmail: 'system@pipnex.ai',
-        adminName: 'PipNex Security Engine',
+        adminName: 'PipTraderAI Security Engine',
         action: 'USER_UPDATE',
         targetId: user.id,
         targetEmail: user.email,
@@ -2905,7 +2905,7 @@ app.all(['/api/pricing', '/api/pricing-plans'], (req, res) => {
       },
       {
         id: 'pro',
-        name: 'PipNex Pro',
+        name: 'PipTraderAI Pro',
         subtitle: 'Automated Bot Execution & Multi-Asset Alpha',
         monthlyUsd: 95,
         monthlyKes: calculateKesAmount(95),
@@ -2928,7 +2928,7 @@ app.all(['/api/pricing', '/api/pricing-plans'], (req, res) => {
       },
       {
         id: 'elite',
-        name: 'PipNex Elite VIP',
+        name: 'PipTraderAI Elite VIP',
         subtitle: 'Institutional Machine Learning & Direct MT5 API',
         monthlyUsd: 195,
         monthlyKes: calculateKesAmount(195),
@@ -3059,7 +3059,7 @@ app.post('/api/proppass', (req, res) => {
       mtVersion = 'MT5', 
       loginId, 
       serverName,
-      botModel = 'PipNex Institutional Algo'
+      botModel = 'PipTraderAI Institutional Algo'
     } = req.body;
 
     if (!clientName || !email || !firmName || !accountSize || !loginId || !serverName) {
@@ -3594,7 +3594,7 @@ app.get('/api/db/health', (req, res) => {
     res.json({
       success: true,
       status: 'HEALTHY',
-      database: 'PipNex Persistent JSON Database',
+      database: 'PipTraderAI Persistent Database',
       version: '2.0.0',
       storageLocation: '/data/pipnex_database.json',
       stats,
@@ -4204,7 +4204,7 @@ app.get('/api/admin/support/tickets/:id', (req, res) => {
 
 app.post('/api/admin/support/tickets/:id/reply', (req, res) => {
   try {
-    const { text, senderName = 'PipNex Support Desk', updateStatusTo, attachments } = req.body;
+    const { text, senderName = 'PipTraderAI Support Desk', updateStatusTo, attachments } = req.body;
 
     const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
     if (!text && !hasAttachments) {

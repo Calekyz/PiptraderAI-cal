@@ -406,7 +406,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-lg font-black tracking-tight text-[#0f172a] dark:text-white font-mono">pipnex</span>
+                  <span className="text-lg font-black tracking-tight text-[#0f172a] dark:text-white font-mono">PipTrader<span className="text-[#5b3fe4]">AI</span></span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#f0edfe] dark:bg-[#18152e] text-[#5b3fe4] dark:text-purple-300 font-mono border border-purple-200 dark:border-purple-500/30 font-bold">AI</span>
                 </div>
               </div>
@@ -551,7 +551,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-lg font-black tracking-tight text-[#0f172a] dark:text-white font-mono">pipnex</span>
+                      <span className="text-lg font-black tracking-tight text-[#0f172a] dark:text-white font-mono">PipTrader<span className="text-[#5b3fe4]">AI</span></span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#f0edfe] dark:bg-[#18152e] text-[#5b3fe4] dark:text-purple-300 font-mono border border-purple-200 dark:border-purple-500/30 font-bold">AI</span>
                     </div>
                   </div>

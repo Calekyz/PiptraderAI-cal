@@ -803,7 +803,7 @@ export function toLocalKenyanPhone(phone: string): string {
   return digits.startsWith('254') ? '0' + digits.substring(3) : digits;
 }
 
-export function generatePaymentReference(prefix = 'PIPNEX'): string {
+export function generatePaymentReference(prefix = 'PTA'): string {
   const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
   const randomStr = Math.random().toString(36).substring(2, 7).toUpperCase();
   return `${prefix}-${dateStr}-${randomStr}`;

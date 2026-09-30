@@ -272,8 +272,8 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
   const exchangeRate = config?.exchangeRate || 129;
   const verifiedUsd = currentProduct?.usdPrice || 95;
   const verifiedKes = currentProduct?.kesAmount || Math.round(verifiedUsd * exchangeRate);
-  const rawTillName = config?.mpesa.businessName || 'Pipnex Payment Agent';
-  const mpesaTillName = /peak\s*markets|pipnex ai till/i.test(rawTillName) ? 'Pipnex Payment Agent' : rawTillName;
+  const rawTillName = config?.mpesa.businessName || 'PipTraderAI Payment Agent';
+  const mpesaTillName = /peak\s*markets|pipnex ai till/i.test(rawTillName) ? 'PipTraderAI Payment Agent' : rawTillName;
   const rawTillNumber = config?.mpesa.tillNumber || '372203';
   const mpesaTillNumber = rawTillNumber === '3722030' ? '372203' : rawTillNumber;
 
@@ -355,7 +355,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                   </button>
 
                   <button
-                    id="select-pipnex-agent-payment-card"
+                    id="select-piptraderai-agent-payment-card"
                     type="button"
                     onClick={() => setStep('MPESA_MANUAL')}
                     className="w-full p-4 rounded-2xl border border-purple-300 dark:border-purple-500/40 bg-[#faf5ff] dark:bg-[#1a1630] hover:border-purple-400 hover:shadow-[0_0_20px_rgba(139,92,246,0.18)] transition-all cursor-pointer flex items-center gap-3.5 text-left"
