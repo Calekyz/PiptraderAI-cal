@@ -1142,7 +1142,12 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
             {/* How to Use */}
             {activeTab === 'how-to-use' && (
-              <HowToUseView />
+              <HowToUseView
+                user={user}
+                onNavigateToTab={(tab) => setActiveTab(tab)}
+                onOpenMT5={() => setIsMT5ModalOpen(true)}
+                onOpenGemina={handleOpenGemina}
+              />
             )}
 
             {/* Contact Support */}
