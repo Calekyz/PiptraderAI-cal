@@ -12,6 +12,7 @@ import {
   BarChart2 
 } from 'lucide-react';
 import { MacroEvent } from '../types';
+import { AIVerificationBadge } from './AIVerificationBadge';
 
 interface MacroAnalysisModalProps {
   isOpen: boolean;
@@ -260,6 +261,24 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
                         </div>
                       </div>
                     </div>
+
+                    {/* AI silent verification badge — invisible if it fails */}
+                    {!isWait && (
+                      <div className="mt-3">
+                        <AIVerificationBadge
+                          payload={{
+                            symbol,
+                            timeframe: 'M15',
+                            direction: sig.direction,
+                            confidence: sig.confidence,
+                            setupType: 'News Event Setup',
+                            reasons: [],
+                            newsContext: `${event.title} (${event.currency || 'USD'}) impact: ${event.impact}`,
+                          }}
+                        />
+                      </div>
+                    )}
+
                     <p className={`mt-3 text-xs leading-relaxed font-medium ${
                       isBuy ? 'text-emerald-800 dark:text-emerald-200' :
                       isSell ? 'text-rose-800 dark:text-rose-200' :

@@ -38,6 +38,7 @@ import {
 } from './server/paymentEngine';
 import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase, PlanTier } from './server/db';
 import { sendVerificationEmail } from './server/emailService';
+import { verifySignal } from './server/engine/geminiVerifier';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter } from './server/forexFactoryEngine';
 import PDFDocument from 'pdfkit';
@@ -4499,6 +4500,48 @@ app.get('/api/notifications', (req, res) => {
     res.json({ success: true, notifications: visible });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message, notifications: [] });
+  }
+});
+
+
+// ==========================================
+// AI: SILENT SIGNAL VERIFIER
+// ==========================================
+app.post('/api/ai/verify-signal', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const result = await verifySignal({
+      symbol: String(body.symbol || 'XAUUSD'),
+      timeframe: String(body.timeframe || 'M15'),
+      direction: (['BUY','SELL','WAIT'].includes(body.direction) ? body.direction : 'WAIT'),
+      confidence: Number(body.confidence) || 0,
+      setupType: String(body.setupType || 'Setup'),
+      entry: body.entry ? Number(body.entry) : undefined,
+      stopLoss: body.stopLoss ? Number(body.stopLoss) : undefined,
+      takeProfit1: body.takeProfit1 ? Number(body.takeProfit1) : undefined,
+      takeProfit2: body.takeProfit2 ? Number(body.takeProfit2) : undefined,
+      riskReward: body.riskReward ? Number(body.riskReward) : undefined,
+      reasons: Array.isArray(body.reasons) ? body.reasons.map(String).slice(0, 8) : [],
+      trend: body.trend ? String(body.trend) : undefined,
+      session: body.session ? String(body.session) : undefined,
+      rsi: body.rsi !== undefined ? Number(body.rsi) : undefined,
+      newsContext: body.newsContext ? String(body.newsContext).slice(0, 500) : undefined,
+      chartImageBase64: body.chartImageBase64 ? String(body.chartImageBase64) : undefined,
+    });
+    res.json({ success: true, verification: result });
+  } catch (err: any) {
+    // Absolute fail-safe: never 500 on verification — always return SKIPPED
+    res.json({
+      success: true,
+      verification: {
+        verdict: 'SKIPPED',
+        aiConfidence: 0,
+        summary: 'AI verification unavailable.',
+        reasoning: 'Engine signal stands on its own.',
+        model: 'gemini-3.7-flash',
+        latencyMs: 0,
+      },
+    });
   }
 });
 
