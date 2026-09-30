@@ -963,6 +963,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 onOpenMacroAnalysis={(evt) => setSelectedMacroEvent(evt)}
                 onOpenUpgrade={handleOpenUpgrade}
                 onNavigateToTab={(tabId) => setActiveTab(tabId)}
+                onOpenMT5={() => setIsMT5ModalOpen(true)}
               />
             )}
 

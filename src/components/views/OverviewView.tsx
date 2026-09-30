@@ -31,6 +31,7 @@ interface OverviewViewProps {
   onOpenMacroAnalysis: (event: MacroEvent) => void;
   onOpenUpgrade: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
   onNavigateToTab: (tabId: string) => void;
+  onOpenMT5?: () => void;
 }
 
 
@@ -40,6 +41,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   onOpenMacroAnalysis,
   onOpenUpgrade,
   onNavigateToTab,
+  onOpenMT5,
 }) => {
   const [isNewsSignalModalOpen, setIsNewsSignalModalOpen] = React.useState(false);
   const [macroEvents, setMacroEvents] = React.useState<MacroEvent[]>([]);
@@ -226,8 +228,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           {/* Card 1: Active Bots → CHANGED TO Connected Accounts */}
           <div 
             id="stat-card-active-bots"
-            onClick={() => onNavigateToTab('manage-bots')}
-            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md cursor-pointer group"
+            onClick={() => onOpenMT5 && onOpenMT5()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenMT5 && onOpenMT5(); } }}
+            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700/50 cursor-pointer group"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -248,8 +253,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           {/* Card 2: Active EAs (unchanged) */}
           <div 
             id="stat-card-active-eas"
-            onClick={() => onNavigateToTab('settings')}
-            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md cursor-pointer group"
+            onClick={() => onNavigateToTab('manage-bots')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigateToTab('manage-bots'); } }}
+            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700/50 cursor-pointer group"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -270,8 +278,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           {/* Card 3: Total Trades (unchanged) */}
           <div 
             id="stat-card-total-trades"
-            onClick={() => onNavigateToTab('ai-trading')}
-            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md cursor-pointer group"
+            onClick={() => onNavigateToTab('auto-trading')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigateToTab('auto-trading'); } }}
+            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700/50 cursor-pointer group"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -292,8 +303,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           {/* Card 4: Total P&L (unchanged) */}
           <div 
             id="stat-card-total-pnl"
-            onClick={() => onNavigateToTab('ai-trading')}
-            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between transition-all hover:shadow-md cursor-pointer group"
+            className="bg-white dark:bg-[#0c0e18] border border-[#e5e7eb] dark:border-[#171a27] rounded-2xl p-4 md:p-5 shadow-xs flex flex-col justify-between"
           >
             <div className="flex items-start justify-between">
               <div>
