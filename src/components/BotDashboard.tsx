@@ -379,9 +379,45 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
     setIsUpgradeModalOpen(true);
   };
 
+  // ⚠️ SECURITY: never trust client-side plan changes.
+  // This handler just closes the upgrade picker and opens the real payment flow.
+  const [pendingPayment, setPendingPayment] = useState<{ productId: string; productName: string } | null>(null);
+
   const handleUpgradeSuccess = (newPlan: any) => {
-    onUpdateUser({ plan: newPlan });
-    refreshTrialStatus();
+    // Map plan name → productId
+    const productId = String(newPlan || '').toLowerCase();
+    const validProducts = ['starter', 'pro', 'elite'];
+    if (validProducts.includes(productId)) {
+      setPendingPayment({ productId, productName: newPlan });
+    }
+    setIsUpgradeModalOpen(false);
+  };
+
+  // Called by DynamicPaymentModal when the user submits proof of payment
+  const handlePaymentSubmitted = async () => {
+    setPendingPayment(null);
+    // Refresh the user object from the server so the dashboard sees the pending state
+    await refreshUserFromServer();
+  };
+
+  // Refetch the current user from the server (source of truth)
+  const refreshUserFromServer = async () => {
+    try {
+      const email = user?.email;
+      if (!email) return;
+      const res = await fetch(`/api/user/by-email/${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (data?.success && data.user) {
+        onUpdateUser({
+          plan: data.user.plan,
+          credits: data.user.credits,
+          subscriptionExpiry: data.user.subscriptionExpiry,
+          subscriptionStartDate: data.user.subscriptionStartDate,
+        } as any);
+      }
+    } catch (e) {
+      console.warn('[Refresh user] failed:', e);
+    }
   };
 
   // Strict Whitelist for Admin Panel access (ONLY these two email accounts)

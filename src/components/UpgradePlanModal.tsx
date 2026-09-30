@@ -132,7 +132,9 @@ export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
   };
 
   const handlePaymentCompleted = (planName: string) => {
-    onUpgradeSuccess(planName);
+    // ⚠️ SECURITY: Do NOT activate the plan client-side.
+    // Route through the real payment flow (opened by parent).
+    onUpgradeSuccess(planName); // parent will open DynamicPaymentModal
     setIsPaymentModalOpen(false);
     onClose();
   };

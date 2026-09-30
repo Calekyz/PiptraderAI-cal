@@ -4777,6 +4777,36 @@ app.post('/api/admin/tutorials', (req, res) => {
   }
 });
 
+
+// ==========================================
+// PUBLIC: GET user profile by email (used by client refresh)
+// ==========================================
+app.get('/api/user/by-email/:email', (req, res) => {
+  try {
+    const email = String(req.params.email || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+    const user = db.getUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        plan: user.plan,
+        credits: user.credits ?? 0,
+        subscriptionStartDate: user.subscriptionStartDate,
+        subscriptionExpiry: user.subscriptionExpiry,
+        mt5Connected: user.mt5Connected,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed' });
+  }
+});
+
 // Vite / static file serving
 
 // ==========================================
