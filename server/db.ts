@@ -1764,6 +1764,48 @@ class PersistentDatabase {
     return { user: updated, transaction: tx, log };
   }
 
+  /**
+   * Consume credits from a user for a real action (not admin-driven).
+   * Returns { ok: true, newBalance } on success, or { ok: false, error } on failure.
+   */
+  public consumeUserCredits(
+    userEmail: string,
+    amount: number,
+    reason: string
+  ): { ok: true; newBalance: number } | { ok: false; error: 'user_not_found' | 'insufficient_credits'; balance?: number } {
+    const user = this.getUserByEmail(String(userEmail || '').toLowerCase().trim());
+    if (!user) return { ok: false, error: 'user_not_found' };
+
+    const previousBalance = Number(user.credits ?? 0);
+    const cost = Math.max(0, Math.floor(amount));
+    if (previousBalance < cost) return { ok: false, error: 'insufficient_credits', balance: previousBalance };
+
+    const newBalance = previousBalance - cost;
+    const updated: UserEntity = { ...user, credits: newBalance, updatedAt: new Date().toISOString() };
+    this.users.set(user.id, updated);
+    this.persistUser(updated);
+
+    const txId = `ctx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const tx: CreditTransactionEntity = {
+      id: txId,
+      userId: user.id,
+      userEmail: user.email,
+      userName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+      amount: -Math.abs(cost),
+      action: 'REMOVE',
+      reason: reason || 'Usage charge',
+      adminEmail: 'system',
+      adminName: 'System',
+      previousBalance,
+      newBalance,
+      createdAt: new Date().toISOString(),
+    };
+    this.creditTransactions.set(txId, tx);
+    this.persistCreditTx(tx);
+
+    return { ok: true, newBalance };
+  }
+
   public adminChangeSubscription(userId: string, newPlan: PlanTier, startDate?: string, expiryDate?: string, reason = 'Subscription updated', adminEmail = 'Pipnexadmin', adminName = 'Super Admin') {
     const user = this.users.get(userId);
     if (!user) return undefined;

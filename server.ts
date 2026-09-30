@@ -1662,9 +1662,21 @@ app.post(['/api/gemina-chat', '/api/deepseek-chat', '/api/straddle-chat', '/api/
 
 app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, res) => {
   try {
-    const { imageBase64, mimeType = 'image/png', prompt: customPrompt } = req.body;
+    const { imageBase64, mimeType = 'image/png', prompt: customPrompt, email: bodyEmail } = req.body;
     if (!imageBase64) {
       return res.status(400).json({ error: 'imageBase64 is required' });
+    }
+
+    const email = bodyEmail || (req.headers['x-user-email'] as string) || '';
+
+    // Charge credits (5) before calling Gemini
+    const chargeErr = chargeUserForAction(email, 'chart_upload');
+    if (chargeErr) {
+      return res.status(chargeErr.status).json({
+        error: chargeErr.error,
+        message: 'Insufficient credits for chart upload. Each upload costs 5 credits.',
+        balance: chargeErr.balance,
+      });
     }
 
     // ── AI upload cap (3 total across the platform) ──
@@ -4811,14 +4823,32 @@ const PLAN_CREDITS: Record<string, number> = {
 
 /** Cost per action in credits */
 const ACTION_COSTS: Record<string, number> = {
-  chat_message: 1,
-  engine_analyze: 5,
-  engine_scan: 2,
-  vision_analyze: 10,
-  macro_analyze: 3,
-  chart_analysis: 5,
-  ai_trade: 10,
+  // ── User-specified pricing ──
+  chart_upload: 5,        // Upload chart → Gemini vision reads it
+  vision_analyze: 5,      // Same as chart_upload (alias)
+  ai_trade_setup: 10,     // AI Trading → signal with full plan
+  ai_trade: 10,           // Alias
+  chat_message: 2,        // Every chat message
+  engine_analyze: 2,      // General engine.analyze call
+  engine_scan: 2,         // Pulse Signals scan
+  macro_analyze: 2,       // NewsIQ macro analysis
 };
+
+/**
+ * Charge a user for an action. Returns null on success, or an error object.
+ * The caller should return 402 if the result is non-null.
+ */
+function chargeUserForAction(email: string | undefined, action: string): { status: number; error: string; balance?: number } | null {
+  if (!email) return null; // allow anonymous (no user identified)
+  const cost = ACTION_COSTS[action];
+  if (cost === undefined) return null; // unknown action — don't block
+  const result = db.consumeUserCredits(String(email).toLowerCase().trim(), cost, `Action: ${action}`);
+  if (result.ok) return null;
+  if (result.error === 'insufficient_credits') {
+    return { status: 402, error: 'insufficient_credits', balance: result.balance };
+  }
+  return null; // user_not_found → don't block (allow graceful fallback)
+}
 
 /** GET /api/credits/balance?email=... */
 app.get('/api/credits/balance', (req, res) => {
@@ -5061,7 +5091,19 @@ app.post('/api/engine/chat', async (req, res) => {
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ reply: 'Please send a message.', intent: 'error', confidence: 0 });
     }
-    const email = (req.headers['x-user-email'] as string) || '';
+    const email = (req.headers['x-user-email'] as string) || (req.body.email as string) || '';
+
+    // Charge credits (2) before processing
+    const chargeErr = chargeUserForAction(email, 'chat_message');
+    if (chargeErr) {
+      return res.status(chargeErr.status).json({
+        reply: 'Insufficient credits. Please top up to continue using the AI assistant.',
+        intent: 'error',
+        confidence: 0,
+        error: chargeErr.error,
+        balance: chargeErr.balance,
+      });
+    }
     const user = email ? db.getUserByEmail(email) : null;
     const ffEvents = await fetchFfEventsForEngine();
     const reply = await respondToUser(message, {
@@ -5090,6 +5132,18 @@ app.post('/api/engine/analyze', async (req, res) => {
     const symbol = (req.body.symbol as string) || 'XAUUSD';
     const timeframe = (req.body.timeframe as string) || 'M15';
     const userId = (req.body.userId as string) || '';
+    const email = (req.body.email as string) || (req.headers['x-user-email'] as string) || '';
+
+    // Charge credits (2) before processing
+    const chargeErr = chargeUserForAction(email, 'engine_analyze');
+    if (chargeErr) {
+      return res.status(chargeErr.status).json({
+        success: false,
+        error: chargeErr.error,
+        message: 'Insufficient credits for engine analysis.',
+        balance: chargeErr.balance,
+      });
+    }
     const data = await fetchRealCandles(symbol, timeframe);
     if (!data || !data.candles || data.candles.length < 30) {
       return res.status(400).json({ success: false, error: `Not enough candle data for ${symbol} ${timeframe}.` });
