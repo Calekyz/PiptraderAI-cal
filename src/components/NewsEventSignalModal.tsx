@@ -54,6 +54,29 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
   const [loading, setLoading] = useState(false);
   const [target, setTarget] = useState<MacroEvent | null>(null);
 
+  // ── AI verification — MUST be called every render (no early returns before this).
+  //    We pass null until we have a signal; the hook returns { result: null } in that case.
+  const sigForVerify = analysisText ? parseSignal(analysisText) : null;
+  const hasSignalForVerify = !!sigForVerify
+    && (sigForVerify.direction === 'BUY' || sigForVerify.direction === 'SELL')
+    && sigForVerify.confidence >= 55;
+
+  const { result: aiVerify } = useSignalVerification(
+    hasSignalForVerify && target
+      ? {
+          symbol: sigForVerify!.symbol || target.currency || 'XAUUSD',
+          timeframe: 'M15',
+          direction: sigForVerify!.direction,
+          confidence: sigForVerify!.confidence,
+          setupType: 'News Event Setup',
+          reasons: analysisText
+            ? analysisText.split('\n').filter(l => l.trim().startsWith('✓')).map(l => l.replace(/^\s*✓\s*/, ''))
+            : [],
+          newsContext: `${target.title} (${target.currency || 'USD'}) impact: ${target.impact}`,
+        }
+      : null
+  );
+
   useEffect(() => {
     if (!isOpen) { setAnalysisText(null); setTarget(null); return; }
 
@@ -158,23 +181,6 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
   const isBuy = sig.direction === 'BUY';
   const isSell = sig.direction === 'SELL';
   const hasSignal = (isBuy || isSell) && sig.confidence >= 55;
-
-  // Silent AI verification — declared AFTER all prerequisites so no TDZ error
-  const { result: aiVerify } = useSignalVerification(
-    hasSignal && sig.direction !== 'WAIT'
-      ? {
-          symbol: sig.symbol || target?.currency || 'XAUUSD',
-          timeframe: 'M15',
-          direction: sig.direction,
-          confidence: sig.confidence,
-          setupType: 'News Event Setup',
-          reasons: analysisText
-            ? analysisText.split('\n').filter(l => l.trim().startsWith('✓')).map(l => l.replace(/^\s*✓\s*/, ''))
-            : [],
-          newsContext: `${target.title} (${target.currency || 'USD'}) impact: ${target.impact}`,
-        }
-      : null
-  );
 
   return (
     <Shell onClose={onClose}>
