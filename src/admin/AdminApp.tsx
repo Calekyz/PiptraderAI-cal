@@ -10,6 +10,7 @@ import { CreditManagement } from './views/CreditManagement';
 import { SupportInbox } from './views/SupportInbox';
 import { AuditLogsView } from './views/AuditLogsView';
 import { BroadcastsView } from './views/BroadcastsView';
+import { TutorialVideosView } from './views/TutorialVideosView';
 import { AdminSettingsView } from './views/AdminSettingsView';
 import {
   AdminViewType,
@@ -186,6 +187,8 @@ export const AdminApp: React.FC = () => {
               )}
 
               {currentView === 'broadcasts' && <BroadcastsView />}
+
+              {currentView === 'tutorial-videos' && <TutorialVideosView api={AdminApi} />}
 
               {currentView === 'audit-logs' && <AuditLogsView />}
 

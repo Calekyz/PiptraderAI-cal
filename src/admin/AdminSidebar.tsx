@@ -1,5 +1,5 @@
 import React from 'react';
-import {
+import { Youtube,
   LayoutDashboard,
   Users,
   CreditCard,
@@ -86,6 +86,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       id: 'audit-logs',
       label: 'Security & Audits',
       icon: FileText
+    },
+    {
+      id: 'tutorial-videos',
+      label: 'Tutorial Videos',
+      icon: Youtube
     },
     {
       id: 'settings',

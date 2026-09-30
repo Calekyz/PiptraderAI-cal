@@ -17,6 +17,8 @@ interface TutorialGuide {
   mockupType: 'phone-auth' | 'phone-signals' | 'phone-chart' | 'phone-refer' | 'desktop-builder' | 'cards';
   keySteps: string[];
   tryAction?: { tab?: string; label: string };
+  /** Optional YouTube video URL (fallback if admin hasn't set one) */
+  youtubeUrl?: string;
 }
 
 interface HowToUseViewProps {
@@ -24,6 +26,16 @@ interface HowToUseViewProps {
   onNavigateToTab?: (tab: string) => void;
   onOpenMT5?: () => void;
   onOpenGemina?: (tab?: 'chat' | 'vision') => void;
+}
+
+// ─── YouTube URL parser ──────────────────────────────────────
+// Accepts any of: youtube.com/watch?v=ID · youtu.be/ID · youtube.com/embed/ID · raw 11-char ID
+function getYouTubeId(url: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
+  const m = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : trimmed;
 }
 
 interface FAQItem { q: string; a: string; }
@@ -39,6 +51,7 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [videoUrls, setVideoUrls] = useState<Record<string, string>>({});
 
   const [setupProgress, setSetupProgress] = useState<Record<string, boolean>>(() => {
     try {
@@ -61,6 +74,17 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
   useEffect(() => {
     try { localStorage.setItem('pipnex_setup_progress', JSON.stringify(setupProgress)); } catch {}
   }, [setupProgress]);
+
+  useEffect(() => {
+    fetch('/api/tutorials')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success && d.videos && typeof d.videos === 'object') {
+          setVideoUrls(d.videos);
+        }
+      })
+      .catch(() => { /* silent */ });
+  }, []);
 
   const categories = ['All','Getting Started','Signal Of The Day','News IQ','Refer & Earn','Upload Chart','Upload Charts','How to Subscribe','MT5 Connection','Pulse Signals','Build Bot','AI Trading','Auto Trading'];
 
@@ -332,25 +356,30 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="relative bg-[#05060b] h-64 sm:h-80 flex items-center justify-center overflow-hidden">
-              <div className={'absolute inset-0 bg-gradient-to-br ' + selectedTutorial.accentColor + ' opacity-50'} />
-              <div className="relative z-10 text-center p-6 space-y-3">
-                <div className="w-16 h-16 rounded-full bg-purple-600/90 text-white flex items-center justify-center mx-auto shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => setIsPlaying(!isPlaying)}>
-                  <Play className={'w-6 h-6 ml-1 ' + (isPlaying ? 'opacity-50' : 'fill-current')} />
-                </div>
-                <div className="text-sm font-bold text-white">{isPlaying ? 'Playing PIPTRADERAI High-Def Masterclass...' : 'Click to Play High-Def Video Guide'}</div>
-                <div className="text-xs text-purple-200/80 max-w-sm mx-auto">Interactive step-by-step walkthrough.</div>
+            {((videoUrls[selectedTutorial.id] || selectedTutorial.youtubeUrl)) ? (
+              <div className="relative bg-black w-full aspect-video">
+                <iframe
+                  src={'https://www.youtube.com/embed/' + getYouTubeId((videoUrls[selectedTutorial.id] || selectedTutorial.youtubeUrl) || '') + '?autoplay=1&rel=0&modestbranding=1'}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title={selectedTutorial.headline}
+                />
               </div>
-              <div className="absolute bottom-0 inset-x-0 bg-black/70 backdrop-blur-md p-2.5 flex items-center justify-between text-xs text-gray-300">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-white"><Play className="w-3.5 h-3.5 fill-current" /></button>
-                  <Volume2 className="w-3.5 h-3.5 hover:text-white" />
-                  <span className="text-[10px] font-mono">0:12 / {selectedTutorial.duration}</span>
+            ) : (
+              <div className="relative bg-[#05060b] h-64 sm:h-80 flex items-center justify-center overflow-hidden">
+                <div className={'absolute inset-0 bg-gradient-to-br ' + selectedTutorial.accentColor + ' opacity-50'} />
+                <div className="relative z-10 text-center p-6 space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-purple-600/40 border-2 border-purple-500/60 text-purple-200 flex items-center justify-center mx-auto shadow-2xl">
+                    <Play className="w-6 h-6 ml-1" />
+                  </div>
+                  <div className="text-sm font-bold text-white">Video coming soon</div>
+                  <div className="text-xs text-purple-200/70 max-w-sm mx-auto">
+                    This tutorial video will be published shortly. Meanwhile, check the key learning outcomes below.
+                  </div>
                 </div>
-                <div className="w-1/3 h-1 bg-white/20 rounded-full overflow-hidden"><div className="h-full bg-purple-500 w-1/4" /></div>
-                <Maximize2 className="w-3.5 h-3.5 hover:text-white cursor-pointer" />
               </div>
-            </div>
+            )}
             <div className="p-5 space-y-3 bg-[#0a0b14]">
               <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Key Learning Outcomes</h4>
               <div className="space-y-2">

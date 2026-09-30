@@ -401,5 +401,23 @@ export const AdminApi = {
       method: 'DELETE'
     });
     return res.success;
+  },
+
+  // ---------- Tutorial Videos ----------
+  async getTutorialVideos(): Promise<Record<string, string>> {
+    const res = await request<{ success: boolean; videos: Record<string, string> }>('/api/tutorials');
+    return res.videos || {};
+  },
+
+  async saveTutorialVideo(id: string, url: string): Promise<Record<string, string>> {
+    const res = await request<{ success: boolean; videos?: Record<string, string>; error?: string }>(
+      '/api/admin/tutorials',
+      {
+        method: 'POST',
+        body: JSON.stringify({ id, url }),
+      }
+    );
+    if (!res.success) throw new Error(res.error || 'Save failed');
+    return res.videos || {};
   }
 };

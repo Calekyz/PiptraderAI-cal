@@ -222,5 +222,6 @@ export type AdminViewType =
   | 'credits' 
   | 'support' 
   | 'broadcasts' 
+  | 'tutorial-videos'
   | 'audit-logs' 
   | 'settings';
