@@ -1831,7 +1831,7 @@ class PersistentDatabase {
     if (!this.adminSettings) {
       this.adminSettings = {
         platformName: 'PipTraderAI Platform',
-        supportEmail: 'support@pipnex.ai',
+        supportEmail: 'support@piptraderai.com',
         maintenanceMode: false,
         allowNewRegistrations: true,
         defaultStarterCredits: 500,

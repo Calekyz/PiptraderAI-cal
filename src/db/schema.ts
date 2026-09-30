@@ -67,7 +67,7 @@ export const trades = pgTable('trades', {
 export const botSettings = pgTable('bot_settings', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).unique().notNull(),
-  botName: text('bot_name').default('PipNex Bot').notNull(),
+  botName: text('bot_name').default('PipTraderAI Bot').notNull(),
   botVersion: text('bot_version').default('1.0.0').notNull(),
   strategy: text('strategy').default('Scalping').notNull(),
   riskPerTrade: decimal('risk_per_trade', { precision: 5, scale: 2 }).default('2.00'),
@@ -293,7 +293,7 @@ export const pipnexPropPass = pgTable('pipnex_proppass', {
   maxDrawdownLimitPercent: decimal('max_drawdown_limit_percent', { precision: 8, scale: 2 }).default('5'),
   totalTrades: integer('total_trades').default(0),
   winRatePercent: decimal('win_rate_percent', { precision: 8, scale: 2 }).default('0'),
-  botModel: text('bot_model').default('PipNex Institutional Algo'),
+  botModel: text('bot_model').default('PipTraderAI Institutional Algo'),
   passedAt: timestamp('passed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -383,8 +383,8 @@ export const pipnexAdminNotifications = pgTable('pipnex_admin_notifications', {
 
 export const pipnexAdminSettings = pgTable('pipnex_admin_settings', {
   id: text('id').primaryKey(),
-  platformName: text('platform_name').notNull().default('PipNex AI Platform'),
-  supportEmail: text('support_email').notNull().default('support@pipnex.ai'),
+  platformName: text('platform_name').notNull().default('PipTraderAI Platform'),
+  supportEmail: text('support_email').notNull().default('support@piptraderai.com'),
   maintenanceMode: boolean('maintenance_mode').default(false).notNull(),
   allowNewRegistrations: boolean('allow_new_registrations').default(true).notNull(),
   defaultStarterCredits: integer('default_starter_credits').default(500).notNull(),
