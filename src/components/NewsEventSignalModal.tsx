@@ -151,8 +151,15 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
 
   // ── Determine scenario A/B/D ────────────────────────────────
   const sig = parseSignal(analysisText);
+  const targetTs = target.timestamp || (target.date ? new Date(target.date).getTime() : Date.now());
+  const hoursAway = (targetTs - Date.now()) / 3_600_000;
+  const name = shortName(target.title);
 
-  // Silent AI verification — never blocks UI, never shows errors
+  const isBuy = sig.direction === 'BUY';
+  const isSell = sig.direction === 'SELL';
+  const hasSignal = (isBuy || isSell) && sig.confidence >= 55;
+
+  // Silent AI verification — declared AFTER all prerequisites so no TDZ error
   const { result: aiVerify } = useSignalVerification(
     hasSignal && sig.direction !== 'WAIT'
       ? {
@@ -164,17 +171,10 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
           reasons: analysisText
             ? analysisText.split('\n').filter(l => l.trim().startsWith('✓')).map(l => l.replace(/^\s*✓\s*/, ''))
             : [],
-          newsContext: target ? `${target.title} (${target.currency || 'USD'}) impact: ${target.impact}` : undefined,
+          newsContext: `${target.title} (${target.currency || 'USD'}) impact: ${target.impact}`,
         }
       : null
   );
-  const targetTs = target.timestamp || (target.date ? new Date(target.date).getTime() : Date.now());
-  const hoursAway = (targetTs - Date.now()) / 3_600_000;
-  const name = shortName(target.title);
-
-  const isBuy = sig.direction === 'BUY';
-  const isSell = sig.direction === 'SELL';
-  const hasSignal = (isBuy || isSell) && sig.confidence >= 55;
 
   return (
     <Shell onClose={onClose}>
