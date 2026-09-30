@@ -105,7 +105,7 @@ async function generateWithFallback(params: {
 }): Promise<string> {
   const ai = getAIClient();
   const models = [
-    params.model || 'gemini-3.7-flash',
+    params.model || 'gemini-flash-latest',
     'gemini-flash-latest',
     'gemini-3.1-flash-lite'
   ];
@@ -1345,7 +1345,7 @@ CRITICAL RULES:
 }`;
 
     const rawText = await generateWithFallback({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-flash-latest',
       prompt,
       systemInstruction: 'You are Straddle AI Assistant, an elite institutional Forex, Commodities, and Crypto chart analyst. Provide disciplined, highly accurate, probabilistic analysis based strictly on real candle data.',
       responseMimeType: 'application/json',
@@ -1654,7 +1654,7 @@ async function callDeepSeekAPI(messages: Array<{ role: string; content: string }
     const ai = getAIClient();
     const promptCombined = messages.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
     const fallbackReply = await generateWithFallback({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-flash-latest',
       prompt: promptCombined,
       systemInstruction: GEMINA_AI_SYSTEM_INSTRUCTION,
       temperature: temperature
@@ -1711,7 +1711,7 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
     try {
       const ai = getAIClient();
       const response = await ai.models.generateContent({
-        model: 'gemini-3.7-flash',
+        model: 'gemini-flash-latest',
         contents: [
           {
             role: 'user',
@@ -1879,7 +1879,7 @@ app.get('/api/pulse-signals', async (req, res) => {
 Return a JSON array of objects with keys: id, symbol, name, category, direction ("BUY"|"SELL"), type, interval ("M15"), entryPrice, stopLoss, takeProfit1, takeProfit2, riskReward, confidence (number 80-96), setupType, status ("ACTIVE"|"PENDING"|"TARGET 1 HIT"), pipsGain, timeAgo, briefThesis (one short crisp sentence).`;
 
       const aiText = await generateWithFallback({
-        model: 'gemini-3.7-flash',
+        model: 'gemini-flash-latest',
         prompt,
         systemInstruction: 'You are PipNex Pulse AI, an institutional algorithmic signals generator. Output valid JSON array only.',
         responseMimeType: 'application/json'
@@ -1922,7 +1922,7 @@ Provide:
 Keep it crisp, structured, and trader-focused.`;
 
     const text = await generateWithFallback({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-flash-latest',
       prompt,
       systemInstruction: 'You are PipNex NewsIQ AI, an elite algorithmic macroeconomic forex analyst.'
     });
@@ -2117,7 +2117,7 @@ Return JSON with:
 }`;
 
     const text = await generateWithFallback({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-flash-latest',
       prompt: `Generate PipNex trade execution setup for prompt: "${prompt}"`,
       systemInstruction: systemPrompt,
       responseMimeType: 'application/json'
@@ -2180,7 +2180,7 @@ Remember:
 - Enforce responsible risk management (1-2% risk per trade).`;
 
     const text = await generateWithFallback({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-flash-latest',
       contents: [
         {
           inlineData: {
@@ -2256,7 +2256,7 @@ Structure your response in these clear sections:
     }
 
     const text = await generateWithFallback({
-      model: 'gemini-3.7-flash',
+      model: 'gemini-flash-latest',
       prompt,
       systemInstruction: STRADDLE_AI_SYSTEM_INSTRUCTION,
       temperature: 0.3
@@ -4538,7 +4538,7 @@ app.post('/api/ai/verify-signal', async (req, res) => {
         aiConfidence: 0,
         summary: 'AI verification unavailable.',
         reasoning: 'Engine signal stands on its own.',
-        model: 'gemini-3.7-flash',
+        model: 'gemini-flash-latest',
         latencyMs: 0,
       },
     });
