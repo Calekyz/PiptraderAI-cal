@@ -63,6 +63,7 @@ import { MyProfileModal } from './MyProfileModal';
 import { GeminaAssistantModal } from './GeminaAssistantModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { PendingPaymentBanner } from './PendingPaymentBanner';
+import { AuditLockScreen } from './AuditLockScreen';
 import { StatusPill } from './StatusPill';
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { TrialCountdownBanner } from './TrialCountdownBanner';
@@ -386,6 +387,29 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   // This handler just closes the upgrade picker and opens the real payment flow.
   const [pendingPayment, setPendingPayment] = useState<{ productId: string; productName: string } | null>(null);
   const [paymentToast, setPaymentToast] = useState<{ title: string; message: string } | null>(null);
+  const [auditLockActive, setAuditLockActive] = useState(false);
+  const [auditLockChecked, setAuditLockChecked] = useState(false);
+
+  // On mount: check if the user has any pending payment → activate the lock
+  useEffect(() => {
+    const email = user?.email;
+    if (!email) { setAuditLockChecked(true); return; }
+    fetch(`/api/payments/user/${encodeURIComponent(email)}/pending`)
+      .then((r) => r.json())
+      .then((d) => {
+        const hasPending = d?.success && Array.isArray(d.pending) && d.pending.length > 0;
+        setAuditLockActive(hasPending);
+      })
+      .catch(() => {})
+      .finally(() => setAuditLockChecked(true));
+  }, [user?.email]);
+
+  // When user submits a new payment, activate the lock immediately
+  useEffect(() => {
+    if (paymentToast?.title === 'Payment received') {
+      setAuditLockActive(true);
+    }
+  }, [paymentToast]);
 
   // Called by UpgradePlanModal → DynamicPaymentModal when the user submits proof of payment
   const handleUpgradeSuccess = async (newPlan: any) => {
@@ -1378,6 +1402,27 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         onClose={() => setIsMT5ModalOpen(false)}
         user={user}
         onOpenUpgrade={handleOpenUpgrade}
+      />
+
+      {/* Full-screen audit lock — blocks UI while payment is under admin review */}
+      <AuditLockScreen
+        userEmail={user?.email}
+        onApproved={async () => {
+          setAuditLockActive(false);
+          // Refresh user from server so their new plan + credits show up
+          await refreshUserFromServer();
+          // If the paid plan just activated and the user hasn't onboarded, show onboarding
+          try {
+            const seen = localStorage.getItem('pipnex_onboarded');
+            if (!seen) {
+              setTimeout(() => setIsOnboardingOpen(true), 800);
+            }
+          } catch {}
+        }}
+        onRejected={() => {
+          setAuditLockActive(false);
+          setActiveTab('contact-support');
+        }}
       />
 
       {/* Payment Received Toast — shows after user submits payment proof */}

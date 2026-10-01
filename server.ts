@@ -686,22 +686,26 @@ app.get('/api/payments/status/:paymentId', async (req, res) => {
       );
 
       if (payHeroResult.isSuccess && payHeroResult.status === 'COMPLETED') {
-        console.log(`[Status Polling] PayHero verified payment ${payment.id} as COMPLETED. Syncing user.`);
-        const updated = completePaymentAndSyncUser(
-          payment.id,
-          payHeroResult.receiptNumber || `REC${Date.now().toString().slice(-8)}`,
-          'Payment verified successfully via PayHero Africa gateway.',
-          payHeroResult.amount
-        );
+        // ⚠️ PAYMENT LEAK FIX: Do NOT auto-activate.
+        // Mark as PENDING — admin must approve.
+        console.log(`[Status Polling] PayHero reported ${payment.id} as COMPLETED — queuing for admin audit.`);
+        const updated = updatePaymentRecord(payment.id, {
+          status: 'PENDING' as any,
+          statusMessage: 'Payment confirmed by gateway. Awaiting admin audit.',
+          mpesaReceiptNumber: payHeroResult.receiptNumber || payment.mpesaReceiptNumber,
+          completedAt: undefined,
+        });
 
         if (updated) payment = updated;
 
         return res.json({
           success: true,
           payment,
-          isCompleted: true,
+          isCompleted: false,
           isFailed: false,
-          plan: payment.productName
+          isPendingAudit: true,
+          plan: payment.productName,
+          message: 'Payment received. Under admin audit — usually 1–30 minutes.'
         });
       }
 
@@ -712,13 +716,15 @@ app.get('/api/payments/status/:paymentId', async (req, res) => {
       const forceComplete = req.query.forceComplete === 'true';
 
       if ((isSimulated && elapsedSeconds > 4) || forceComplete) {
-        console.log(`[Status Polling] Auto-completing test/simulated payment ${payment.id} after ${Math.round(elapsedSeconds)}s.`);
+        // ⚠️ PAYMENT LEAK FIX: Sandbox/test payments also route through admin audit.
+        console.log(`[Status Polling] Sandbox payment ${payment.id} after ${Math.round(elapsedSeconds)}s — queuing for admin audit.`);
         const simReceipt = `QKB${Math.floor(1000000 + Math.random() * 9000000)}`;
-        const updated = completePaymentAndSyncUser(
-          payment.id,
-          simReceipt,
-          'Payment successfully completed (Sandbox M-Pesa STK verification).'
-        );
+        const updated = updatePaymentRecord(payment.id, {
+          status: 'PENDING' as any,
+          statusMessage: 'Sandbox payment received. Awaiting admin audit.',
+          mpesaReceiptNumber: simReceipt,
+          completedAt: undefined,
+        });
 
         if (updated) payment = updated;
 
@@ -808,25 +814,33 @@ app.post('/api/payments/verify-stk/:paymentId', async (req, res) => {
 
 // 8. Simulate/Instant Confirm Payment (For testing or sandbox verification)
 app.post('/api/payments/simulate-complete', (req, res) => {
-  const { paymentId, receiptNumber } = req.body;
-  const payment = getPaymentRecord(paymentId);
+  try {
+    const { paymentId, receiptNumber } = req.body;
+    const payment = getPaymentRecord(paymentId);
 
-  if (!payment) {
-    return res.status(404).json({ success: false, error: 'Payment not found' });
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment not found' });
+    }
+
+    // ⚠️ PAYMENT LEAK FIX: route to admin audit instead of auto-activating.
+    const simReceipt = receiptNumber || payment.mpesaReceiptNumber || `REC${Date.now().toString().slice(-8)}`;
+    const updated = updatePaymentRecord(paymentId, {
+      status: 'PENDING' as any,
+      statusMessage: 'Payment received. Awaiting admin audit.',
+      mpesaReceiptNumber: simReceipt,
+      completedAt: undefined,
+    });
+
+    res.json({
+      success: true,
+      payment: updated || payment,
+      message: 'Payment received — under admin audit. Plan activates after approval.',
+      isPendingAudit: true
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed' });
   }
-
-  const simReceipt = receiptNumber || payment.mpesaReceiptNumber || `REC${Date.now().toString().slice(-8)}`;
-  const updated = completePaymentAndSyncUser(
-    paymentId,
-    simReceipt,
-    'Payment verified and approved successfully.'
-  );
-
-  res.json({
-    success: true,
-    payment: updated || payment,
-    message: 'Payment marked as completed and plan upgrade activated.'
-  });
+});
 });
 
 // 8. User Payment History
