@@ -37,6 +37,14 @@ export interface UserLoginHistoryRecord {
 export interface UserEntity {
   id: string;
   email: string;
+  referralBalance?: number;      // USD earnings from referrals
+  referralHistory?: Array<{
+    referredUserId: string;
+    referredUserEmail: string;
+    referredUserPlan: string;
+    amountUsd: number;
+    awardedAt: string;
+  }>;
   passwordHash: string;
   salt: string;
   firstName: string;
@@ -412,6 +420,8 @@ function rowToUser(r: any): UserEntity {
     mt5AccountNumber: r.mt5AccountNumber || undefined,
     referralCode: r.referralCode ?? r.referral_code ?? undefined,
     referredBy: r.referredBy ?? r.referred_by ?? undefined,
+    referralBalance: Number(r.referralBalance ?? r.referral_balance ?? 0),
+    referralHistory: (r.referralHistory ?? r.referral_history ?? []) as any,
     termsAcceptedAt: r.termsAcceptedAt ?? r.terms_accepted_at ?? undefined,
     termsVersion: r.termsVersion ?? r.terms_version ?? undefined,
     termsAcceptedIp: r.termsAcceptedIp ?? r.terms_accepted_ip ?? undefined,
@@ -454,6 +464,8 @@ function userToRow(u: UserEntity) {
     mt5AccountNumber: u.mt5AccountNumber ?? null,
     referralCode: u.referralCode ?? null,
     referredBy: u.referredBy ?? null,
+    referralBalance: u.referralBalance ?? 0,
+    referralHistory: (u.referralHistory ?? []) as any,
     termsAcceptedAt: toDate(u.termsAcceptedAt),
     termsVersion: u.termsVersion ?? null,
     termsAcceptedIp: u.termsAcceptedIp ?? null,

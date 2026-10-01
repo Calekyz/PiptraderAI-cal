@@ -959,6 +959,16 @@ app.post('/api/payments/admin/verify', (req, res) => {
           };
 
           console.log(`[Admin Verify] Approved ${paymentId} → ${assignedPlan} activated for ${user.email}`);
+
+          // ── Award referral earnings to whoever referred this user ──
+          try {
+            const refResult = awardReferral(user.id, user.email, assignedPlan);
+            if (refResult.ok) {
+              console.log(`[Admin Verify] Referral bonus $${refResult.reward} awarded to ${refResult.referrerEmail}`);
+            }
+          } catch (refErr: any) {
+            console.warn('[Admin Verify] Referral award failed:', refErr?.message);
+          }
         }
       } catch (err: any) {
         console.error('[Admin Verify] Activation failed:', err?.message);
@@ -5281,7 +5291,18 @@ app.get('/api/referral/stats', (req, res) => {
 
     const myRefCode = (user as any).referralCode;
     if (!myRefCode) {
-      return res.json({ success: true, myReferralCode: null, totalReferred: 0, subscribed: 0, pending: 0, earnings: 0 });
+      return res.json({
+        success: true,
+        myReferralCode: null,
+        totalReferred: 0,
+        subscribed: 0,
+        pending: 0,
+        earnings: 0,
+        balance: 0,
+        minWithdrawal: 75,
+        referredUsers: [],
+        history: [],
+      });
     }
 
     const allUsers = db.getAllUsers();
@@ -5290,14 +5311,40 @@ app.get('/api/referral/stats', (req, res) => {
       return r === String(myRefCode).toUpperCase();
     });
 
-    const subscribed = referred.filter((u: any) => u.plan === 'Starter' || u.plan === 'Pro' || u.plan === 'Elite').length;
+    // Tier mapping — referrer earns based on referred user's PAID plan
+    const PLAN_REWARD_USD: Record<string, number> = {
+      Starter: 5,
+      Pro: 10,
+      Elite: 35,
+    };
+
+    const referredUsers = referred.map((u: any) => {
+      const plan = u.plan || 'Pending';
+      const rewardUsd = PLAN_REWARD_USD[plan] || 0;
+      return {
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        plan,
+        subscribedAt: u.subscriptionStartDate || u.createdAt,
+        rewardUsd,
+        joinedAt: u.createdAt,
+      };
+    });
+
+    const subscribed = referred.filter((u: any) => PLAN_REWARD_USD[u.plan] > 0).length;
     const pending = referred.length - subscribed;
 
-    let earnings = 0;
+    // Total earnings = sum of all subscribed referred users' rewards
+    let lifetimeEarnings = 0;
     referred.forEach((u: any) => {
-      if (u.plan === 'Starter' || u.plan === 'Pro') earnings += 5;
-      else if (u.plan === 'Elite') earnings += 10;
+      lifetimeEarnings += PLAN_REWARD_USD[u.plan] || 0;
     });
+
+    const balance = Number((user as any).referralBalance || 0);
+    const history = ((user as any).referralHistory || []).slice().reverse().slice(0, 50);
+    const totalWithdrawn = Math.max(0, lifetimeEarnings - balance);
 
     res.json({
       success: true,
@@ -5305,11 +5352,163 @@ app.get('/api/referral/stats', (req, res) => {
       totalReferred: referred.length,
       subscribed,
       pending,
-      earnings,
+      earnings: lifetimeEarnings,
+      balance,
+      totalWithdrawn,
+      minWithdrawal: 75,
+      referredUsers,
+      history,
     });
   } catch (err: any) {
     console.error('[Referral Stats]', err);
     res.status(500).json({ success: false, error: err?.message || 'Referral stats failed' });
+  }
+});
+
+// ==========================================
+// REFERRAL: AWARD (called when a referred user's payment is approved)
+// ==========================================
+function awardReferral(referredUserId: string, referredUserEmail: string, newPlan: string) {
+  try {
+    const PLAN_REWARD_USD: Record<string, number> = {
+      Starter: 5,
+      Pro: 10,
+      Elite: 35,
+    };
+    const reward = PLAN_REWARD_USD[newPlan] || 0;
+    if (reward <= 0) return { ok: false, error: 'No reward for this plan' };
+
+    const referredUser = db.getUserById(referredUserId) || db.getUserByEmail(referredUserEmail);
+    if (!referredUser) return { ok: false, error: 'Referred user not found' };
+
+    const referrerCode = String((referredUser as any).referredBy || '').trim().toUpperCase();
+    if (!referrerCode) return { ok: false, error: 'User was not referred' };
+
+    // Find referrer
+    const referrer = db.getAllUsers().find(
+      (u: any) => String(u.referralCode || '').toUpperCase() === referrerCode
+    );
+    if (!referrer) return { ok: false, error: 'Referrer not found' };
+
+    // Award
+    const prevBalance = Number((referrer as any).referralBalance || 0);
+    const prevHistory = (referrer as any).referralHistory || [];
+    const newEntry = {
+      referredUserId: referredUser.id,
+      referredUserEmail: referredUser.email,
+      referredUserPlan: newPlan,
+      amountUsd: reward,
+      awardedAt: new Date().toISOString(),
+    };
+
+    db.updateUser(referrer.id, {
+      referralBalance: prevBalance + reward,
+      referralHistory: [...prevHistory, newEntry],
+    } as any);
+
+    console.log(`[Referral] Awarded $${reward} to ${referrer.email} for ${referredUser.email} → ${newPlan}`);
+
+    return { ok: true, reward, referrerEmail: referrer.email };
+  } catch (err: any) {
+    console.error('[Referral] awardReferral failed:', err?.message);
+    return { ok: false, error: err?.message };
+  }
+}
+
+// ==========================================
+// REFERRAL: WITHDRAW (apply balance to extend subscription)
+// ==========================================
+app.post('/api/referral/withdraw', (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+
+    const user = db.getUserByEmail(String(email).toLowerCase().trim());
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const balance = Number((user as any).referralBalance || 0);
+    const MIN_WITHDRAWAL = 75;
+
+    if (balance < MIN_WITHDRAWAL) {
+      return res.status(400).json({
+        success: false,
+        error: `Minimum withdrawal is $${MIN_WITHDRAWAL}. You currently have $${balance.toFixed(2)}.`,
+        balance,
+        minWithdrawal: MIN_WITHDRAWAL,
+      });
+    }
+
+    // Calculate how many days to extend the subscription
+    // Price per day for each plan:
+    const PLAN_PRICING: Record<string, { price: number; days: number }> = {
+      Starter: { price: 45, days: 15 },
+      Pro: { price: 95, days: 30 },
+      Elite: { price: 195, days: 90 },
+    };
+
+    const currentPlan = user.plan;
+    const pricing = PLAN_PRICING[currentPlan];
+    if (!pricing) {
+      return res.status(400).json({
+        success: false,
+        error: 'You need an active paid plan to apply referral earnings.',
+      });
+    }
+
+    const pricePerDay = pricing.price / pricing.days;
+    const extraDays = Math.floor(balance / pricePerDay);
+    const consumedUsd = Math.round(extraDays * pricePerDay * 100) / 100;
+
+    if (extraDays < 1) {
+      return res.status(400).json({
+        success: false,
+        error: `Your balance ($${balance.toFixed(2)}) is too small to add at least 1 day. Earn a bit more.`,
+      });
+    }
+
+    // Extend subscription from now (or from existing expiry if in the future)
+    const now = Date.now();
+    const currentExpiry = user.subscriptionExpiry ? new Date(user.subscriptionExpiry).getTime() : 0;
+    const startFrom = currentExpiry > now ? currentExpiry : now;
+    const newExpiry = new Date(startFrom + extraDays * 86400000);
+
+    const newBalance = Math.round((balance - consumedUsd) * 100) / 100;
+
+    // Save
+    db.updateUser(user.id, {
+      referralBalance: newBalance,
+      subscriptionExpiry: newExpiry.toISOString(),
+      ...(currentExpiry <= now && { subscriptionStartDate: new Date().toISOString() }),
+    } as any);
+
+    // Audit trail
+    try {
+      db.createAuditLog({
+        adminEmail: 'system',
+        adminName: 'Referral System',
+        adminRole: 'SYSTEM',
+        action: 'REFERRAL_WITHDRAW',
+        targetId: user.id,
+        targetEmail: user.email,
+        userAffected: `${user.firstName} ${user.lastName} (${user.email})`,
+        previousValue: `Balance: $${balance.toFixed(2)}, Expiry: ${user.subscriptionExpiry || 'N/A'}`,
+        newValue: `Balance: $${newBalance.toFixed(2)}, Expiry: ${newExpiry.toISOString()}`,
+        details: `Withdrew $${consumedUsd.toFixed(2)} in referral earnings to extend ${currentPlan} plan by ${extraDays} days.`,
+        reason: 'User referral withdrawal',
+      });
+    } catch {}
+
+    res.json({
+      success: true,
+      message: `✅ Added ${extraDays} days to your ${currentPlan} plan!`,
+      extraDays,
+      consumedUsd,
+      newBalance,
+      newExpiry: newExpiry.toISOString(),
+    });
+  } catch (err: any) {
+    console.error('[Referral Withdraw]', err);
+    res.status(500).json({ success: false, error: err?.message || 'Withdrawal failed' });
   }
 });
 
