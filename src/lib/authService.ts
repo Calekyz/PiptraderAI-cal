@@ -378,10 +378,32 @@ export function getActiveSession(): UserProfile | null {
   }
 }
 
+/**
+ * Clear every auth-related key from localStorage.
+ * Called on logout and on signup/login to guarantee no cross-user bleed.
+ */
+export function clearAllUserState(): void {
+  try {
+    const keys = [
+      'pipnex_active_session_v1',
+      'pipnex_last_email_v1',
+      'pipnex_user',
+      'user',
+      'currentUser',
+      'pipnexUser',
+      'authUser',
+      'pipnex_onboarded',
+      'pipnex_setup_progress',
+      'pipnex_notif_read_ids',
+    ];
+    for (const k of keys) {
+      try { localStorage.removeItem(k); } catch {}
+    }
+  } catch {}
+}
+
 export function logoutUser(): void {
-  saveActiveSession(null);
-  // Also clear the cached last-used email so account switching is clean
-  try { localStorage.removeItem(LAST_EMAIL_STORAGE_KEY); } catch {}
+  clearAllUserState();
 }
 
 /**

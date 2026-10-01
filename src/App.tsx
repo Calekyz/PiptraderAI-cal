@@ -15,7 +15,7 @@ import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { UserProfile } from './types';
 import { X, ShieldAlert, Bot } from 'lucide-react';
 import { GeminaAssistantModal } from './components/GeminaAssistantModal';
-import {
+import { clearAllUserState,
   enterAsDevUser,
   getActiveSession,
   logoutUser,
@@ -223,16 +223,29 @@ export default function App() {
   }, [theme]);
 
   const handleLogout = () => {
-    logoutUser();
+    // 1. Clear all auth state in localStorage
+    clearAllUserState();
+    // 2. Clear React state immediately
     setCurrentUser(null);
     setCurrentView('landing');
+    // 3. Force a clean reload so no stale effects can re-hydrate the old session
+    //    (this is the nuclear option that guarantees no cross-user bleed)
+    try {
+      // Small delay so state setters flush, then hard reload to landing
+      setTimeout(() => {
+        window.location.href = window.location.origin;
+      }, 100);
+    } catch {}
   };
 
   const handleUpdateUser = (updated: Partial<UserProfile>) => {
     setCurrentUser((prev) => {
       if (!prev) return null;
       const nextUser = { ...prev, ...updated };
-      saveActiveSession(nextUser);
+      // Guard: only save if the user has both id and email (never write partial)
+      if (nextUser?.id && nextUser?.email) {
+        saveActiveSession(nextUser);
+      }
       return nextUser;
     });
     updateUserProfileAsync(updated).catch((err) => {

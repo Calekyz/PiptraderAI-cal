@@ -258,6 +258,8 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
           setVerificationNotice(result.message);
           setShowVerificationStep(true);
         } else if (result.user) {
+          // Always save the new user's session before handing off
+          saveActiveSession(result.user);
           triggerConfetti();
           onSuccessAuth(result.user);
         }
@@ -281,6 +283,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
 
       try {
         const user = await loginUserAsync(email, password);
+        // loginUserAsync already called saveActiveSession
         setIsLoading(false);
         triggerConfetti();
         onSuccessAuth(user);
@@ -312,6 +315,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
             email={verificationEmail || email}
             initialMessage={verificationNotice}
             onSuccess={(verifiedUser) => {
+              saveActiveSession(verifiedUser);
               setShowVerificationStep(false);
               triggerConfetti();
               onSuccessAuth(verifiedUser);
