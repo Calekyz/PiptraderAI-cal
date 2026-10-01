@@ -39,6 +39,7 @@ import {
 import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase, PlanTier } from './server/db';
 import { sendVerificationEmail } from './server/emailService';
 import { verifySignal } from './server/engine/geminiVerifier';
+import { sendSignalToTelegram } from './server/telegram';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter } from './server/forexFactoryEngine';
 import PDFDocument from 'pdfkit';
@@ -4923,6 +4924,24 @@ app.get('/api/user/by-email/:email', (req, res) => {
   }
 });
 
+
+// ==========================================
+// TELEGRAM: CONFIG STATUS (admin diagnostic)
+// ==========================================
+app.get('/api/telegram/status', (req, res) => {
+  try {
+    const { isTelegramConfigured } = require('./server/telegram');
+    res.json({
+      success: true,
+      configured: isTelegramConfigured(),
+      channel: process.env.TELEGRAM_CHANNEL_ID || '@peshyFx',
+      enabled: process.env.TELEGRAM_SIGNALS_ENABLED !== 'false',
+    });
+  } catch (err: any) {
+    res.json({ success: false, error: err?.message });
+  }
+});
+
 // Vite / static file serving
 
 // ==========================================
@@ -5445,6 +5464,64 @@ app.post('/api/engine/analyze', async (req, res) => {
       } catch (saveErr: any) {
         console.warn('[Engine Analyze] Save failed:', saveErr?.message);
       }
+    }
+
+    // ── Fire-and-forget: verify + broadcast to Telegram if high-confidence ──
+    if (plan && (plan.direction === 'BUY' || plan.direction === 'SELL') && Number(plan.confidence) >= 75) {
+      (async () => {
+        try {
+          // 1. AI verification (silent)
+          let verdict: 'AGREE' | 'CAUTION' | 'DISAGREE' | 'SKIPPED' = 'SKIPPED';
+          let aiConfidence = 0;
+          let aiSummary = '';
+          try {
+            const v = await verifySignal({
+              symbol,
+              timeframe,
+              direction: plan.direction as 'BUY' | 'SELL',
+              confidence: plan.confidence,
+              setupType: plan.setupType || 'Setup',
+              entry: plan.entry,
+              stopLoss: plan.stopLoss,
+              takeProfit1: plan.takeProfit1,
+              takeProfit2: plan.takeProfit2,
+              riskReward: plan.riskReward,
+              reasons: Array.isArray(plan.reasons) ? plan.reasons : [],
+            });
+            verdict = v.verdict as any;
+            aiConfidence = v.aiConfidence;
+            aiSummary = v.summary;
+          } catch (e) {
+            console.warn('[Telegram hook] verifier failed:', (e as any)?.message);
+          }
+
+          // 2. Only broadcast when verifier AGREES
+          //    (SKIPPED = verifier unavailable — still allow if confidence is strong)
+          const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
+          if (shouldSend) {
+            await sendSignalToTelegram({
+              symbol,
+              timeframe,
+              direction: plan.direction as 'BUY' | 'SELL',
+              confidence: plan.confidence,
+              setupType: plan.setupType || 'Setup',
+              entry: plan.entry,
+              stopLoss: plan.stopLoss,
+              takeProfit1: plan.takeProfit1,
+              takeProfit2: plan.takeProfit2,
+              riskReward: plan.riskReward,
+              reasons: plan.reasons,
+              aiVerdict: verdict === 'AGREE' ? 'AGREE' : undefined,
+              aiConfidence,
+              aiSummary,
+            });
+          } else {
+            console.log(`[Telegram hook] Skipped ${plan.direction} ${symbol} — verifier verdict: ${verdict}`);
+          }
+        } catch (err: any) {
+          console.warn('[Telegram hook] error:', err?.message);
+        }
+      })();
     }
 
     res.json({ success: true, plan, quote: data.quote, engine: 'rule-based-v1' });
