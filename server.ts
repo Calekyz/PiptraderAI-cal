@@ -4942,6 +4942,68 @@ app.get('/api/telegram/status', (req, res) => {
   }
 });
 
+
+// ==========================================
+// SUPPORT: TYPING INDICATORS
+// ==========================================
+// In-memory store: ticketId -> { user: untilTs, admin: untilTs }
+const typingStore = new Map<string, { user?: number; admin?: number }>();
+
+app.post('/api/support/typing/:ticketId', (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { who } = req.body; // 'user' | 'admin'
+    if (who !== 'user' && who !== 'admin') {
+      return res.status(400).json({ success: false, error: 'who must be user or admin' });
+    }
+    const entry = typingStore.get(ticketId) || {};
+    entry[who] = Date.now() + 4000; // typing expires after 4s of no updates
+    typingStore.set(ticketId, entry);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/support/typing/:ticketId', (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const entry = typingStore.get(ticketId) || {};
+    const now = Date.now();
+    res.json({
+      success: true,
+      userTyping: Boolean(entry.user && entry.user > now),
+      adminTyping: Boolean(entry.admin && entry.admin > now),
+    });
+  } catch (err: any) {
+    res.json({ success: true, userTyping: false, adminTyping: false });
+  }
+});
+
+// Cleanup old entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of typingStore) {
+    if ((!v.user || v.user < now) && (!v.admin || v.admin < now)) {
+      typingStore.delete(k);
+    }
+  }
+}, 30000);
+
+
+// ==========================================
+// SUPPORT: SINGLE TICKET (used by client polling)
+// ==========================================
+app.get('/api/support/tickets/:id', (req, res) => {
+  try {
+    const ticket = db.getSupportTicketById(req.params.id);
+    if (!ticket) return res.status(404).json({ success: false, error: 'Ticket not found' });
+    res.json({ success: true, ticket });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Vite / static file serving
 
 // ==========================================

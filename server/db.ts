@@ -1446,15 +1446,28 @@ class PersistentDatabase {
     const newRecord: SupportTicketEntity = {
       id, ...ticket,
       isReadByAdmin: false, isReadByUser: true,
-      replies: [{
-        id: `rep_${Date.now()}`, sender: 'user',
-        senderName: ticket.userName, text: ticket.message, timestamp: now,
-      }],
+      replies: [
+        {
+          id: `rep_${Date.now()}`, sender: 'user',
+          senderName: ticket.userName, text: ticket.message, timestamp: now,
+        },
+        {
+          id: `rep_${Date.now()}_ack`,
+          sender: 'system' as any,
+          senderName: 'PipTraderAI Support',
+          text: `✅ Thanks for reaching out! Your ticket has been received by our team.\n\n**Expected response time:** under 15 minutes during business hours (07:00–22:00 EAT, Mon–Sun).\n\n**In the meantime:**\n• You can keep adding details or screenshots below — they'll be attached to this ticket.\n• You'll get a notification the moment an agent replies.\n• Priority: ${ticket.priority === 'URGENT' ? '🔴 URGENT' : ticket.priority === 'HIGH' ? '🟠 HIGH' : ticket.priority === 'LOW' ? '🟢 LOW' : '🟡 MEDIUM'} — you'll be queued accordingly.\n\nWe appreciate your patience!`,
+          timestamp: new Date(Date.now() + 1).toISOString(),
+        },
+      ],
       createdAt: now, updatedAt: now,
     };
     this.supportTickets.set(id, newRecord);
     this.persistTicket(newRecord);
     return newRecord;
+  }
+
+  public getSupportTicketById(ticketId: string): SupportTicketEntity | undefined {
+    return this.supportTickets.get(ticketId);
   }
   public getSupportTicketsByUser(userEmailOrId: string) {
     const norm = userEmailOrId.trim().toLowerCase();
@@ -1466,7 +1479,7 @@ class PersistentDatabase {
     return Array.from(this.supportTickets.values())
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
-  public addTicketReply(ticketId: string, reply: { sender: 'user' | 'agent' | 'admin'; senderName: string; text: string; attachments?: Array<{ name: string; type: string; data: string; size: number }> }) {
+  public addTicketReply(ticketId: string, reply: { sender: 'user' | 'agent' | 'admin' | 'system'; senderName: string; text: string; attachments?: Array<{ name: string; type: string; data: string; size: number }> }) {
     const existing = this.supportTickets.get(ticketId);
     if (!existing) return undefined;
     const now = new Date().toISOString();
