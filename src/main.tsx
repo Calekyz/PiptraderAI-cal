@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './styles/themes.css';
 
 // Guard against third-party cross-origin iframe contentWindow and postMessage errors in sandboxes
 if (typeof window !== 'undefined') {

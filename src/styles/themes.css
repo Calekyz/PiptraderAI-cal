@@ -1,0 +1,155 @@
+/* ============================================================
+   THEMES SYSTEM
+   ------------------------------------------------------------
+   3 selectable themes that override the current dark palette.
+   Applied via `data-app-theme` on <html>.
+   - aurora = current purple (default — no overrides)
+   - neon   = emerald / cyan
+   - sunset = orange / rose
+   ------------------------------------------------------------
+   TO REVERT: delete this file + remove the import from main.tsx
+   ============================================================ */
+
+/* ─── THEME 2 — NEON (emerald / cyan) ─────────────────────── */
+html[data-app-theme="neon"] {
+  --t-primary: #10b981;
+  --t-primary-hover: #059669;
+  --t-primary-soft: #064e3b;
+  --t-bg-main: #04100d;
+  --t-bg-card: #071a15;
+  --t-bg-subtle: #0d2521;
+  --t-border: #14b8a6;
+  --t-border-soft: #134e4a;
+  --t-gradient-from: #059669;
+  --t-gradient-to: #06b6d4;
+  --t-text-accent: #34d399;
+  --t-glow: rgba(16, 185, 129, 0.4);
+}
+
+/* Neon overrides — background darks */
+html[data-app-theme="neon"] [class*="bg-[#07080d]"] { background-color: #04100d !important; }
+html[data-app-theme="neon"] [class*="bg-[#0c0e18]"] { background-color: #071a15 !important; }
+html[data-app-theme="neon"] [class*="bg-[#0d0f1a]"] { background-color: #071a15 !important; }
+html[data-app-theme="neon"] [class*="bg-[#0a0c16]"] { background-color: #071a15 !important; }
+html[data-app-theme="neon"] [class*="bg-[#080911]"] { background-color: #06120d !important; }
+html[data-app-theme="neon"] [class*="bg-[#0b0c14]"] { background-color: #06120d !important; }
+html[data-app-theme="neon"] [class*="bg-[#0e101d]"] { background-color: #081815 !important; }
+html[data-app-theme="neon"] [class*="bg-[#090a12]"] { background-color: #050e0b !important; }
+html[data-app-theme="neon"] [class*="bg-[#141624]"] { background-color: #0b2018 !important; }
+html[data-app-theme="neon"] [class*="bg-[#151829]"] { background-color: #0c2219 !important; }
+html[data-app-theme="neon"] [class*="bg-[#121422]"] { background-color: #0a1d16 !important; }
+html[data-app-theme="neon"] [class*="bg-[#121426]"] { background-color: #0a1d16 !important; }
+html[data-app-theme="neon"] [class*="bg-[#12152a]"] { background-color: #0a1d16 !important; }
+html[data-app-theme="neon"] [class*="bg-[#111322]"] { background-color: #081b14 !important; }
+html[data-app-theme="neon"] [class*="bg-[#0f1224]"] { background-color: #071a14 !important; }
+html[data-app-theme="neon"] [class*="bg-[#0d0f1e]"] { background-color: #071a14 !important; }
+html[data-app-theme="neon"] [class*="bg-[#0f1428]"] { background-color: #0a1f18 !important; }
+html[data-app-theme="neon"] [class*="bg-[#0f1120]"] { background-color: #081c16 !important; }
+
+/* Neon overrides — primary purple */
+html[data-app-theme="neon"] [class*="bg-[#5b3fe4]"] { background-color: #10b981 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-[#5b3fe4]"]:hover { background-color: #10b981 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-[#4c32d4]"]:hover { background-color: #059669 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-[#4d32d0]"]:hover { background-color: #059669 !important; }
+html[data-app-theme="neon"] [class*="text-[#5b3fe4]"] { color: #34d399 !important; }
+html[data-app-theme="neon"] [class*="border-[#5b3fe4]"] { border-color: #10b981 !important; }
+html[data-app-theme="neon"] [class*="bg-[#f0edfe]"] { background-color: #0d2b20 !important; }
+html[data-app-theme="neon"] [class*="bg-[#faf9ff]"] { background-color: #08211b !important; }
+
+/* Neon overrides — purple utilities */
+html[data-app-theme="neon"] [class*="bg-purple-500"] { background-color: #10b981 !important; }
+html[data-app-theme="neon"] [class*="bg-purple-600"] { background-color: #059669 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-purple-500"]:hover { background-color: #10b981 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-purple-600"]:hover { background-color: #059669 !important; }
+html[data-app-theme="neon"] [class*="text-purple-300"] { color: #6ee7b7 !important; }
+html[data-app-theme="neon"] [class*="text-purple-400"] { color: #34d399 !important; }
+html[data-app-theme="neon"] [class*="text-purple-500"] { color: #10b981 !important; }
+html[data-app-theme="neon"] [class*="text-purple-600"] { color: #059669 !important; }
+html[data-app-theme="neon"] [class*="border-purple-500"] { border-color: #10b981 !important; }
+html[data-app-theme="neon"] [class*="border-purple-400"] { border-color: #34d399 !important; }
+html[data-app-theme="neon"] [class*="border-purple-300"] { border-color: #6ee7b7 !important; }
+html[data-app-theme="neon"] [class*="bg-purple-500/10"] { background-color: rgba(16, 185, 129, 0.1) !important; }
+html[data-app-theme="neon"] [class*="bg-purple-500/20"] { background-color: rgba(16, 185, 129, 0.2) !important; }
+html[data-app-theme="neon"] [class*="bg-purple-900"] { background-color: #064e3b !important; }
+
+/* Neon gradients */
+html[data-app-theme="neon"] [class*="from-[#7c3aed]"] { --tw-gradient-from: #059669 !important; }
+html[data-app-theme="neon"] [class*="to-[#a855f7]"] { --tw-gradient-to: #06b6d4 !important; }
+html[data-app-theme="neon"] [class*="from-purple-600"] { --tw-gradient-from: #059669 !important; }
+html[data-app-theme="neon"] [class*="from-purple-500"] { --tw-gradient-from: #10b981 !important; }
+
+/* Neon ring/glow */
+html[data-app-theme="neon"] [class*="ring-purple"] { --tw-ring-color: rgba(16, 185, 129, 0.5) !important; }
+html[data-app-theme="neon"] [class*="shadow-purple"] { --tw-shadow-color: rgba(16, 185, 129, 0.4) !important; }
+
+/* ─── THEME 3 — SUNSET (orange / rose) ────────────────────── */
+html[data-app-theme="sunset"] {
+  --t-primary: #f97316;
+  --t-primary-hover: #ea580c;
+  --t-primary-soft: #7c2d12;
+  --t-bg-main: #110703;
+  --t-bg-card: #1a0e08;
+  --t-bg-subtle: #2a1810;
+  --t-border: #f97316;
+  --t-border-soft: #7c2d12;
+  --t-gradient-from: #ea580c;
+  --t-gradient-to: #f43f5e;
+  --t-text-accent: #fb923c;
+  --t-glow: rgba(249, 115, 22, 0.4);
+}
+
+/* Sunset overrides — background darks */
+html[data-app-theme="sunset"] [class*="bg-[#07080d]"] { background-color: #110703 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0c0e18]"] { background-color: #1a0e08 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0d0f1a]"] { background-color: #1a0e08 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0a0c16]"] { background-color: #1a0e08 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#080911]"] { background-color: #150a05 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0b0c14]"] { background-color: #150a05 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0e101d]"] { background-color: #1c1009 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#090a12]"] { background-color: #0e0604 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#141624]"] { background-color: #241509 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#151829]"] { background-color: #26170a !important; }
+html[data-app-theme="sunset"] [class*="bg-[#121422]"] { background-color: #211306 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#121426]"] { background-color: #211306 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#12152a]"] { background-color: #211306 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#111322]"] { background-color: #1e1006 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0f1224]"] { background-color: #1c0f06 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0d0f1e]"] { background-color: #1c0f06 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0f1428]"] { background-color: #221208 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#0f1120]"] { background-color: #1e1007 !important; }
+
+/* Sunset overrides — primary purple */
+html[data-app-theme="sunset"] [class*="bg-[#5b3fe4]"] { background-color: #f97316 !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-[#5b3fe4]"]:hover { background-color: #f97316 !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-[#4c32d4]"]:hover { background-color: #ea580c !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-[#4d32d0]"]:hover { background-color: #ea580c !important; }
+html[data-app-theme="sunset"] [class*="text-[#5b3fe4]"] { color: #fb923c !important; }
+html[data-app-theme="sunset"] [class*="border-[#5b3fe4]"] { border-color: #f97316 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#f0edfe]"] { background-color: #2a1208 !important; }
+html[data-app-theme="sunset"] [class*="bg-[#faf9ff]"] { background-color: #1f0e05 !important; }
+
+/* Sunset overrides — purple utilities */
+html[data-app-theme="sunset"] [class*="bg-purple-500"] { background-color: #f97316 !important; }
+html[data-app-theme="sunset"] [class*="bg-purple-600"] { background-color: #ea580c !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-purple-500"]:hover { background-color: #f97316 !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-purple-600"]:hover { background-color: #ea580c !important; }
+html[data-app-theme="sunset"] [class*="text-purple-300"] { color: #fdba74 !important; }
+html[data-app-theme="sunset"] [class*="text-purple-400"] { color: #fb923c !important; }
+html[data-app-theme="sunset"] [class*="text-purple-500"] { color: #f97316 !important; }
+html[data-app-theme="sunset"] [class*="text-purple-600"] { color: #ea580c !important; }
+html[data-app-theme="sunset"] [class*="border-purple-500"] { border-color: #f97316 !important; }
+html[data-app-theme="sunset"] [class*="border-purple-400"] { border-color: #fb923c !important; }
+html[data-app-theme="sunset"] [class*="border-purple-300"] { border-color: #fdba74 !important; }
+html[data-app-theme="sunset"] [class*="bg-purple-500/10"] { background-color: rgba(249, 115, 22, 0.1) !important; }
+html[data-app-theme="sunset"] [class*="bg-purple-500/20"] { background-color: rgba(249, 115, 22, 0.2) !important; }
+html[data-app-theme="sunset"] [class*="bg-purple-900"] { background-color: #7c2d12 !important; }
+
+/* Sunset gradients */
+html[data-app-theme="sunset"] [class*="from-[#7c3aed]"] { --tw-gradient-from: #ea580c !important; }
+html[data-app-theme="sunset"] [class*="to-[#a855f7]"] { --tw-gradient-to: #f43f5e !important; }
+html[data-app-theme="sunset"] [class*="from-purple-600"] { --tw-gradient-from: #ea580c !important; }
+html[data-app-theme="sunset"] [class*="from-purple-500"] { --tw-gradient-from: #f97316 !important; }
+
+/* Sunset ring/glow */
+html[data-app-theme="sunset"] [class*="ring-purple"] { --tw-ring-color: rgba(249, 115, 22, 0.5) !important; }
+html[data-app-theme="sunset"] [class*="shadow-purple"] { --tw-shadow-color: rgba(249, 115, 22, 0.4) !important; }

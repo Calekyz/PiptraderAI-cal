@@ -179,6 +179,27 @@ export default function App() {
     }
   });
 
+  // ── App colour theme (aurora | neon | sunset) ──
+  const [appTheme, setAppTheme] = useState<'aurora' | 'neon' | 'sunset'>(() => {
+    try {
+      const saved = localStorage.getItem('pipnex_app_theme');
+      return (saved === 'neon' || saved === 'sunset') ? saved : 'aurora';
+    } catch {
+      return 'aurora';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pipnex_app_theme', appTheme);
+    } catch {}
+    if (appTheme === 'aurora') {
+      document.documentElement.removeAttribute('data-app-theme');
+    } else {
+      document.documentElement.setAttribute('data-app-theme', appTheme);
+    }
+  }, [appTheme]);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
@@ -293,6 +314,8 @@ export default function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onSetTheme={setTheme}
+          appTheme={appTheme}
+          onSetAppTheme={setAppTheme}
         />
       ) : (
         <LandingPage
