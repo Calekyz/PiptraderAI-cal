@@ -969,6 +969,16 @@ app.post('/api/payments/admin/verify', (req, res) => {
           } catch (refErr: any) {
             console.warn('[Admin Verify] Referral award failed:', refErr?.message);
           }
+
+          // ── Award referral earnings to whoever referred this user ──
+          try {
+            const refResult = awardReferral(user.id, user.email, assignedPlan);
+            if (refResult.ok) {
+              console.log(`[Admin Verify] Referral bonus $${refResult.reward} awarded to ${refResult.referrerEmail}`);
+            }
+          } catch (refErr: any) {
+            console.warn('[Admin Verify] Referral award failed:', refErr?.message);
+          }
         }
       } catch (err: any) {
         console.error('[Admin Verify] Activation failed:', err?.message);
