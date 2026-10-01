@@ -793,18 +793,20 @@ app.post('/api/payments/verify-stk/:paymentId', async (req, res) => {
       finalReceipt = `TLK${Math.floor(1000000 + Math.random() * 9000000)}`;
     }
 
-    const updated = // ⚠️ LEAK FIX: do NOT auto-complete — queue for admin audit
-        (function(){})(
-      payment.id,
-      finalReceipt,
-      'Payment verified and activated via instant customer confirmation.'
-    );
+    // ⚠️ PAYMENT LEAK FIX: route to admin audit instead of auto-activating
+    const updated = updatePaymentRecord(payment.id, {
+      status: 'PENDING' as any,
+      statusMessage: `M-Pesa payment received (Receipt: ${finalReceipt}). Awaiting admin audit.`,
+      mpesaReceiptNumber: finalReceipt,
+      completedAt: undefined,
+    });
 
     res.json({
       success: true,
       payment: updated || payment,
-      isCompleted: true,
-      message: 'M-Pesa payment verified! Your plan has been activated.'
+      isCompleted: false,
+      isPendingAudit: true,
+      message: 'Payment received! Under admin audit — plan activates after approval.'
     });
   } catch (err: any) {
     console.error('[STK Verification Error]:', err);
@@ -840,7 +842,6 @@ app.post('/api/payments/simulate-complete', (req, res) => {
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message || 'Failed' });
   }
-});
 });
 
 // 8. User Payment History
