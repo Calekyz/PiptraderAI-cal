@@ -153,3 +153,87 @@ html[data-app-theme="sunset"] [class*="from-purple-500"] { --tw-gradient-from: #
 /* Sunset ring/glow */
 html[data-app-theme="sunset"] [class*="ring-purple"] { --tw-ring-color: rgba(249, 115, 22, 0.5) !important; }
 html[data-app-theme="sunset"] [class*="shadow-purple"] { --tw-shadow-color: rgba(249, 115, 22, 0.4) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 2 — Readability fix
+   ---------------------------------------------------------------
+   Light backgrounds (chips, badges, subtle cards) must stay LIGHT
+   with a theme-coloured TINT so their dark text stays readable.
+   =============================================================== */
+
+/* ─── NEON — light surface tints (keep light) ─────────────── */
+html[data-app-theme="neon"] [class*="bg-[#faf9ff]"] { background-color: #ecfdf5 !important; }
+html[data-app-theme="neon"] [class*="bg-[#f0edfe]"] { background-color: #d1fae5 !important; }
+html[data-app-theme="neon"] [class*="bg-[#e6e0fd]"] { background-color: #a7f3d0 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-[#faf9ff]"]:hover { background-color: #ecfdf5 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-[#f0edfe]"]:hover { background-color: #d1fae5 !important; }
+html[data-app-theme="neon"] [class*="hover:bg-[#e6e0fd]"]:hover { background-color: #a7f3d0 !important; }
+
+/* Light-mode light backgrounds → light emerald tint */
+html[data-app-theme="neon"] [class*="bg-[#f8f9fc]"] { background-color: #f0fdf4 !important; }
+html[data-app-theme="neon"] [class*="bg-[#f5f3ff]"] { background-color: #ecfdf5 !important; }
+html[data-app-theme="neon"] [class*="bg-gray-50"] { background-color: #ecfdf5 !important; }
+html[data-app-theme="neon"] [class*="bg-slate-50"] { background-color: #ecfdf5 !important; }
+
+/* ─── SUNSET — light surface tints (keep light) ──────────── */
+html[data-app-theme="sunset"] [class*="bg-[#faf9ff]"] { background-color: #fff7ed !important; }
+html[data-app-theme="sunset"] [class*="bg-[#f0edfe]"] { background-color: #fed7aa !important; }
+html[data-app-theme="sunset"] [class*="bg-[#e6e0fd]"] { background-color: #fdba74 !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-[#faf9ff]"]:hover { background-color: #fff7ed !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-[#f0edfe]"]:hover { background-color: #fed7aa !important; }
+html[data-app-theme="sunset"] [class*="hover:bg-[#e6e0fd]"]:hover { background-color: #fdba74 !important; }
+
+html[data-app-theme="sunset"] [class*="bg-[#f8f9fc]"] { background-color: #fff7ed !important; }
+html[data-app-theme="sunset"] [class*="bg-[#f5f3ff]"] { background-color: #fff7ed !important; }
+html[data-app-theme="sunset"] [class*="bg-gray-50"] { background-color: #fff7ed !important; }
+html[data-app-theme="sunset"] [class*="bg-slate-50"] { background-color: #fff7ed !important; }
+
+/* ─── OVERRIDE the earlier dark-blue replacements for these ── */
+/* Now that we set proper light tints above, revert the dark override for these */
+html[data-app-theme="neon"] [class*="bg-[#f0edfe]"],
+html[data-app-theme="neon"] [class*="bg-[#faf9ff]"] {
+  /* already handled above — this block ensures nothing overrides them */
+}
+
+/* ─── Text colour safety net ───────────────────────────────── */
+/* Any text that used to be "dark purple accent" on light bg now
+   becomes the theme colour but stays dark enough to read. */
+html[data-app-theme="neon"] [class*="text-[#5b3fe4]"] { color: #047857 !important; }
+html[data-app-theme="sunset"] [class*="text-[#5b3fe4]"] { color: #c2410c !important; }
+
+/* ─── Additional dark text that must stay dark on light surfaces */
+html[data-app-theme="neon"] [class*="text-[#0f172a]"] { color: #064e3b !important; }
+html[data-app-theme="sunset"] [class*="text-[#0f172a]"] { color: #431407 !important; }
+/* BUT only when on light backgrounds — this is a soft heuristic and
+   is exactly what we'll refine based on what you see. */
+
+/* ─── Dark text on dark surfaces must become light ───────────── */
+/* For cards that switched to dark emerald/orange, force readable text */
+html[data-app-theme="neon"] [class*="bg-[#071a15]"] { color: #d1fae5; }
+html[data-app-theme="neon"] [class*="bg-[#0c2219]"] { color: #d1fae5; }
+html[data-app-theme="sunset"] [class*="bg-[#1a0e08]"] { color: #ffedd5; }
+html[data-app-theme="sunset"] [class*="bg-[#26170a]"] { color: #ffedd5; }
+
+/* ─── FINAL safety: force text-light on any overridden dark bg ── */
+html[data-app-theme="neon"] [class*="bg-[#04100d]"] *,
+html[data-app-theme="neon"] [class*="bg-[#071a15]"] *,
+html[data-app-theme="neon"] [class*="bg-[#050e0b]"] *,
+html[data-app-theme="neon"] [class*="bg-[#06120d]"] * {
+  color: #e6fff7;
+}
+html[data-app-theme="sunset"] [class*="bg-[#110703]"] *,
+html[data-app-theme="sunset"] [class*="bg-[#1a0e08]"] *,
+html[data-app-theme="sunset"] [class*="bg-[#150a05]"] *,
+html[data-app-theme="sunset"] [class*="bg-[#0e0604]"] * {
+  color: #fff0e6;
+}
+
+/* Exception: keep accent colours inside those (buttons, badges) */
+html[data-app-theme="neon"] [class*="bg-[#04100d]"] [class*="text-[#5b3fe4]"],
+html[data-app-theme="neon"] [class*="bg-[#071a15]"] [class*="text-[#5b3fe4]"] {
+  color: #34d399 !important;
+}
+html[data-app-theme="sunset"] [class*="bg-[#110703]"] [class*="text-[#5b3fe4]"],
+html[data-app-theme="sunset"] [class*="bg-[#1a0e08]"] [class*="text-[#5b3fe4]"] {
+  color: #fb923c !important;
+}
