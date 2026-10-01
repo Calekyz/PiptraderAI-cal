@@ -47,6 +47,43 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onRefreshSta
 
   // Selected Transaction for Details Modal
   const [selectedTx, setSelectedTx] = useState<AdminTransactionItem | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [actionToast, setActionToast] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const handleVerifyPayment = async (paymentId: string, action: 'approve' | 'reject' | 'reject_ban') => {
+    let notes: string | undefined;
+    if (action === 'reject_ban') {
+      const reason = window.prompt('Reason for rejecting + banning this user:', 'Fraudulent payment submission');
+      if (reason === null) return; // user cancelled
+      notes = reason || 'Fraudulent payment submission';
+    } else if (action === 'reject') {
+      const reason = window.prompt('Reason for rejection (optional):', 'Payment could not be verified');
+      if (reason === null) return;
+      notes = reason || 'Payment could not be verified';
+    } else {
+      const ok = window.confirm(`Approve this payment and activate the plan?`);
+      if (!ok) return;
+    }
+
+    setVerifyingId(paymentId);
+    try {
+      await AdminApi.verifyPayment(paymentId, action, notes);
+      setActionToast({
+        ok: true,
+        msg: action === 'approve'
+          ? 'Payment approved — plan activated.'
+          : action === 'reject_ban'
+            ? 'Payment rejected and user banned.'
+            : 'Payment rejected.',
+      });
+      await fetchTransactions();
+    } catch (err: any) {
+      setActionToast({ ok: false, msg: err?.message || 'Action failed' });
+    } finally {
+      setVerifyingId(null);
+      setTimeout(() => setActionToast(null), 4000);
+    }
+  };
 
   const fetchTransactions = async () => {
     setIsLoading(true);
@@ -234,6 +271,28 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onRefreshSta
 
   return (
     <div className="space-y-6">
+      {/* Action toast */}
+      {actionToast && (
+        <div className={`fixed top-4 right-4 z-[300] max-w-sm animate-in fade-in slide-in-from-top-2`}>
+          <div className={`rounded-2xl border-2 p-4 shadow-2xl backdrop-blur-md ${
+            actionToast.ok
+              ? 'border-emerald-500/60 bg-gradient-to-br from-emerald-950/95 to-emerald-900/85'
+              : 'border-rose-500/60 bg-gradient-to-br from-rose-950/95 to-rose-900/85'
+          }`}>
+            <div className="flex items-start gap-3">
+              {actionToast.ok ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-300 shrink-0 mt-0.5" />
+              )}
+              <div className={`text-sm font-bold ${actionToast.ok ? 'text-emerald-100' : 'text-rose-100'}`}>
+                {actionToast.msg}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Title & Export Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -612,13 +671,47 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({ onRefreshSta
 
                     {/* Action */}
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => setSelectedTx(tx)}
-                        className="px-2.5 py-1.5 rounded-lg bg-[#1c223c] hover:bg-purple-600/30 border border-[#2e375e] text-slate-200 text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Details
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                        {/* Approve / Reject / Ban buttons — only for PENDING rows */}
+                        {tx.status === 'PENDING' && (
+                          <>
+                            <button
+                              onClick={() => handleVerifyPayment(tx.id, 'approve')}
+                              disabled={verifyingId === tx.id}
+                              title="Approve this payment and activate the plan"
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 border border-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              {verifyingId === tx.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleVerifyPayment(tx.id, 'reject')}
+                              disabled={verifyingId === tx.id}
+                              title="Reject this payment (user sees a rejection screen)"
+                              className="px-2.5 py-1.5 rounded-lg bg-rose-600/80 hover:bg-rose-600 disabled:opacity-50 border border-rose-500 text-white text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => handleVerifyPayment(tx.id, 'reject_ban')}
+                              disabled={verifyingId === tx.id}
+                              title="Reject and BAN the user (for fraudulent submissions)"
+                              className="px-2.5 py-1.5 rounded-lg bg-[#3a0f14] hover:bg-[#5a1a1f] disabled:opacity-50 border border-rose-600 text-rose-300 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                              Ban
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => setSelectedTx(tx)}
+                          className="px-2.5 py-1.5 rounded-lg bg-[#1c223c] hover:bg-purple-600/30 border border-[#2e375e] text-slate-200 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Details
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
