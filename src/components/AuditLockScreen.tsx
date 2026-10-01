@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Clock, CheckCircle2, RefreshCw, XCircle, Sparkles } from 'lucide-react';
 
 interface PendingPayment {
@@ -28,6 +28,9 @@ export const AuditLockScreen: React.FC<Props> = ({ userEmail, onApproved, onReje
   const [celebrating, setCelebrating] = useState(false);
   const [tick, setTick] = useState(0);
 
+  // useRef ensures the poll always sees the LATEST payment (defeats stale closure)
+  const currentPaymentRef = useRef<PendingPayment | null>(null);
+
   const checkStatus = async (silent = false) => {
     if (!userEmail) return;
     if (!silent) setRefreshing(true);
@@ -37,18 +40,49 @@ export const AuditLockScreen: React.FC<Props> = ({ userEmail, onApproved, onReje
       const pending = Array.isArray(data?.pending) ? data.pending : [];
 
       if (pending.length > 0) {
+        // Still pending — refresh lock state
+        currentPaymentRef.current = pending[0];
         setPayment(pending[0]);
         setLoading(false);
       } else {
-        // No more pending — check if we previously had one (means approved)
-        if (payment) {
-          // Approval detected — show celebration
-          setCelebrating(true);
-          setTimeout(() => onApproved(), 3500);
+        // No pending payments — check the previous one's final status
+        const prev = currentPaymentRef.current;
+        if (prev) {
+          try {
+            const statusRes = await fetch(`/api/payments/status/${encodeURIComponent(prev.id)}`);
+            const statusData = await statusRes.json();
+            const finalStatus = statusData?.payment?.status;
+
+            if (finalStatus === 'COMPLETED') {
+              // Admin approved → celebration → unlock
+              setCelebrating(true);
+              currentPaymentRef.current = null;
+              setTimeout(() => onApproved(), 3500);
+              return;
+            } else if (finalStatus === 'FAILED' || finalStatus === 'CANCELLED') {
+              // Admin rejected → rejection screen
+              currentPaymentRef.current = null;
+              setPayment(null);
+              onRejected();
+              return;
+            } else {
+              // Unknown / still processing elsewhere — just unlock quietly
+              currentPaymentRef.current = null;
+              setLoading(false);
+              onApproved();
+              return;
+            }
+          } catch {
+            // Status check failed — unlock quietly so user isn't trapped
+            currentPaymentRef.current = null;
+            setLoading(false);
+            onApproved();
+            return;
+          }
         } else {
-          // No pending at all — user shouldn't see the lock. Bail out.
+          // Never had a pending payment — bail out (parent hides lock)
           setLoading(false);
-          onApproved(); // parent will hide lock
+          onApproved();
         }
       }
     } catch {
@@ -72,7 +106,7 @@ export const AuditLockScreen: React.FC<Props> = ({ userEmail, onApproved, onReje
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail]);
 
-  // Don't show anything if no pending payment
+  // Don't show anything if no pending payment (unless celebrating)
   if (loading || (!payment && !celebrating)) return null;
 
   // ── APPROVED CELEBRATION SCREEN ──

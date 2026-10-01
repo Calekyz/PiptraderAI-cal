@@ -873,6 +873,7 @@ app.post('/api/payments/admin/verify', (req, res) => {
     }
 
     const isApproved = action === 'approve';
+    const isBan = action === 'reject_ban';
 
     // ── 1. Update the payment record ──
     const updated = updatePaymentRecord(paymentId, {
@@ -963,13 +964,33 @@ app.post('/api/payments/admin/verify', (req, res) => {
       }
     }
 
+    // ── Ban the user if the admin chose reject + ban ──
+    if (isBan && payment.userEmail) {
+      try {
+        const user = db.getUserByEmail(payment.userEmail);
+        if (user) {
+          db.adminBanUser(
+            user.id,
+            notes || 'Payment rejected — fraudulent or invalid submission',
+            ADMIN_ALLOWED_USERNAME,
+            'Super Admin'
+          );
+          console.log(`[Admin Verify] User ${user.email} BANNED after rejected payment ${paymentId}`);
+        }
+      } catch (banErr: any) {
+        console.warn('[Admin Verify] Ban failed:', banErr?.message);
+      }
+    }
+
     res.json({
       success: true,
       payment: updated,
       activation,
       message: isApproved 
         ? (activation ? `${activation.plan} activated + ${activation.creditsGranted} credits granted.` : 'Payment approved.') 
-        : 'Payment rejected.'
+        : isBan
+          ? 'Payment rejected and user banned.'
+          : 'Payment rejected.'
     });
   } catch (err: any) {
     console.error('[Admin Verify Error]:', err);

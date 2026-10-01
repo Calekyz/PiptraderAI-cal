@@ -403,6 +403,19 @@ export const AdminApi = {
     return res.success;
   },
 
+  // ---------- Payment Verification ----------
+  async verifyPayment(paymentId: string, action: 'approve' | 'reject' | 'reject_ban', notes?: string): Promise<{ success: boolean; message?: string }> {
+    const res = await request<{ success: boolean; message?: string; error?: string }>(
+      '/api/payments/admin/verify',
+      {
+        method: 'POST',
+        body: JSON.stringify({ paymentId, action, notes }),
+      }
+    );
+    if (!res.success) throw new Error(res.error || 'Verification failed');
+    return res;
+  },
+
   // ---------- Tutorial Videos ----------
   async getTutorialVideos(): Promise<Record<string, string>> {
     const res = await request<{ success: boolean; videos: Record<string, string> }>('/api/tutorials');
