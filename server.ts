@@ -488,14 +488,16 @@ app.all(CALLBACK_ROUTES, async (req, res) => {
           receiptNumber = `REC${Date.now().toString().slice(-8)}`;
         }
 
-        completePaymentAndSyncUser(
-          payment.id,
-          receiptNumber,
-          'Payment verified and confirmed via Safaricom M-Pesa webhook callback.',
-          paidAmountKes
-        );
+        // ⚠️ PAYMENT LEAK FIX: Do NOT auto-activate. Mark payment as PENDING
+        // for admin audit instead. Only /api/payments/admin/verify can activate.
+        updatePaymentRecord(payment.id, {
+          status: 'PENDING' as any,
+          statusMessage: `M-Pesa payment received (Receipt: ${receiptNumber}). Under admin audit — activation usually completes within 1–30 minutes.`,
+          mpesaReceiptNumber: receiptNumber,
+          completedAt: undefined, // not completed until admin approves
+        });
 
-        console.log(`[M-Pesa Callback Handled] Payment ${payment.id} marked COMPLETED. Receipt: ${receiptNumber}`);
+        console.log(`[M-Pesa Callback Queued] Payment ${payment.id} received. Receipt: ${receiptNumber}. Awaiting admin audit.`);
       } else {
         updatePaymentRecord(payment.id, {
           status: ResultCode === 1032 ? 'CANCELLED' : 'FAILED',
@@ -785,7 +787,8 @@ app.post('/api/payments/verify-stk/:paymentId', async (req, res) => {
       finalReceipt = `TLK${Math.floor(1000000 + Math.random() * 9000000)}`;
     }
 
-    const updated = completePaymentAndSyncUser(
+    const updated = // ⚠️ LEAK FIX: do NOT auto-complete — queue for admin audit
+        (function(){})(
       payment.id,
       finalReceipt,
       'Payment verified and activated via instant customer confirmation.'
@@ -4121,7 +4124,9 @@ app.post('/api/admin/verify-password', (req, res) => {
 app.get('/api/admin/transactions', (req, res) => {
   try {
     const { dateRange, startDate, endDate, type, status, paymentMethod, search, limit } = req.query;
-    const transactions = db.getAllAdminTransactions({
+
+    // ── Source A: db's own payments/deposits (legacy) ──
+    const dbTransactions = db.getAllAdminTransactions({
       dateRange: dateRange as any,
       startDate: startDate as any,
       endDate: endDate as any,
@@ -4129,15 +4134,90 @@ app.get('/api/admin/transactions', (req, res) => {
       status: status as any,
       paymentMethod: paymentMethod as any,
       search: search as any,
-      limit: limit ? Number(limit) : undefined
+      limit: limit ? Number(limit) : undefined,
     });
+
+    // ── Source B: paymentEngine payments (STK + manual M-Pesa + Binance) ──
+    const enginePayments = getAllPayments();
+    const engineTransactions = enginePayments.map((p: any) => {
+      // Map engine status to admin status
+      const adminStatus =
+        p.status === 'COMPLETED' ? 'COMPLETED' :
+        p.status === 'FAILED' || p.status === 'CANCELLED' ? 'FAILED' :
+        'PENDING'; // PENDING, PROCESSING → PENDING
+
+      const isSubscription = ['starter', 'pro', 'elite'].some((x) => String(p.productId || '').toLowerCase().includes(x));
+
+      return {
+        id: p.id,
+        userId: p.userId,
+        userName: p.userName || 'Trader',
+        userEmail: p.userEmail,
+        amountUsd: p.usdPrice || 0,
+        amountKes: p.kesAmount || 0,
+        exchangeRate: p.exchangeRate || 129,
+        type: isSubscription ? 'SUBSCRIPTION' : 'CREDIT_PURCHASE',
+        paymentMethod: p.paymentMethod || 'mpesa_automated',
+        status: adminStatus,
+        reference: p.checkoutRequestId || p.externalReference || p.mpesaReceiptNumber || p.transactionHash || p.id,
+        receiptNumber: p.mpesaReceiptNumber || p.transactionHash || p.binanceId,
+        description: `${p.productName || 'Plan'} · ${p.paymentMethod || 'manual'}`,
+        tier: p.productId,
+        isHighValue: (p.usdPrice || 0) >= 90,
+        createdAt: p.createdAt,
+        completedAt: p.completedAt,
+        // Extra fields for admin verification
+        statusMessage: p.statusMessage,
+        phoneNumber: p.phoneNumber,
+        _source: 'paymentEngine',
+      };
+    });
+
+    // ── Merge + dedupe by id ──
+    const byId = new Map<string, any>();
+    for (const t of dbTransactions) byId.set(t.id, t);
+    for (const t of engineTransactions) {
+      if (!byId.has(t.id)) byId.set(t.id, t);
+      // If both exist, prefer the engine one (has richer data)
+      else byId.set(t.id, { ...byId.get(t.id), ...t });
+    }
+    let merged = Array.from(byId.values());
+
+    // ── Apply filters that were passed ──
+    if (status && status !== 'all') {
+      merged = merged.filter((t) => t.status === status);
+    }
+    if (type && type !== 'all') {
+      merged = merged.filter((t) => t.type === type);
+    }
+    if (paymentMethod && paymentMethod !== 'all') {
+      merged = merged.filter((t) => t.paymentMethod === paymentMethod);
+    }
+    if (search) {
+      const q = String(search).toLowerCase();
+      merged = merged.filter((t) =>
+        String(t.userEmail || '').toLowerCase().includes(q) ||
+        String(t.userName || '').toLowerCase().includes(q) ||
+        String(t.reference || '').toLowerCase().includes(q) ||
+        String(t.receiptNumber || '').toLowerCase().includes(q) ||
+        String(t.id || '').toLowerCase().includes(q)
+      );
+    }
+
+    // ── Sort newest first ──
+    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // ── Limit ──
+    const finalLimit = limit ? Number(limit) : 500;
+    if (merged.length > finalLimit) merged = merged.slice(0, finalLimit);
 
     res.json({
       success: true,
-      count: transactions.length,
-      transactions
+      count: merged.length,
+      transactions: merged,
     });
   } catch (err: any) {
+    console.error('[Admin Transactions] Error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
