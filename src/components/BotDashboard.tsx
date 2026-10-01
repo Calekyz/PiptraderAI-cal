@@ -77,6 +77,8 @@ interface BotDashboardProps {
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
   onSetTheme?: (mode: 'dark' | 'light') => void;
+  appTheme?: 'aurora' | 'neon' | 'sunset';
+  onSetAppTheme?: (theme: 'aurora' | 'neon' | 'sunset') => void;
 }
 
 export const BotDashboard: React.FC<BotDashboardProps> = ({
@@ -85,7 +87,9 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   onUpdateUser,
   theme = 'dark',
   onToggleTheme,
-  onSetTheme
+  onSetTheme,
+  appTheme = 'aurora',
+  onSetAppTheme
 }) => {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -1294,6 +1298,8 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 onOpenUpgrade={handleOpenUpgrade}
                 currentTheme={currentTheme}
                 onSetTheme={handleSetTheme}
+                appTheme={appTheme}
+                onSetAppTheme={onSetAppTheme}
               />
             )}
 

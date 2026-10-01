@@ -30,6 +30,7 @@ import {
   Zap,
   Sliders
 } from 'lucide-react';
+import { ThemePicker } from '../ThemePicker';
 import { UserProfile } from '../../types';
 
 interface SettingsViewProps {
@@ -39,6 +40,8 @@ interface SettingsViewProps {
   onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
   currentTheme?: 'dark' | 'light';
   onSetTheme?: (mode: 'dark' | 'light') => void;
+  appTheme?: 'aurora' | 'neon' | 'sunset';
+  onSetAppTheme?: (theme: 'aurora' | 'neon' | 'sunset') => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -47,7 +50,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onLogout,
   onOpenUpgrade,
   currentTheme = 'dark',
-  onSetTheme
+  onSetTheme,
+  appTheme = 'aurora',
+  onSetAppTheme
 }) => {
   // Plan access helper
   const planOrder: Record<string, number> = { Pending: 0, Starter: 1, Pro: 2, Elite: 3 };
@@ -135,85 +140,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
       
-      {/* 1. Appearance Card (Dark & Light Mode with Dark as Default) */}
-      <div className="bg-white dark:bg-[#0d0f1a] border border-[#e5e7eb] dark:border-[#1e2238] rounded-3xl p-6 shadow-xs space-y-4">
-        <div>
-          <div className="flex items-center gap-2 text-base font-bold text-[#0f172a] dark:text-white">
-            <Sparkles className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400" />
-            <span>Appearance &amp; Visual Theme</span>
-          </div>
-          <p className="text-xs text-[#475569] dark:text-slate-400 mt-0.5">
-            Switch between Dark Mode (default) and Light Mode.
-          </p>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-[#0f172a] dark:text-slate-200 block mb-3">Choose Theme</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-            {/* Dark Mode Card */}
-            <div 
-              id="theme-option-dark"
-              onClick={() => onSetTheme && onSetTheme('dark')}
-              className={`p-4 rounded-2xl border text-left transition-all shadow-xs flex items-center justify-between cursor-pointer ${
-                currentTheme === 'dark'
-                  ? 'bg-[#151829] dark:bg-[#151829] border-purple-500 ring-2 ring-purple-500/20'
-                  : 'bg-gray-50 dark:bg-[#0f111d] border-[#e5e7eb] dark:border-[#1e2238] hover:border-purple-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  currentTheme === 'dark'
-                    ? 'bg-purple-900/50 border border-purple-500/40 text-purple-300'
-                    : 'bg-white dark:bg-[#1a1d2e] border border-gray-200 dark:border-gray-700 text-gray-500'
-                }`}>
-                  <Moon className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-[#0f172a] dark:text-white flex items-center gap-1.5">
-                    <span>Dark Mode</span>
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">Default</span>
-                  </div>
-                  <div className="text-[11px] text-[#475569] dark:text-slate-400 mt-0.5">Sleek, low-glare institutional dark theme</div>
-                </div>
-              </div>
-              {currentTheme === 'dark' && (
-                <div className="w-6 h-6 rounded-full bg-[#5b3fe4] dark:bg-purple-600 text-white flex items-center justify-center text-xs shrink-0">
-                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                </div>
-              )}
-            </div>
-
-            {/* Light Mode Card */}
-            <div 
-              id="theme-option-light"
-              onClick={() => onSetTheme && onSetTheme('light')}
-              className={`p-4 rounded-2xl border text-left transition-all shadow-xs flex items-center justify-between cursor-pointer ${
-                currentTheme === 'light'
-                  ? 'bg-[#f0edfe] border-purple-400 ring-2 ring-purple-400/20'
-                  : 'bg-gray-50 dark:bg-[#0f111d] border-[#e5e7eb] dark:border-[#1e2238] hover:border-purple-300'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  currentTheme === 'light'
-                    ? 'bg-white border border-purple-200 text-[#5b3fe4]'
-                    : 'bg-white dark:bg-[#1a1d2e] border border-gray-200 dark:border-gray-700 text-gray-500'
-                }`}>
-                  <Sun className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-[#0f172a] dark:text-white">Light Mode</div>
-                  <div className="text-[11px] text-[#475569] dark:text-slate-400 mt-0.5">Clean, daylight high-contrast workspace</div>
-                </div>
-              </div>
-              {currentTheme === 'light' && (
-                <div className="w-6 h-6 rounded-full bg-[#5b3fe4] text-white flex items-center justify-center text-xs shrink-0">
-                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* 1. Appearance Card — 3-theme picker */}
+      <div className="bg-white dark:bg-[#0d0f1a] border border-[#e5e7eb] dark:border-[#1e2238] rounded-3xl p-6 shadow-xs">
+        <ThemePicker
+          current={appTheme}
+          onChange={(t) => onSetAppTheme && onSetAppTheme(t)}
+        />
       </div>
 
       {/* 2. Notifications Card */}
