@@ -5352,9 +5352,41 @@ app.get('/api/referral/stats', (req, res) => {
       lifetimeEarnings += PLAN_REWARD_USD[u.plan] || 0;
     });
 
-    const balance = Number((user as any).referralBalance || 0);
-    const history = ((user as any).referralHistory || []).slice().reverse().slice(0, 50);
-    const totalWithdrawn = Math.max(0, lifetimeEarnings - balance);
+    // ── Compute the true balance with auto-backfill ──
+    //     Old referrals (pre-award system) had earnings but never wrote to referralBalance.
+    //     We compute the true amount owed = lifetimeEarnings - alreadyWithdrawn.
+    //     If stored balance < owed, we backfill it.
+    const storedBalance = Number((user as any).referralBalance || 0);
+    const storedWithdrawn = Number((user as any).referralWithdrawn || 0);
+    const trueOwed = Math.max(0, lifetimeEarnings - storedWithdrawn);
+    let balance = storedBalance;
+    let history = ((user as any).referralHistory || []).slice();
+
+    // If stored balance is behind (missing old awards), backfill
+    if (trueOwed > storedBalance + 0.01) {
+      const backfillAmount = Math.round((trueOwed - storedBalance) * 100) / 100;
+      balance = trueOwed;
+      // Add a backfill entry to history so the user sees it
+      history.push({
+        referredUserId: '*backfill*',
+        referredUserEmail: '(legacy referrals)',
+        referredUserPlan: 'Backfill',
+        amountUsd: backfillAmount,
+        awardedAt: new Date().toISOString(),
+      });
+      // Persist
+      try {
+        db.updateUser(user.id, {
+          referralBalance: balance,
+          referralHistory: history,
+        } as any);
+        console.log(`[Referral] Backfilled $${backfillAmount} for ${user.email}`);
+      } catch (e: any) {
+        console.warn('[Referral] Backfill persist failed:', e?.message);
+      }
+    }
+
+    const totalWithdrawn = storedWithdrawn;
 
     res.json({
       success: true,
@@ -5367,7 +5399,7 @@ app.get('/api/referral/stats', (req, res) => {
       totalWithdrawn,
       minWithdrawal: 75,
       referredUsers,
-      history,
+      history: history.reverse().slice(0, 50),
     });
   } catch (err: any) {
     console.error('[Referral Stats]', err);
@@ -5436,7 +5468,22 @@ app.post('/api/referral/withdraw', (req, res) => {
     const user = db.getUserByEmail(String(email).toLowerCase().trim());
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    const balance = Number((user as any).referralBalance || 0);
+    // ── Compute the true balance (with auto-backfill for legacy referrals) ──
+    const storedBalance = Number((user as any).referralBalance || 0);
+    const storedWithdrawn = Number((user as any).referralWithdrawn || 0);
+
+    // Compute lifetime earnings on the fly
+    const PLAN_REWARD: Record<string, number> = { Starter: 5, Pro: 10, Elite: 35 };
+    const referredList = db.getAllUsers().filter(
+      (u: any) => String(u.referredBy || '').toUpperCase() === String((user as any).referralCode || '').toUpperCase()
+    );
+    const lifetimeEarnings = referredList.reduce(
+      (sum, u: any) => sum + (PLAN_REWARD[u.plan] || 0),
+      0
+    );
+    const trueOwed = Math.max(0, lifetimeEarnings - storedWithdrawn);
+    const balance = Math.max(storedBalance, trueOwed);
+
     const MIN_WITHDRAWAL = 75;
 
     if (balance < MIN_WITHDRAWAL) {
@@ -5487,6 +5534,7 @@ app.post('/api/referral/withdraw', (req, res) => {
     // Save
     db.updateUser(user.id, {
       referralBalance: newBalance,
+      referralWithdrawn: storedWithdrawn + consumedUsd,
       subscriptionExpiry: newExpiry.toISOString(),
       ...(currentExpiry <= now && { subscriptionStartDate: new Date().toISOString() }),
     } as any);

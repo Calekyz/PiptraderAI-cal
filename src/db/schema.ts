@@ -193,6 +193,7 @@ export const pipnexUsers = pgTable('pipnex_users', {
   referralCode: text('referral_code'),
   referredBy: text('referred_by'),
   referralBalance: real('referral_balance').default(0),
+  referralWithdrawn: real('referral_withdrawn').default(0),
   referralHistory: jsonb('referral_history').default([]),
   termsAcceptedAt: timestamp('terms_accepted_at'),
   termsVersion: text('terms_version'),

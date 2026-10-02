@@ -37,7 +37,8 @@ export interface UserLoginHistoryRecord {
 export interface UserEntity {
   id: string;
   email: string;
-  referralBalance?: number;      // USD earnings from referrals
+  referralBalance?: number;      // USD earnings from referrals (running balance)
+  referralWithdrawn?: number;    // USD already withdrawn — tracks total
   referralHistory?: Array<{
     referredUserId: string;
     referredUserEmail: string;
@@ -421,6 +422,7 @@ function rowToUser(r: any): UserEntity {
     referralCode: r.referralCode ?? r.referral_code ?? undefined,
     referredBy: r.referredBy ?? r.referred_by ?? undefined,
     referralBalance: Number(r.referralBalance ?? r.referral_balance ?? 0),
+    referralWithdrawn: Number(r.referralWithdrawn ?? r.referral_withdrawn ?? 0),
     referralHistory: (r.referralHistory ?? r.referral_history ?? []) as any,
     termsAcceptedAt: r.termsAcceptedAt ?? r.terms_accepted_at ?? undefined,
     termsVersion: r.termsVersion ?? r.terms_version ?? undefined,
@@ -465,6 +467,7 @@ function userToRow(u: UserEntity) {
     referralCode: u.referralCode ?? null,
     referredBy: u.referredBy ?? null,
     referralBalance: u.referralBalance ?? 0,
+    referralWithdrawn: u.referralWithdrawn ?? 0,
     referralHistory: (u.referralHistory ?? []) as any,
     termsAcceptedAt: toDate(u.termsAcceptedAt),
     termsVersion: u.termsVersion ?? null,
