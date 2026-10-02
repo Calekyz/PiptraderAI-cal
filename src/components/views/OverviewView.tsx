@@ -82,9 +82,52 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const [referralTab, setReferralTab] = useState<'Overview' | 'Referrals' | 'Withdrawals'>('Overview');
   const [copiedRef, setCopiedRef] = useState(false);
 
+  // ── Referral withdrawal handler ──
+  const handleWithdraw = async () => {
+    if (withdrawing || !user?.email) return;
+    setWithdrawing(true);
+    try {
+      const res = await fetch('/api/referral/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWithdrawToast({ ok: true, msg: data.message || `Added ${data.extraDays} days!` });
+        // Refresh stats
+        try {
+          const r = await fetch(`/api/referral/stats?email=${encodeURIComponent(user.email)}`).then(x => x.json());
+          if (r?.success) {
+            setReferralStats(prev => ({
+              ...prev,
+              balance: r.balance || 0,
+              totalWithdrawn: r.totalWithdrawn || 0,
+              history: r.history || [],
+            }));
+          }
+        } catch {}
+      } else {
+        setWithdrawToast({ ok: false, msg: data.error || 'Withdrawal failed' });
+      }
+    } catch (err: any) {
+      setWithdrawToast({ ok: false, msg: err?.message || 'Network error' });
+    } finally {
+      setWithdrawing(false);
+      setTimeout(() => setWithdrawToast(null), 6000);
+    }
+  };
+
   // ═══ REAL STATS FROM BACKEND ═══
   const [stats, setStats] = useState({ strategies: 0, trades: 0, analyses: 0, pnl: 0 });
-  const [referralStats, setReferralStats] = useState({ totalReferred: 0, subscribed: 0, pending: 0, earnings: 0 });
+  const [referralStats, setReferralStats] = useState({
+    totalReferred: 0, subscribed: 0, pending: 0, earnings: 0,
+    balance: 0, totalWithdrawn: 0, minWithdrawal: 75,
+    referredUsers: [] as Array<{ id: string; email: string; firstName?: string; lastName?: string; plan: string; rewardUsd: number; joinedAt: string; subscribedAt?: string }>,
+    history: [] as Array<{ referredUserEmail: string; referredUserPlan: string; amountUsd: number; awardedAt: string }>,
+  });
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawToast, setWithdrawToast] = useState<{ ok: boolean; msg: string } | null>(null);
   const [usageStats, setUsageStats] = useState({ analyses: 0, voice: 0, setups: 0, limitAnalyses: 2, limitVoice: 0, limitSetups: 0 });
   useEffect(() => {
     if (!user?.id) return;
@@ -128,6 +171,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             subscribed: r.subscribed || 0,
             pending: r.pending || 0,
             earnings: r.earnings || 0,
+            balance: r.balance || 0,
+            totalWithdrawn: r.totalWithdrawn || 0,
+            minWithdrawal: r.minWithdrawal || 75,
+            referredUsers: r.referredUsers || [],
+            history: r.history || [],
           });
         }
         if (u?.success) {
@@ -518,7 +566,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
           <div className="text-right">
             <div className="text-[10px] text-[#64748b] dark:text-slate-400 font-mono uppercase">Available Balance</div>
-            <div className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">$0.00</div>
+            <div className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">${referralStats.balance.toFixed(2)}</div>
           </div>
         </div>
 
@@ -604,26 +652,53 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         {/* Withdrawal Bar Banner */}
-        <div className="w-full py-2.5 px-4 rounded-xl bg-[#f0edfe] dark:bg-[#1c1938] border border-purple-200 dark:border-purple-500/30 text-center text-xs font-semibold text-[#5b3fe4] dark:text-purple-300 flex items-center justify-center gap-2">
-          <span>↓</span>
-          <span>Withdraw (Min $75 - Need $75.00 more)</span>
-        </div>
+        {referralStats.balance >= referralStats.minWithdrawal ? (
+          <div className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent border-2 border-emerald-500/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold text-center sm:text-left">
+              ✅ You can withdraw <strong>${referralStats.balance.toFixed(2)}</strong> to extend your subscription
+            </div>
+            <button
+              onClick={handleWithdraw}
+              disabled={withdrawing}
+              className="px-4 py-2 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-2 shrink-0"
+            >
+              {withdrawing ? 'Processing…' : `Withdraw $${referralStats.balance.toFixed(2)} →`}
+            </button>
+          </div>
+        ) : (
+          <div className="w-full py-2.5 px-4 rounded-xl bg-[#f0edfe] dark:bg-[#1c1938] border border-purple-200 dark:border-purple-500/30 text-center text-xs font-semibold text-[#5b3fe4] dark:text-purple-300 flex items-center justify-center gap-2">
+            <span>↓</span>
+            <span>Withdraw (Min ${referralStats.minWithdrawal} - Need ${Math.max(0, referralStats.minWithdrawal - referralStats.balance).toFixed(2)} more)</span>
+          </div>
+        )}
+
+        {/* Withdraw toast */}
+        {withdrawToast && (
+          <div className={`w-full py-3 px-4 rounded-xl border-2 text-xs font-semibold flex items-center gap-2 ${
+            withdrawToast.ok
+              ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-700 dark:text-emerald-300'
+              : 'bg-rose-500/10 border-rose-500/50 text-rose-700 dark:text-rose-300'
+          }`}>
+            <span>{withdrawToast.ok ? '✅' : '❌'}</span>
+            <span>{withdrawToast.msg}</span>
+          </div>
+        )}
 
         {/* Earnings tier cards */}
         <div className="space-y-2 pt-2">
           <div className="text-[11px] text-[#64748b] font-medium">Earn real money when your referrals subscribe:</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="p-3 rounded-xl bg-gray-50 border border-[#e5e7eb] text-center">
-              <div className="text-sm font-bold font-mono text-[#5b3fe4]">$5</div>
-              <div className="text-[10px] text-[#64748b]">Starter / Pro</div>
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338] text-center">
+              <div className="text-sm font-bold font-mono text-[#5b3fe4] dark:text-purple-400">$5</div>
+              <div className="text-[10px] text-[#64748b] dark:text-slate-400">Starter referred</div>
             </div>
-            <div className="p-3 rounded-xl bg-gray-50 border border-[#e5e7eb] text-center">
-              <div className="text-sm font-bold font-mono text-[#5b3fe4]">$10</div>
-              <div className="text-[10px] text-[#64748b]">Elite</div>
+            <div className="p-3 rounded-xl bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338] text-center">
+              <div className="text-sm font-bold font-mono text-[#5b3fe4] dark:text-purple-400">$10</div>
+              <div className="text-[10px] text-[#64748b] dark:text-slate-400">Pro referred</div>
             </div>
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-center">
-              <div className="text-sm font-bold font-mono text-amber-700">$36</div>
-              <div className="text-[10px] text-amber-700 font-semibold">Elite</div>
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-center">
+              <div className="text-sm font-bold font-mono text-amber-700 dark:text-amber-400">$35</div>
+              <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">Elite referred</div>
             </div>
           </div>
           <div className="text-[10px] text-[#64748b] flex items-center gap-1">
@@ -631,6 +706,66 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <span>You can also use your balance to pay for subscriptions!</span>
           </div>
         </div>
+
+        {/* ── Referred Users List ── */}
+        {referralStats.referredUsers.length > 0 && (
+          <div className="pt-3 border-t border-[#f1f5f9] dark:border-[#171a27] space-y-2">
+            <div className="text-[11px] font-bold text-[#0f172a] dark:text-white uppercase tracking-wider font-mono">
+              👥 Your Referrals ({referralStats.referredUsers.length})
+            </div>
+            <div className="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+              {referralStats.referredUsers.map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-gray-50 dark:bg-[#121524] border border-[#e5e7eb] dark:border-[#1e2338]">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] font-semibold text-[#0f172a] dark:text-white truncate">
+                      {r.firstName} {r.lastName}
+                    </div>
+                    <div className="text-[10px] text-[#64748b] dark:text-slate-400 font-mono truncate">{r.email}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded ${
+                      r.plan === 'Elite' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40'
+                      : r.plan === 'Pro' ? 'bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/40'
+                      : r.plan === 'Starter' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/40'
+                      : 'bg-gray-500/20 text-gray-500 dark:text-slate-400 border border-gray-500/40'
+                    }`}>
+                      {r.plan === 'Pending' ? 'PENDING' : r.plan}
+                    </span>
+                    <div className={`text-[11px] font-mono font-bold mt-0.5 ${
+                      r.rewardUsd > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
+                    }`}>
+                      {r.rewardUsd > 0 ? `+$${r.rewardUsd}` : '—'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Earnings History ── */}
+        {referralStats.history.length > 0 && (
+          <div className="pt-3 border-t border-[#f1f5f9] dark:border-[#171a27] space-y-2">
+            <div className="text-[11px] font-bold text-[#0f172a] dark:text-white uppercase tracking-wider font-mono">
+              📜 Recent Activity
+            </div>
+            <div className="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-1">
+              {referralStats.history.slice(0, 10).map((h, i) => (
+                <div key={i} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] text-[#0f172a] dark:text-white font-mono truncate">{h.referredUserEmail}</div>
+                    <div className="text-[9px] text-[#64748b] dark:text-slate-400">
+                      {new Date(h.awardedAt).toLocaleDateString()} · {h.referredUserPlan}
+                    </div>
+                  </div>
+                  <div className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                    +${h.amountUsd}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 8. MT5 Account Full Width Strip */}
