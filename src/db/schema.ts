@@ -1,4 +1,6 @@
-import { jsonb, pgTable, text, timestamp, boolean, decimal, integer, json } from 'drizzle-orm/pg-core';
+import { jsonb, pgTable, text, timestamp, boolean, decimal, integer, json,
+  real,
+} from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // ============================================================================
@@ -192,7 +194,6 @@ export const pipnexUsers = pgTable('pipnex_users', {
   referredBy: text('referred_by'),
   referralBalance: real('referral_balance').default(0),
   referralHistory: jsonb('referral_history').default([]),
-  referredBy: text('referred_by'),
   termsAcceptedAt: timestamp('terms_accepted_at'),
   termsVersion: text('terms_version'),
   termsAcceptedIp: text('terms_accepted_ip'),
