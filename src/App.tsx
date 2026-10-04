@@ -54,6 +54,34 @@ export default function App() {
     return getActiveSession();
   });
 
+  // One-time cleanup of stale legacy localStorage keys
+  useEffect(() => {
+    try {
+      const session = localStorage.getItem('pipnex_active_session_v1');
+      const sessionEmail = session ? (JSON.parse(session)?.email || '').toLowerCase() : '';
+      if (!sessionEmail) return;
+      const legacyKeys = ['pipnex_user', 'user', 'currentUser', 'pipnexUser', 'authUser'];
+      for (const k of legacyKeys) {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        try {
+          const parsed = JSON.parse(raw);
+          const legacyEmail = String(parsed?.email || '').toLowerCase();
+          if (legacyEmail && legacyEmail !== sessionEmail) {
+            localStorage.removeItem(k);
+            console.log(`[Session] Removed stale key "${k}" (had ${legacyEmail}, session is ${sessionEmail})`);
+          }
+        } catch {
+          const legacyEmail = String(raw).toLowerCase();
+          if (legacyEmail.includes('@') && legacyEmail !== sessionEmail) {
+            localStorage.removeItem(k);
+            console.log(`[Session] Removed stale raw key "${k}"`);
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
   const ADMIN_WHITELIST = ['pipnexaicustomer@gmail.com', 'oruchodaniel21@gmail.com'];
   const isWhitelistedAdmin = Boolean(
     currentUser?.email && ADMIN_WHITELIST.includes(currentUser.email.toLowerCase().trim())

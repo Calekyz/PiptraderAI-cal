@@ -4,16 +4,31 @@
 
 export function getUserEmail(): string {
   if (typeof window === 'undefined') return '';
-  const keys = ['pipnex_user', 'user', 'currentUser', 'pipnexUser', 'authUser'];
-  for (const k of keys) {
+
+  // ── AUTHORITATIVE: the auth service session key wins ──
+  try {
+    const sessionRaw = localStorage.getItem('pipnex_active_session_v1');
+    if (sessionRaw) {
+      const parsed = JSON.parse(sessionRaw);
+      if (parsed && typeof parsed === 'object' && parsed.email) {
+        return String(parsed.email).toLowerCase().trim();
+      }
+    }
+  } catch {}
+
+  // ── Fallback to legacy keys only if session is missing ──
+  const fallbackKeys = ['pipnexUser', 'authUser', 'currentUser', 'pipnex_user', 'user'];
+  for (const k of fallbackKeys) {
     try {
       const raw = localStorage.getItem(k);
       if (!raw) continue;
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && parsed.email) return String(parsed.email);
+      if (parsed && typeof parsed === 'object' && parsed.email) {
+        return String(parsed.email).toLowerCase().trim();
+      }
     } catch {
       const raw = localStorage.getItem(k);
-      if (raw && raw.includes('@')) return raw;
+      if (raw && raw.includes('@')) return raw.toLowerCase().trim();
     }
   }
   return '';

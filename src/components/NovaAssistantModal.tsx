@@ -23,17 +23,23 @@ export interface ChatMessage {
 }
 
 function getUserEmailFromStorage(): string {
-  if (typeof window === 'undefined') return '';
-  const keys = ['pipnex_user', 'user', 'currentUser', 'pipnexUser', 'authUser'];
-  for (const k of keys) {
+  try {
+    const raw = localStorage.getItem('pipnex_active_session_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.email) return String(parsed.email).toLowerCase().trim();
+    }
+  } catch {}
+  const legacy = ['pipnexUser', 'authUser', 'currentUser', 'pipnex_user', 'user'];
+  for (const k of legacy) {
     try {
       const raw = localStorage.getItem(k);
       if (!raw) continue;
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && parsed.email) return String(parsed.email);
+      if (parsed?.email) return String(parsed.email).toLowerCase().trim();
     } catch {
       const raw = localStorage.getItem(k);
-      if (raw && raw.includes('@')) return raw;
+      if (raw?.includes('@')) return raw.toLowerCase().trim();
     }
   }
   return '';
