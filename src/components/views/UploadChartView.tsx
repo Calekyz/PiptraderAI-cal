@@ -44,10 +44,10 @@ export interface TradePlan {
 
 interface UploadChartViewProps {
   user?: { id?: string; email?: string } | null;
-  onOpenGemina?: (tab?: 'chat' | 'vision') => void;
+  onOpenNova?: (tab?: 'chat' | 'vision') => void;
 }
 
-export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGemina }) => {
+export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenNova }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState('XAUUSD');
   const [selectedTimeframe, setSelectedTimeframe] = useState('M15');
@@ -78,7 +78,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 
   const defaultBuyPlan: TradePlan = {
     symbol: 'UNKNOW',
-    subTitle: 'Gemina AI · Vision Analysis',
+    subTitle: 'Nova AI · Vision Analysis',
     direction: 'LONG',
     confidence: 65,
     bias: 'Bullish',
@@ -96,7 +96,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 
   const defaultSellPlan: TradePlan = {
     symbol: 'EUR/USD',
-    subTitle: 'Gemina AI · Vision Analysis',
+    subTitle: 'Nova AI · Vision Analysis',
     direction: 'SHORT',
     confidence: 78,
     bias: 'Bearish',
@@ -182,20 +182,20 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
     if (!imgData || isAnalyzing) return;
     setIsAnalyzing(true);
     try {
-      // ── 1. Send image to Gemina vision (Gemini reads the actual chart) ──
+      // ── 1. Send image to Nova vision (Gemini reads the actual chart) ──
       // ── Run vision + engine truly in parallel ──
       let visionText = '';
       let visionOk = false;
       let visionErrorMsg = '';
 
-      const visionPromise = fetch('/api/gemina-vision-analyze', {
+      const visionPromise = fetch('/api/nova-vision-analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageBase64: imgData,
           mimeType: 'image/png',
           email: user?.email || getUserEmail(),
-          prompt: `You are Gemina, an expert trading analyst. Read the chart image carefully. Reply in STRICT format:
+          prompt: `You are Nova, an expert trading analyst. Read the chart image carefully. Reply in STRICT format:
 
 **Symbol:** <symbol you see in the chart>
 **Timeframe:** <timeframe you see>
@@ -366,7 +366,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 
         const visionPlan: TradePlan = {
           symbol: detectedSymbol,
-          subTitle: `Gemina AI · Vision Analysis${directionSource !== 'signal' ? ` (${directionSource})` : ''}`,
+          subTitle: `Nova AI · Vision Analysis${directionSource !== 'signal' ? ` (${directionSource})` : ''}`,
           direction: gemDirection,
           confidence: plan?.confidence || 75,
           bias,
@@ -406,7 +406,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 
         const visionPlan: TradePlan = {
           symbol: detectedSymbol,
-          subTitle: 'Gemina AI · Vision Analysis (read from your chart)',
+          subTitle: 'Nova AI · Vision Analysis (read from your chart)',
           direction: gemDirection,
           confidence: plan?.confidence || 75,
           bias: gemDirection === 'LONG' ? 'Bullish' : 'Bearish',
@@ -427,7 +427,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
         // No engine plan AND vision failed
         const visionPlan: TradePlan = {
           symbol: selectedSymbol,
-          subTitle: 'Gemina AI · Analysis',
+          subTitle: 'Nova AI · Analysis',
           direction: 'LONG',
           confidence: 55,
           bias: 'Bullish',
@@ -438,7 +438,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
           takeProfit2: '—',
           riskReward: '—',
           recommendedRisk: 'See AI analysis',
-          whyThisTrade: visionText || 'Gemina is analyzing your chart. Please check back in a moment.',
+          whyThisTrade: visionText || 'Nova is analyzing your chart. Please check back in a moment.',
           adjustmentNote: 'AI vision is temporarily unavailable.',
         };
         setTradePlan(visionPlan);
@@ -525,25 +525,25 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
   return (
     <div className="space-y-6 animate-in fade-in duration-200 w-full max-w-[1600px] mx-auto pb-10">
 
-      {/* Gemina AI launcher */}
-      {onOpenGemina && (
+      {/* Nova AI launcher */}
+      {onOpenNova && (
         <div className="rounded-2xl border-2 border-purple-500/40 bg-gradient-to-br from-[#1a0f2e] to-[#0c0e1a] p-5 sm:p-6 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] flex items-center justify-center shrink-0 shadow-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <div className="text-sm font-black text-white tracking-tight">Analyze with Gemina AI</div>
+              <div className="text-sm font-black text-white tracking-tight">Analyze with Nova AI</div>
               <div className="text-xs text-purple-200/70 mt-0.5 max-w-md leading-relaxed">
                 Get deep chart extraction, pattern recognition, and real explanations from our advanced vision model.
               </div>
             </div>
           </div>
           <button
-            onClick={() => onOpenGemina('vision')}
+            onClick={() => onOpenNova('vision')}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white font-bold text-xs shadow-md hover:shadow-purple-500/40 transition-all active:scale-95 cursor-pointer whitespace-nowrap"
           >
-            Launch Gemina →
+            Launch Nova →
           </button>
         </div>
       )}
@@ -551,7 +551,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
       {/* 1. Header & Description matching Screenshot 3 */}
       <div className="space-y-1">
         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          Let Gemina AI analyze your chart and generate accurate entries, exits, and DeepSeek strategy insights
+          Let Nova AI analyze your chart and generate accurate entries, exits, and Nova strategy insights
         </p>
       </div>
 
@@ -768,12 +768,12 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
                   {isAnalyzing ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Gemina AI Analyzing (DeepSeek)...</span>
+                      <span>Nova AI Analyzing (Nova)...</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>Analyze Chart with Gemina AI</span>
+                      <span>Analyze Chart with Nova AI</span>
                     </>
                   )}
                 </button>
@@ -823,7 +823,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
                   {tradePlan.symbol || 'UNKNOW'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                  {tradePlan.subTitle || 'Gemina AI · Vision Analysis'}
+                  {tradePlan.subTitle || 'Nova AI · Vision Analysis'}
                 </div>
               </div>
 

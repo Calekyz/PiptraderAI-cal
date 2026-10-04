@@ -93,12 +93,12 @@ export interface StructuredAnalysis {
 }
 
 export interface ChatMessage {
-  sender: 'gemina' | 'straddle' | 'user';
+  sender: 'nova' | 'straddle' | 'user';
   text: string;
   time: string;
-  /** AI review of the engine's reply (only on 'straddle'/'gemina' messages) */
+  /** AI review of the engine's reply (only on 'straddle'/'nova' messages) */
   aiReview?: string;
-  /** Bullet recommendations from Gemina */
+  /** Bullet recommendations from Nova */
   aiRecommendations?: string[];
 }
 
@@ -123,7 +123,7 @@ interface StraddleChartAnalysisPanelProps {
   chatEndRef: React.RefObject<HTMLDivElement>;
 }
 
-export const GeminaChartAnalysisPanel: React.FC<StraddleChartAnalysisPanelProps> = ({
+export const NovaChartAnalysisPanel: React.FC<StraddleChartAnalysisPanelProps> = ({
   symbol,
   timeframe,
   cleanSymbol,
@@ -214,12 +214,12 @@ Generated on live market price: ${priceDisplay}`;
           <div>
             <div className="flex items-center gap-1.5">
               <h2 className={`text-xs sm:text-sm font-bold tracking-tight ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                Gemina AI Assistant
+                Nova AI Assistant
               </h2>
               <span className={`px-1.5 py-0.2 rounded-md border text-[9px] font-mono font-bold ${
                 isLight ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-[#19142e] border-purple-500/30 text-purple-300'
               }`}>
-                DeepSeek
+                Nova
               </span>
             </div>
             <div className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
@@ -629,7 +629,7 @@ Generated on live market price: ${priceDisplay}`;
                 <div className={`p-6 text-center space-y-2 ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>
                   <MessageSquare className="w-8 h-8 mx-auto text-purple-500 opacity-60" />
                   <p className="text-xs">
-                    Ask Gemina AI anything about the current <strong>{symbol}</strong> chart, key levels, or strategy adjustments.
+                    Ask Nova AI anything about the current <strong>{symbol}</strong> chart, key levels, or strategy adjustments.
                   </p>
                 </div>
               ) : (
@@ -648,7 +648,7 @@ Generated on live market price: ${priceDisplay}`;
                       <div className="whitespace-pre-wrap">{msg.text}</div>
                     </div>
 
-                    {/* Gemina AI Review Card (only on non-user messages with a review) */}
+                    {/* Nova AI Review Card (only on non-user messages with a review) */}
                     {msg.sender !== 'user' && (msg.aiReview || (msg.aiRecommendations && msg.aiRecommendations.length > 0)) && (
                       <div className={`mt-2 w-[95%] p-3 rounded-2xl border-2 ${
                         isLight
@@ -659,7 +659,7 @@ Generated on live market price: ${priceDisplay}`;
                           <Sparkles className={`w-3.5 h-3.5 ${isLight ? 'text-purple-600' : 'text-purple-400'}`} />
                           <span className={`text-[10px] font-black uppercase tracking-wider ${
                             isLight ? 'text-purple-700' : 'text-purple-300'
-                          }`}>Gemina Review</span>
+                          }`}>Nova Review</span>
                         </div>
                         {msg.aiReview && (
                           <p className={`text-[11px] leading-relaxed mb-2 ${
@@ -694,7 +694,7 @@ Generated on live market price: ${priceDisplay}`;
               {isChatTyping && (
                 <div className="flex items-center gap-1.5 text-xs text-purple-600 font-mono p-2">
                   <RefreshCw className="w-3 h-3 animate-spin" />
-                  <span>Gemina AI is reviewing the setup...</span>
+                  <span>Nova AI is reviewing the setup...</span>
                 </div>
               )}
               <div ref={chatEndRef} />
@@ -733,7 +733,7 @@ Generated on live market price: ${priceDisplay}`;
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Message Gemina AI about this chart..."
+            placeholder="Message Nova AI about this chart..."
             className={`flex-1 border rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-indigo-500 transition-colors ${
               isLight 
                 ? 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400' 
@@ -760,5 +760,6 @@ Generated on live market price: ${priceDisplay}`;
   );
 };
 
-export const StraddleChartAnalysisPanel = GeminaChartAnalysisPanel;
+// Backward-compat alias (legacy name)
+export const StraddleChartAnalysisPanel = NovaChartAnalysisPanel;
 

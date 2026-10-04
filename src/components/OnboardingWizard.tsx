@@ -13,7 +13,7 @@ interface OnboardingWizardProps {
   onOpenMT5?: () => void;
   onOpenSubscription?: () => void;
   onOpenHowToUse?: () => void;
-  onOpenGemina?: (tab?: 'chat' | 'vision') => void;
+  onOpenNova?: (tab?: 'chat' | 'vision') => void;
 }
 
 interface Slide {
@@ -36,7 +36,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   onOpenMT5,
   onOpenSubscription,
   onOpenHowToUse,
-  onOpenGemina,
+  onOpenNova,
 }) => {
   const [step, setStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(true);
@@ -55,7 +55,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         "You've just unlocked PipTraderAI — the fastest way to find, verify, and act on high-probability institutional setups. Let's take 60 seconds to get you set up.",
       bullets: [
         'Live signals from our SMC + CRT engine',
-        'Gemina AI — silent verification & chart vision',
+        'Nova AI — silent verification & chart vision',
         'MT5 connection, backtesting, and risk tools',
       ],
       accent: 'from-[#7c3aed] to-[#a855f7]',
@@ -91,7 +91,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       title: user?.plan && user.plan !== 'Pending' ? `${user.plan} plan active ✓` : 'Choose your plan',
       description: user?.plan && user.plan !== 'Pending'
         ? 'Your plan is active. Upgrade anytime to unlock Pulse Signals, automated bots, and more AI credits.'
-        : 'Start with Starter or go Pro/Elite for advanced bots, Pulse Signals, and unlimited Gemina AI uploads.',
+        : 'Start with Starter or go Pro/Elite for advanced bots, Pulse Signals, and unlimited Nova AI uploads.',
       ctaLabel: 'View plans',
       onCta: onOpenSubscription,
       accent: 'from-[#f59e0b] to-[#fbbf24]',
@@ -105,7 +105,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       bullets: [
         'Upload Chart — drop a screenshot, get a full trade plan + AI verification',
         'Pulse Signals — auto-detected institutional setups, updated live',
-        'AI Trading — chat with Gemina about any chart, get reviews & recommendations',
+        'AI Trading — chat with Nova about any chart, get reviews & recommendations',
         'Manage Bots — deploy automated strategies with risk guardrails',
       ],
       accent: 'from-[#ec4899] to-[#f472b6]',
@@ -116,9 +116,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       badge: 'All set',
       title: "You're ready to trade",
       description:
-        'Open the How-to-Use guide anytime from the sidebar. Want a tour with Gemina AI right now?',
+        'Open the How-to-Use guide anytime from the sidebar. Want a tour with Nova AI right now?',
       bullets: [
-        'Click the purple Gemina button anytime',
+        'Click the purple Nova button anytime',
         'Upload a chart to get your first AI review',
         'Enable notifications to catch high-impact news',
       ],

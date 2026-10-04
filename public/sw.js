@@ -53,7 +53,7 @@ self.addEventListener('fetch', (event) => {
   // 1. Only handle GET requests
   if (request.method !== 'GET') return;
 
-  // 2. Skip cross-origin (Google Fonts, DeepSeek, TradingView, etc.)
+  // 2. Skip cross-origin (Google Fonts, Nova, TradingView, etc.)
   if (url.origin !== self.location.origin) return;
 
   // 3. Skip API routes — always go to network

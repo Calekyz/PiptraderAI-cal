@@ -7,7 +7,7 @@ import {
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { compressImage } from '../lib/imageCompress';
 
-interface GeminaAssistantModalProps {
+interface NovaAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialTab?: 'chat' | 'vision';
@@ -15,7 +15,7 @@ interface GeminaAssistantModalProps {
 
 export interface ChatMessage {
   id: string;
-  sender: 'gemina' | 'user';
+  sender: 'nova' | 'user';
   text: string;
   timestamp: string;
   isVisionResult?: boolean;
@@ -39,14 +39,14 @@ function getUserEmailFromStorage(): string {
   return '';
 }
 
-export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
+export const NovaAssistantModal: React.FC<NovaAssistantModalProps> = ({
   isOpen, onClose, initialTab = 'chat'
 }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'vision'>(initialTab);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'msg-init',
-      sender: 'gemina',
+      sender: 'nova',
       text: "Hello! I am your PipTraderAI Engine assistant. I can give you live rule-based setups (SMC, CRT, Asian Sweep, Price Action), news bias, and platform help. Try: \"Give me a setup for Gold\" or \"Is USD strong today?\"",
       timestamp: 'Just now'
     }
@@ -88,6 +88,14 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
     window.speechSynthesis.speak(utterance);
   };
 
+  // ── Cancel ongoing speech when user disables TTS ──
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (!ttsEnabled) {
+      try { window.speechSynthesis.cancel(); } catch {}
+    }
+  }, [ttsEnabled]);
+
   const handleSendMessage = async (textToSend?: string) => {
     const text = (textToSend || inputText).trim();
     if (!text || isLoading) return;
@@ -124,8 +132,8 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
       const reply = data.reply || 'Analysis completed.';
 
       const botMsg: ChatMessage = {
-        id: `gemina-${Date.now()}`,
-        sender: 'gemina',
+        id: `nova-${Date.now()}`,
+        sender: 'nova',
         text: reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -135,7 +143,7 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
     } catch (error) {
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
-        sender: 'gemina',
+        sender: 'nova',
         text: "Engine connection issue. Please check your network and try again.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -190,13 +198,13 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
     setMessages((prev) => [...prev, uploadUserMsg]);
 
     try {
-      const res = await fetch('/api/gemina-vision-analyze', {
+      const res = await fetch('/api/nova-vision-analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageBase64: selectedImage,
           mimeType: imageMime,
-          prompt: visionPrompt || "You are Gemina, a financial data extraction expert. Read this screenshot carefully. List every instrument (symbol), price, absolute change, and percentage change. Then give a brief market summary. Format as clear bullet points.",
+          prompt: visionPrompt || "You are Nova, a financial data extraction expert. Read this screenshot carefully. List every instrument (symbol), price, absolute change, and percentage change. Then give a brief market summary. Format as clear bullet points.",
           email: getUserEmail(),
         })
       });
@@ -221,8 +229,8 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
         const errData = await res.json().catch(() => ({}));
         const reason = errData.error ? `\n\n_Reason: ${errData.error}_` : '';
         const errMsg: ChatMessage = {
-          id: `gemina-502-${Date.now()}`,
-          sender: 'gemina',
+          id: `nova-502-${Date.now()}`,
+          sender: 'nova',
           text: `⚠️ **AI vision could not process this image.**\n\n${errData.message || 'Please try again in 1–2 minutes.'}${reason}\n\nYour credits were not consumed for this attempt.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
@@ -235,8 +243,8 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
       const data = await res.json();
       if (!data?.success || !data?.analysis) {
         const errMsg: ChatMessage = {
-          id: `gemina-noanalysis-${Date.now()}`,
-          sender: 'gemina',
+          id: `nova-noanalysis-${Date.now()}`,
+          sender: 'nova',
           text: `⚠️ Could not read the image. ${data?.message || 'Try a clearer screenshot.'}`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
@@ -249,8 +257,8 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
       const analysisText = data.analysis;
 
       const botVisionMsg: ChatMessage = {
-        id: `gemina-vision-${Date.now()}`,
-        sender: 'gemina',
+        id: `nova-vision-${Date.now()}`,
+        sender: 'nova',
         text: analysisText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isVisionResult: true
@@ -263,8 +271,8 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
       setActiveTab('chat');
     } catch (err: any) {
       const errVisionMsg: ChatMessage = {
-        id: `gemina-err-${Date.now()}`,
-        sender: 'gemina',
+        id: `nova-err-${Date.now()}`,
+        sender: 'nova',
         text: "Could not complete vision extraction. Please verify image clarity and try again.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -306,7 +314,7 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div id="gemina-ai-assistant-modal" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div id="nova-ai-assistant-modal" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="w-full max-w-5xl h-[92vh] max-h-[860px] bg-[#0b0e11] text-[#d1d4dc] rounded-2xl border border-[#2a2e39] shadow-2xl flex flex-col overflow-hidden font-sans">
 
         <div className="bg-[#1e222d] border-b border-[#2a2e39] px-4 sm:px-6 py-3 flex items-center justify-between shrink-0">

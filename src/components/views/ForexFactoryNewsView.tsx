@@ -793,7 +793,7 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
                                     }
                                   }}
                                   className="p-1.5 rounded-lg bg-[#f0edfe] dark:bg-[#1c1635] text-[#5b3fe4] dark:text-purple-300 hover:bg-[#5b3fe4] hover:text-white transition-colors"
-                                  title="Gemina AI Macro Setup Plan"
+                                  title="Nova AI Macro Setup Plan"
                                 >
                                   <Sparkles className="w-3.5 h-3.5" />
                                 </button>
@@ -942,11 +942,11 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
                 {selectedArticle.content}
               </div>
 
-              {/* Gemina AI Trade Interpretation */}
+              {/* Nova AI Trade Interpretation */}
               <div className="p-4 rounded-2xl bg-[#f5f3ff] dark:bg-[#14122b] border border-purple-200 dark:border-purple-500/30 space-y-2">
                 <div className="flex items-center gap-2 text-xs font-black text-[#5b3fe4] dark:text-purple-300 font-mono">
                   <Sparkles className="w-4 h-4" />
-                  <span>Gemina AI Macro Takeaway &amp; Strategy:</span>
+                  <span>Nova AI Macro Takeaway &amp; Strategy:</span>
                 </div>
                 <p className="text-xs text-[#475569] dark:text-slate-300 leading-normal">
                   High volatility expected on {selectedArticle.affectedPairs.join(', ')}. Look for post-news confirmation candles on the M15 timeframe before executing momentum breakout entries.

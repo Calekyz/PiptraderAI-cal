@@ -60,7 +60,7 @@ const CHAT_MODEL_CHAIN = [
 // ── System prompt ──
 function buildSystemPrompt(ctx: GeminiChatContext): string {
   const lines: string[] = [];
-  lines.push('You are Gemina, an expert trading assistant built into PipTraderAI.');
+  lines.push('You are Nova, an expert trading assistant built into PipTraderAI.');
   lines.push('');
   lines.push('ROLE:');
   lines.push('- Answer trading questions concisely and professionally.');

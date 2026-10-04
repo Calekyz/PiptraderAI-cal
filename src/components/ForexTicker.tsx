@@ -253,7 +253,7 @@ export const ForexTicker: React.FC<ForexTickerProps> = ({
 
   return (
     <div
-      id="gemina-continuous-market-ticker"
+      id="nova-continuous-market-ticker"
       className={`w-full bg-[#0b0e11] border-b border-[#2a2e39] relative overflow-hidden select-none z-20 transition-colors ticker-wrapper ${className}`}
     >
       <div className="w-full flex items-center relative py-1.5 sm:py-2">

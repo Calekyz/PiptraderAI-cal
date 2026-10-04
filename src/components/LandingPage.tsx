@@ -330,9 +330,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <Sparkles className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white tracking-tight">Ask Gemina AI</h3>
+              <h3 className="text-lg font-bold text-white tracking-tight">Ask Nova AI</h3>
               <p className="text-xs sm:text-sm text-gray-300 mt-2 leading-relaxed">
-                Click <strong>Analyze Current Chart</strong> and let Gemina AI examine the current market structure and key price zones.
+                Click <strong>Analyze Current Chart</strong> and let Nova AI examine the current market structure and key price zones.
               </p>
             </div>
           </div>
@@ -384,7 +384,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
             <h3 className="text-base font-bold text-white">AI Chart Analysis</h3>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Gemina AI analyzes the current chart and explains what is happening in simple, clear language without clutter.
+              Nova AI analyzes the current chart and explains what is happening in simple, clear language without clutter.
             </p>
           </div>
 
@@ -607,7 +607,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Ready to Upgrade Your Market Analysis?
             </h2>
             <p className="text-xs sm:text-sm text-gray-300 max-w-xl mx-auto">
-              Join thousands of traders using Gemina AI (DeepSeek) to detect key price action, support, resistance, and market momentum.
+              Join thousands of traders using Nova AI (Nova) to detect key price action, support, resistance, and market momentum.
             </p>
           </div>
 
@@ -658,7 +658,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Regulatory & Risk Disclaimer as mandated */}
           <div className="pt-6 border-t border-[#0f111e] space-y-2 text-[11px] text-gray-400 leading-relaxed">
             <p>
-              <strong>Disclaimer &amp; Decision Support Notice:</strong> PipTraderAI Algo and Gemina AI are designed exclusively as AI-powered analysis, educational, and decision-support tools. PipTraderAI does not offer guaranteed profits, guaranteed signals, or get-rich-quick claims. Trading Foreign Exchange (Forex) and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with capital you cannot afford to lose.
+              <strong>Disclaimer &amp; Decision Support Notice:</strong> PipTraderAI Algo and Nova AI are designed exclusively as AI-powered analysis, educational, and decision-support tools. PipTraderAI does not offer guaranteed profits, guaranteed signals, or get-rich-quick claims. Trading Foreign Exchange (Forex) and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with capital you cannot afford to lose.
             </p>
             <p className="text-gray-400">
               © {new Date().getFullYear()} PipTraderAI Algo. All rights reserved. Support: Pipnexaicustomer@gmail.com · +254726222093

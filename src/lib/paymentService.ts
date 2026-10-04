@@ -150,7 +150,7 @@ const DEFAULT_PRODUCTS: ProductPlanInfo[] = [
     highlighted: false,
     features: [
       'All Elite Plan Features',
-      'Dedicated Gemina AI Bot Engine (DeepSeek)',
+      'Dedicated Nova AI Bot Engine (Nova)',
       'Institutional Liquidity Heatmaps',
       'High-Frequency News Execution',
       'Direct 1-on-1 Trading Desk Access'

@@ -14,7 +14,7 @@ import { MaintenancePage } from './components/MaintenancePage';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { UserProfile } from './types';
 import { X, ShieldAlert, Bot } from 'lucide-react';
-import { GeminaAssistantModal } from './components/GeminaAssistantModal';
+import { NovaAssistantModal } from './components/NovaAssistantModal';
 import { clearAllUserState,
   enterAsDevUser,
   getActiveSession,
@@ -29,7 +29,7 @@ import { isDevelopmentMode } from './lib/devMode';
 const SITE_UNDER_MAINTENANCE = false;
 
 export default function App() {
-  const [isGeminaOpen, setIsGeminaOpen] = useState(false);
+  const [isNovaOpen, setIsNovaOpen] = useState(false);
   const [isAdminPanel, setIsAdminPanel] = useState<boolean>(() => {
     try {
       const host = window.location.hostname.toLowerCase();
@@ -396,7 +396,7 @@ export default function App() {
           Available on every page (hidden in admin panel)
       ═══════════════════════════════════════════════════ */}
       <button
-        onClick={() => setIsGeminaOpen(true)}
+        onClick={() => setIsNovaOpen(true)}
         title="Ask PipAI"
         aria-label="Open PipAI Assistant"
         className="fixed bottom-40 right-6 z-40 w-14 h-14 rounded-full 
@@ -411,9 +411,9 @@ export default function App() {
         <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#07080d] animate-pulse" />
       </button>
 
-      <GeminaAssistantModal
-        isOpen={isGeminaOpen}
-        onClose={() => setIsGeminaOpen(false)}
+      <NovaAssistantModal
+        isOpen={isNovaOpen}
+        onClose={() => setIsNovaOpen(false)}
       />
     </div>
   );

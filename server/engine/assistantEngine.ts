@@ -441,7 +441,7 @@ Earn real money when your referrals subscribe.
 • Paid to M-Pesa or Binance USDT`,
 
   // ─── Greeting ───
-  greeting: `👋 Hey there! I'm Gemina Assistant.
+  greeting: `👋 Hey there! I'm Nova Assistant.
 
 I can help you with:
 • 📈 Trading setups — try "Give me a setup for Gold"

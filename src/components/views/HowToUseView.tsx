@@ -25,7 +25,7 @@ interface HowToUseViewProps {
   user?: { firstName?: string; isVerified?: boolean; mt5Connected?: boolean; plan?: string };
   onNavigateToTab?: (tab: string) => void;
   onOpenMT5?: () => void;
-  onOpenGemina?: (tab?: 'chat' | 'vision') => void;
+  onOpenNova?: (tab?: 'chat' | 'vision') => void;
 }
 
 // ─── YouTube URL parser ──────────────────────────────────────
@@ -44,7 +44,7 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
   user,
   onNavigateToTab,
   onOpenMT5,
-  onOpenGemina,
+  onOpenNova,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedTutorial, setSelectedTutorial] = useState<TutorialGuide | null>(null);
@@ -89,19 +89,19 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
   const categories = ['All','Getting Started','Signal Of The Day','News IQ','Refer & Earn','Upload Chart','Upload Charts','How to Subscribe','MT5 Connection','Pulse Signals','Build Bot','AI Trading','Auto Trading'];
 
   const tutorials: TutorialGuide[] = [
-    { id:'intro', category:'Getting Started', categoryBadge:'Getting Started', bannerTitle:'Introduction', headline:'PIPTRADERAI - Official Platform Introduction | Getting Started', description:"Welcome to PIPTRADERAI. Get an overview of the platform and the tools to master automated forex trading.", duration:'0:45s', accentColor:'from-[#3b156b] to-[#1e0d3d]', mockupType:'phone-auth', keySteps:['Platform navigation overview & workspace tours','Understanding AI bot engine capabilities','Exploring Gemina AI Voice & Vision Assistant'], tryAction:{ label:'Take the dashboard tour' } },
+    { id:'intro', category:'Getting Started', categoryBadge:'Getting Started', bannerTitle:'Introduction', headline:'PIPTRADERAI - Official Platform Introduction | Getting Started', description:"Welcome to PIPTRADERAI. Get an overview of the platform and the tools to master automated forex trading.", duration:'0:45s', accentColor:'from-[#3b156b] to-[#1e0d3d]', mockupType:'phone-auth', keySteps:['Platform navigation overview & workspace tours','Understanding AI bot engine capabilities','Exploring Nova AI Voice & Vision Assistant'], tryAction:{ label:'Take the dashboard tour' } },
     { id:'signup', category:'Getting Started', categoryBadge:'Getting Started', bannerTitle:'Sign Up', headline:'PIPTRADERAI - How to Create Your Account | Sign Up', description:"Learn how to create your PIPTRADERAI account in under a minute.", duration:'0:50s', accentColor:'from-[#2e1057] to-[#18092d]', mockupType:'phone-auth', keySteps:['Filling out verified trader registration details','Setting up secure 256-bit encrypted passwords','Activating free trial access'] },
     { id:'signin', category:'Getting Started', categoryBadge:'Getting Started', bannerTitle:'Sign In', headline:'PIPTRADERAI - How to Sign In | Access Your Account', description:"Learn how to sign in to your PIPTRADERAI account securely.", duration:'0:45s', accentColor:'from-[#26104a] to-[#130725]', mockupType:'phone-auth', keySteps:['Accessing your trading dashboard quickly','Using two-factor security authentication','Recovering your account if you forget your password'] },
     { id:'sotd', category:'Signal Of The Day', categoryBadge:'Signal Of The Day', bannerTitle:'Signal of the Day', headline:'PIPTRADERAI - Signal of the Day | AI-Powered Trading Setups', description:"Our engine generates a high-probability daily setup with entry, stop loss and take-profit levels.", duration:'1:10s', accentColor:'from-[#1e1160] to-[#0e0838]', mockupType:'phone-signals', keySteps:['Understanding entry, stop-loss and take-profit zones','Verifying signals with the AI verification badge','Copying signal details directly to MT5'], tryAction:{ tab:'pulse-signals', label:'View Pulse Signals' } },
     { id:'newsiq', category:'News IQ', categoryBadge:'News IQ', bannerTitle:'News IQ', headline:'PIPTRADERAI - NewsIQ | AI Fundamental Market Analysis', description:"Fundamental analysis on NFP, CPI, FOMC and PPI with clear BUY/SELL predictions.", duration:'1:20s', accentColor:'from-[#1a1550] to-[#0b0830]', mockupType:'cards', keySteps:['Reading the STRONG BUY / STRONG SELL banner','Understanding the AI verification verdict','Timing entries around high-impact news'], tryAction:{ tab:'news-calendar', label:'Open News & Calendar' } },
     { id:'referral', category:'Refer & Earn', categoryBadge:'Refer & Earn', bannerTitle:'Refer & Earn', headline:'PIPTRADERAI - Referral Program | How to Refer & Earn', description:"Share PIPTRADERAI with others and earn credits on every successful signup.", duration:'1:05s', accentColor:'from-[#231567] to-[#100839]', mockupType:'phone-refer', keySteps:['Locating your unique referral link','Sharing with your trading community','Earning credits on every successful signup'] },
-    { id:'upload-chart', category:'Upload Chart', categoryBadge:'Upload Chart', bannerTitle:'Upload Chart', headline:'PIPTRADERAI - How to Upload a Trading Chart for AI Analysis', description:"Upload any chart screenshot — Gemina AI Vision reads the chart and gives you a full trade plan.", duration:'1:15s', accentColor:'from-[#2b1568] to-[#180b3d]', mockupType:'phone-chart', keySteps:['Taking a clean chart screenshot','Gemina AI Vision reading your chart','Interpreting the entry, stop and take-profit plan'], tryAction:{ tab:'upload-chart', label:'Upload a chart now' } },
+    { id:'upload-chart', category:'Upload Chart', categoryBadge:'Upload Chart', bannerTitle:'Upload Chart', headline:'PIPTRADERAI - How to Upload a Trading Chart for AI Analysis', description:"Upload any chart screenshot — Nova AI Vision reads the chart and gives you a full trade plan.", duration:'1:15s', accentColor:'from-[#2b1568] to-[#180b3d]', mockupType:'phone-chart', keySteps:['Taking a clean chart screenshot','Nova AI Vision reading your chart','Interpreting the entry, stop and take-profit plan'], tryAction:{ tab:'upload-chart', label:'Upload a chart now' } },
     { id:'mtf-intel', category:'Upload Charts', categoryBadge:'Multi-Timeframe', bannerTitle:'Multi-Timeframe', headline:'PIPTRADERAI - Multi-Timeframe Intelligence | Analyze Multiple Timeframes', description:"Analyze the same setup across M15, H1, H4 and D1 in one screen.", duration:'1:30s', accentColor:'from-[#142058] to-[#0a1030]', mockupType:'cards', keySteps:['Switching between timeframes instantly','Spotting confluence across H1 / H4 / D1','Locking in higher-probability entries'], tryAction:{ tab:'upload-chart', label:'Try multi-TF upload' } },
     { id:'subscribe', category:'How to Subscribe', categoryBadge:'How to Subscribe', bannerTitle:'Subscribe', headline:'PIPTRADERAI - How to Subscribe | Choose Your Trading Plan', description:"Learn how to subscribe to a PIPTRADERAI plan and unlock premium features.", duration:'1:00s', accentColor:'from-[#1e1160] to-[#0e0838]', mockupType:'cards', keySteps:['Comparing Starter, Pro and Elite plans','Unlocking Pulse Signals and automated bots','Managing billing and payment methods'], tryAction:{ tab:'subscription', label:'View plans' } },
     { id:'mt5', category:'MT5 Connection', categoryBadge:'MT5 Connection', bannerTitle:'MT5 Connection', headline:'PIPTRADERAI - How to Connect Your MT5 Account', description:"Connect MetaTrader 5 for live execution, position syncing and automated trading.", duration:'1:40s', accentColor:'from-[#113055] to-[#081828]', mockupType:'desktop-builder', keySteps:['Finding your MT5 login and server details','Entering credentials securely','Verifying the live connection status'], tryAction:{ label:'Connect MT5 now' } },
     { id:'pulse-sig', category:'Pulse Signals', categoryBadge:'Pulse Signals', bannerTitle:'Pulse Signals', headline:'PIPTRADERAI - Pulse Signals | Real-Time AI Trading Intelligence', description:"Live feed of institutional setups across forex, commodities and crypto. Every signal is AI-verified.", duration:'1:25s', accentColor:'from-[#143451] to-[#0a1a28]', mockupType:'phone-signals', keySteps:['Reading the live signal feed','Interpreting the AI Caution / Verified badge','Executing with the one-click Trade button'], tryAction:{ tab:'pulse-signals', label:'Open Pulse Signals' } },
     { id:'strategy-builder', category:'Build Bot', categoryBadge:'Build Bot', bannerTitle:'Build Bot', headline:'PIPTRADERAI - Build Your Own Trading Bot with AI', description:"Build, backtest and deploy automated trading strategies without coding.", duration:'2:00s', accentColor:'from-[#231467] to-[#120836]', mockupType:'desktop-builder', keySteps:['Describing your strategy in plain English','Backtesting against historical data','Deploying to your connected MT5 account'], tryAction:{ tab:'manage-bots', label:'Open Manage Bots' } },
-    { id:'ai-trading', category:'AI Trading', categoryBadge:'AI Trading', bannerTitle:'AI Trading', headline:'PIPTRADERAI - AI Trading System & Real-Time Setups', description:"Ask Gemina AI anything about a live chart and get instant structure analysis + Gemina review.", duration:'1:50s', accentColor:'from-[#2a1163] to-[#150735]', mockupType:'phone-chart', keySteps:['Asking Gemina AI questions about live charts','Reading the Gemina Review card below each reply','Acting on Gemina recommendations'], tryAction:{ tab:'ai-trading', label:'Open AI Trading' } },
+    { id:'ai-trading', category:'AI Trading', categoryBadge:'AI Trading', bannerTitle:'AI Trading', headline:'PIPTRADERAI - AI Trading System & Real-Time Setups', description:"Ask Nova AI anything about a live chart and get instant structure analysis + Nova review.", duration:'1:50s', accentColor:'from-[#2a1163] to-[#150735]', mockupType:'phone-chart', keySteps:['Asking Nova AI questions about live charts','Reading the Nova Review card below each reply','Acting on Nova recommendations'], tryAction:{ tab:'ai-trading', label:'Open AI Trading' } },
     { id:'auto-trading', category:'Auto Trading', categoryBadge:'Auto Trading', bannerTitle:'Auto Trading', headline:'PIPTRADERAI - Automated MT5 Execution Engine', description:"Let the engine place trades automatically with risk guardrails and 1% max risk per trade.", duration:'2:10s', accentColor:'from-[#1a0f52] to-[#0a0524]', mockupType:'desktop-builder', keySteps:['Enabling auto-trading on your account','Setting max risk per trade and daily limits','Monitoring open positions in real time'], tryAction:{ tab:'auto-trading', label:'Open Auto Trading' } },
   ];
 
@@ -126,12 +126,12 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
 
   const faqs: FAQItem[] = [
     { q:'How do I connect my MT5 account?', a:'Click your profile menu (top-right) → "MT5 Account Connection" → enter your MT5 login, password and server name. The connection is verified instantly and encrypted. Disconnect any time from the same menu.' },
-    { q:'What is the difference between Pulse Signals and AI Trading?', a:'Pulse Signals is a live feed of institutional setups across many symbols. AI Trading is a chat experience where you ask Gemina AI specific questions about a chart and get real-time structure analysis plus recommendations.' },
-    { q:'How does Gemina AI verify signals?', a:'Every engine signal goes through a silent AI review. Gemina returns AGREE (validated), CAUTION (weakness detected) or DISAGREE (with an alternative). Click the badge next to a signal to read the reasoning.' },
+    { q:'What is the difference between Pulse Signals and AI Trading?', a:'Pulse Signals is a live feed of institutional setups across many symbols. AI Trading is a chat experience where you ask Nova AI specific questions about a chart and get real-time structure analysis plus recommendations.' },
+    { q:'How does Nova AI verify signals?', a:'Every engine signal goes through a silent AI review. Nova returns AGREE (validated), CAUTION (weakness detected) or DISAGREE (with an alternative). Click the badge next to a signal to read the reasoning.' },
     { q:'Are my uploaded charts safe?', a:'Yes. Uploaded charts go to Google Gemini Vision for analysis only. They are not stored on our servers. You have 3 AI chart uploads per platform cycle.' },
     { q:'What is a "STRONG BUY" vs a "STRONG SELL"?', a:'Highest-confidence directional signals. STRONG BUY = engine + AI verifier both see upside; STRONG SELL = both see downside. Always use the entry, stop-loss and take-profit shown.' },
     { q:'How do I turn on Auto Trading?', a:'Auto Trading requires Pro or Elite plan and a connected MT5 account. Go to Auto Trading tab, enable the toggle, set max risk (we recommend 1%), and the engine places trades automatically.' },
-    { q:'What happens if the AI is unavailable?', a:'The engine works independently. If Gemina AI is temporarily unavailable, signals still display — just without the AI verification badge. Nothing breaks.' },
+    { q:'What happens if the AI is unavailable?', a:'The engine works independently. If Nova AI is temporarily unavailable, signals still display — just without the AI verification badge. Nothing breaks.' },
     { q:'How do I cancel my subscription?', a:'Go to Subscription tab → Manage → Cancel. Your plan stays active until end of cycle, then reverts to Starter.' },
     { q:'Can I trade from multiple devices?', a:'Yes. Your account works on desktop, tablet and mobile. Add to home screen for a native app experience (iOS: Share → Add to Home Screen; Android: ⋮ Menu → Install app).' },
     { q:'How does the referral program work?', a:'Share your unique referral link from Refer & Earn. Every trader who signs up and subscribes to a plan gives you account credits toward your own subscription.' },
@@ -156,9 +156,9 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
               Welcome to PipTraderAI{user?.firstName ? ', ' + user.firstName : ''}. Follow the checklist, watch the guides, and you will be placing AI-verified setups in no time.
             </p>
           </div>
-          <button onClick={() => onOpenGemina?.('chat')} className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white text-xs font-bold shadow-lg hover:shadow-purple-500/40 transition-all active:scale-95 cursor-pointer flex items-center gap-2">
+          <button onClick={() => onOpenNova?.('chat')} className="shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white text-xs font-bold shadow-lg hover:shadow-purple-500/40 transition-all active:scale-95 cursor-pointer flex items-center gap-2">
             <Sparkles className="w-4 h-4" />
-            Ask Gemina AI
+            Ask Nova AI
           </button>
         </div>
       </div>
@@ -328,11 +328,11 @@ export const HowToUseView: React.FC<HowToUseViewProps> = ({
           <button onClick={() => onNavigateToTab?.('ai-trading')} className="p-3.5 rounded-2xl bg-[#0f1428] hover:bg-[#181c34] border border-[#232744] hover:border-purple-500/50 transition-all cursor-pointer text-left group">
             <MessageSquare className="w-4 h-4 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
             <div className="text-xs font-bold text-white">AI Trading</div>
-            <div className="text-[10px] text-gray-400 mt-0.5">Chat with Gemina</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">Chat with Nova</div>
           </button>
-          <button onClick={() => onOpenGemina?.('chat')} className="p-3.5 rounded-2xl bg-gradient-to-br from-[#1a0f2e] to-[#0f0d1e] border border-purple-500/40 hover:border-purple-400 transition-all cursor-pointer text-left group">
+          <button onClick={() => onOpenNova?.('chat')} className="p-3.5 rounded-2xl bg-gradient-to-br from-[#1a0f2e] to-[#0f0d1e] border border-purple-500/40 hover:border-purple-400 transition-all cursor-pointer text-left group">
             <Sparkles className="w-4 h-4 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
-            <div className="text-xs font-bold text-white">Ask Gemina</div>
+            <div className="text-xs font-bold text-white">Ask Nova</div>
             <div className="text-[10px] text-gray-400 mt-0.5">Instant AI chat</div>
           </button>
         </div>

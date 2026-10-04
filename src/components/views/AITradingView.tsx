@@ -15,7 +15,7 @@ interface AITradingViewProps {
   onOpenTrish?: () => void;
   onOpenUpgrade?: () => void;
   onBack?: () => void;
-  onOpenGemina?: (tab?: 'chat' | 'vision') => void;
+  onOpenNova?: (tab?: 'chat' | 'vision') => void;
 }
 
 export interface MarketAsset {
@@ -81,7 +81,7 @@ export interface TechnicalIndicators {
 
 export const AITradingView: React.FC<AITradingViewProps> = ({
   user, theme = 'light', onOpenTrish, onOpenUpgrade, onBack,
-  onOpenGemina
+  onOpenNova
 }) => {
   const [selectedAsset, setSelectedAsset] = useState<MarketAsset>(SUPPORTED_MARKETS[0]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('60');
@@ -449,7 +449,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
         time: replyTime
       }]);
 
-      // ── Fetch Gemina review in the background ──
+      // ── Fetch Nova review in the background ──
       try {
         const reviewRes = await fetch('/api/ai/review-chat-reply', {
           method: 'POST',
@@ -557,7 +557,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
         { sender: 'straddle', text: reply, time: replyTime }
       ]);
 
-      // ── Then fetch Gemina's silent review in the background ──
+      // ── Then fetch Nova's silent review in the background ──
       (async () => {
         try {
           const reviewRes = await fetch('/api/ai/review-chat-reply', {
@@ -863,17 +863,17 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
           </div>
         </div>
 
-        {/* Gemina AI upgrade banner — opens the advanced assistant */}
-        {onOpenGemina && (
+        {/* Nova AI upgrade banner — opens the advanced assistant */}
+        {onOpenNova && (
           <div
-            id="open-gemina-from-chat"
+            id="open-nova-from-chat"
             className="mb-3 px-4 py-3 rounded-xl border border-purple-500/40 bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-transparent flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-2 min-w-0">
               <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
               <div className="min-w-0">
                 <div className="text-xs text-purple-100 font-bold truncate">
-                  Upgrade to Gemina AI
+                  Upgrade to Nova AI
                 </div>
                 <div className="text-[10px] text-purple-300/70 truncate">
                   Real explanations, chart vision, and deeper analysis
@@ -882,10 +882,10 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
             </div>
             <button
               type="button"
-              onClick={() => onOpenGemina('chat')}
+              onClick={() => onOpenNova('chat')}
               className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white text-[11px] font-bold cursor-pointer hover:shadow-md hover:shadow-purple-500/40 transition-all active:scale-95 whitespace-nowrap"
             >
-              Open Gemina →
+              Open Nova →
             </button>
           </div>
         )}

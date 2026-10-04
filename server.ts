@@ -1412,7 +1412,7 @@ app.post('/api/ai-trading-analyze', async (req, res) => {
     const latestCandle = candles[candles.length - 1] || {};
     const recentCandlesSummary = candles.slice(-10).map((c: any) => `[${c.time} O:${c.open} H:${c.high} L:${c.low} C:${c.close} V:${c.volume}]`).join('\n');
 
-    const prompt = `You are Gemina, an elite institutional chart analysis and market structure assistant.
+    const prompt = `You are Nova, an elite institutional chart analysis and market structure assistant.
 Analyze this live financial market chart using the provided REAL data:
 Symbol: ${symbol}
 Timeframe: ${timeframe}
@@ -1505,7 +1505,7 @@ CRITICAL RULES:
     const rawText = await generateWithFallback({
       model: 'gemini-flash-latest',
       prompt,
-      systemInstruction: 'You are Gemina, an elite institutional Forex, Commodities, and Crypto chart analyst. Provide disciplined, highly accurate, probabilistic analysis based strictly on real candle data.',
+      systemInstruction: 'You are Nova, an elite institutional Forex, Commodities, and Crypto chart analyst. Provide disciplined, highly accurate, probabilistic analysis based strictly on real candle data.',
       responseMimeType: 'application/json',
       temperature: 0.2
     });
@@ -1646,7 +1646,7 @@ CRITICAL RULES:
 // ==========================================
 // STRADDLE AI ASSISTANT SYSTEM DIRECTIVE
 // ==========================================
-export const STRADDLE_AI_SYSTEM_INSTRUCTION = `You are Gemina, the intelligent AI assistant built into PipTraderAI.
+export const STRADDLE_AI_SYSTEM_INSTRUCTION = `You are Nova, the intelligent AI assistant built into PipTraderAI.
 
 Your mission is to provide clients with reliable, professional, responsible, and easy-to-understand assistance with everything related to Pipnex AI, trading education, market analysis, trade setups, entries, risk management, platform usage, and technical support.
 
@@ -1779,20 +1779,20 @@ Never claim that you performed an action unless the system actually performed an
 // GEMINA AI & DEEPSEEK INTEGRATION
 // ============================================================================
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-66f62adcd6634988b3716806a4ffeb38';
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.nova.com/v1/chat/completions';
 
-const GEMINA_AI_SYSTEM_INSTRUCTION = `You are Gemina, a professional financial analyst assistant. Respond clearly and concisely with expert market insights, technical analysis (support/resistance, market structure, trend direction, order blocks, FVG), risk management (1-2% risk per trade), and institutional trade plans.`;
+const GEMINA_AI_SYSTEM_INSTRUCTION = `You are Nova, a professional financial analyst assistant. Respond clearly and concisely with expert market insights, technical analysis (support/resistance, market structure, trend direction, order blocks, FVG), risk management (1-2% risk per trade), and institutional trade plans.`;
 
-// [removed] callDeepSeekAPI — replaced by Gemini via @google/genai
+// [removed] callNovaAPI — replaced by Gemini via @google/genai
 
-app.post(['/api/gemina-chat', '/api/deepseek-chat', '/api/straddle-chat', '/api/trish-chat'], async (req, res) => {
+app.post(['/api/nova-chat', '/api/nova-chat', '/api/straddle-chat', '/api/trish-chat'], async (req, res) => {
   try {
     const { message, conversationHistory = [] } = req.body;
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    const deepseekMessages = [
+    const novaMessages = [
       { role: 'system', content: GEMINA_AI_SYSTEM_INSTRUCTION },
       ...conversationHistory.map((m: { role: string; text: string }) => ({
         role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user',
@@ -1801,24 +1801,24 @@ app.post(['/api/gemina-chat', '/api/deepseek-chat', '/api/straddle-chat', '/api/
       { role: 'user', content: message }
     ];
 
-    const reply = await callDeepSeekAPI(deepseekMessages, 'deepseek-chat', 0.5);
+    const reply = await callNovaAPI(novaMessages, 'nova-chat', 0.5);
 
     res.json({
       reply: reply || 'I have reviewed your request. Let me know what specific pair, level, strategy, or platform feature you would like assistance with.',
-      assistant: 'Gemina AI',
+      assistant: 'Nova AI',
       provider: 'Gemini'
     });
   } catch (error: any) {
-    console.error('Gemina AI Chat error:', error);
+    console.error('Nova AI Chat error:', error);
     res.json({
-      reply: `I am Gemina AI Assistant, powered by DeepSeek. I am ready to assist you with live forex/crypto chart analysis, risk parameters, key support/resistance levels, and algorithmic trade setups. What asset would you like to review?`,
-      assistant: 'Gemina AI',
+      reply: `I am Nova AI Assistant, powered by Nova. I am ready to assist you with live forex/crypto chart analysis, risk parameters, key support/resistance levels, and algorithmic trade setups. What asset would you like to review?`,
+      assistant: 'Nova AI',
       provider: 'Gemini'
     });
   }
 });
 
-app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, res) => {
+app.post(['/api/nova-vision-analyze', '/api/screenshot-analyze'], async (req, res) => {
   try {
     const { imageBase64, mimeType = 'image/png', prompt: customPrompt, email: bodyEmail } = req.body;
     if (!imageBase64) {
@@ -1877,7 +1877,7 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
     }
 
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const defaultVisionPrompt = customPrompt || "You are Gemina, a financial data extraction expert. Read this screenshot carefully. List every instrument (symbol), price, absolute change, and percentage change. Then give a brief market summary. Format as clear bullet points.";
+    const defaultVisionPrompt = customPrompt || "You are Nova, a financial data extraction expert. Read this screenshot carefully. List every instrument (symbol), price, absolute change, and percentage change. Then give a brief market summary. Format as clear bullet points.";
 
     let analysis = '';
 
@@ -1915,13 +1915,13 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
                   }
                 ],
                 config: {
-                  systemInstruction: "You are Gemina, a professional financial analyst and vision data extraction expert. Extract prices, symbols, changes, and provide clear bullet points.",
+                  systemInstruction: "You are Nova, a professional financial analyst and vision data extraction expert. Extract prices, symbols, changes, and provide clear bullet points.",
                   temperature: 0.2
                 }
               });
               const text = resp?.text || '';
               if (!text || text.trim().length < 5) throw new Error('empty response');
-              console.log(`[Gemina Vision] OK via ${tryModel} in ${Date.now()}ms`);
+              console.log(`[Nova Vision] OK via ${tryModel} in ${Date.now()}ms`);
               return text;
             } catch (err: any) {
               lastErr = err;
@@ -1930,12 +1930,12 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
               const is429 = msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED');
               if ((is503 || is429) && attempt === 0) {
                 const delay = 500;
-                console.warn(`[Gemina Vision] ${tryModel} busy — retry in ${delay}ms`);
+                console.warn(`[Nova Vision] ${tryModel} busy — retry in ${delay}ms`);
                 await new Promise(r => setTimeout(r, delay));
                 continue;
               }
               // Try next model
-              console.warn(`[Gemina Vision] ${tryModel} failed: ${msg.slice(0, 100)}`);
+              console.warn(`[Nova Vision] ${tryModel} failed: ${msg.slice(0, 100)}`);
               break;
             }
           }
@@ -1947,7 +1947,7 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
     } catch (visErr: any) {
       // ⚠️ NO FAKE DATA: return a real error so the client can show something honest.
       const errMsg = String(visErr?.message || '');
-      console.error('[Gemina Vision] Gemini call failed:', errMsg);
+      console.error('[Nova Vision] Gemini call failed:', errMsg);
 
       // Categorize for the client so it can show a helpful message
       let reason = 'vision_unavailable';
@@ -2000,12 +2000,12 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
     res.json({
       success: true,
       analysis: analysis.trim() || 'The image could not be interpreted. Please upload a clearer screenshot.',
-      assistant: 'Gemina AI',
+      assistant: 'Nova AI',
       provider: 'Gemini',
       aiUsage: usageAfter,
     });
   } catch (error: any) {
-    console.error('Gemina Vision analyze error:', error);
+    console.error('Nova Vision analyze error:', error);
     res.status(500).json({ error: error?.message || 'Failed to analyze screenshot' });
   }
 });
@@ -2427,7 +2427,7 @@ app.post('/api/analyze-chart', async (req, res) => {
 
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-    const systemPrompt = `You are Gemina AI Chart Vision Assistant. Analyze the provided chart screenshot and return a JSON object with this EXACT structure:
+    const systemPrompt = `You are Nova AI Chart Vision Assistant. Analyze the provided chart screenshot and return a JSON object with this EXACT structure:
 {
   "symbol": "EUR/USD" or "XAU/USD" or "UNKNOW" (detect from chart or fallback to UNKNOW),
   "subTitle": "Straddle AI Vision",
@@ -4946,7 +4946,7 @@ app.post('/api/ai/review-chat-reply', async (req, res) => {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
 
-    const prompt = `You are Gemina, a professional trading analyst. The user asked a question. A rule-based engine gave a reply. Your job is to:
+    const prompt = `You are Nova, a professional trading analyst. The user asked a question. A rule-based engine gave a reply. Your job is to:
 
 1. REVIEW the engine's answer in 2-3 short sentences — was it correct? What did it miss? What's the biggest risk?
 2. Give 3-5 RECOMMENDATIONS as short bullet points (each one an action: adjust entry, wait for confirmation, watch this level, reduce size, etc.)

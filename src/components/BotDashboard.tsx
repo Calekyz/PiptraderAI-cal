@@ -60,7 +60,7 @@ import { MacroAnalysisModal } from './MacroAnalysisModal';
 import { UpgradePlanModal } from './UpgradePlanModal';
 import { MT5ConnectionModal } from './MT5ConnectionModal';
 import { MyProfileModal } from './MyProfileModal';
-import { GeminaAssistantModal } from './GeminaAssistantModal';
+import { NovaAssistantModal } from './NovaAssistantModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { PendingPaymentBanner } from './PendingPaymentBanner';
 import { AuditLockScreen } from './AuditLockScreen';
@@ -283,7 +283,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
   // Modals state
   const [isTrishOpen, setIsTrishOpen] = useState(false); // legacy — kept to avoid breaking callers
-  const [isGeminaOpen, setIsGeminaOpen] = useState(false);
+  const [isNovaOpen, setIsNovaOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [creditsToast, setCreditsToast] = useState<{ balance: number; message: string } | null>(null);
   const [displayedCredits, setDisplayedCredits] = useState<number>((user as any)?.credits ?? 0);
@@ -354,11 +354,11 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       }
     } catch {}
   }, [user?.email]);
-  const [geminaTab, setGeminaTab] = useState<'chat' | 'vision'>('chat');
+  const [novaTab, setNovaTab] = useState<'chat' | 'vision'>('chat');
 
-  const handleOpenGemina = (tab: 'chat' | 'vision' = 'chat') => {
-    setGeminaTab(tab);
-    setIsGeminaOpen(true);
+  const handleOpenNova = (tab: 'chat' | 'vision' = 'chat') => {
+    setNovaTab(tab);
+    setIsNovaOpen(true);
   };
   const [selectedMacroEvent, setSelectedMacroEvent] = useState<MacroEvent | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -1111,7 +1111,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
             {activeTab === 'overview' && (
               <OverviewView
                 user={user}
-                onOpenTrish={() => handleOpenGemina('chat')}
+                onOpenTrish={() => handleOpenNova('chat')}
                 onOpenMacroAnalysis={(evt) => setSelectedMacroEvent(evt)}
                 onOpenUpgrade={handleOpenUpgrade}
                 onNavigateToTab={(tabId) => setActiveTab(tabId)}
@@ -1145,7 +1145,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
             {/* Upload Chart */}
             {activeTab === 'upload-chart' && (
-              <UploadChartView user={user} onOpenGemina={handleOpenGemina} />
+              <UploadChartView user={user} onOpenNova={handleOpenNova} />
             )}
 
             {/* FEATURE #4: Manage Bots (Locked without Pro/Active Trial) */}
@@ -1207,9 +1207,9 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 ]}
               >
                 <AITradingView
-                  user={user} onOpenGemina={handleOpenGemina}
+                  user={user} onOpenNova={handleOpenNova}
                   theme={currentTheme}
-                  onOpenTrish={() => handleOpenGemina('chat')}
+                  onOpenTrish={() => handleOpenNova('chat')}
                   onOpenUpgrade={handleOpenUpgrade}
                   onBack={() => setActiveTab('overview')}
                 />
@@ -1277,7 +1277,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 user={user}
                 onNavigateToTab={(tab) => setActiveTab(tab)}
                 onOpenMT5={() => setIsMT5ModalOpen(true)}
-                onOpenGemina={handleOpenGemina}
+                onOpenNova={handleOpenNova}
               />
             )}
 
@@ -1361,19 +1361,19 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       </div>
 
       {/* Trish Voice & Chat AI Assistant Modal */}
-      {/* ── Floating Gemina AI launcher ── */}
+      {/* ── Floating Nova AI launcher ── */}
       <button
-        id="floating-gemina-btn"
-        onClick={() => handleOpenGemina('chat')}
+        id="floating-nova-btn"
+        onClick={() => handleOpenNova('chat')}
         className="fixed bottom-56 right-6 z-50 group flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white shadow-2xl hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all active:scale-95 cursor-pointer border border-purple-300/40"
-        title="Open Gemina AI Assistant"
+        title="Open Nova AI Assistant"
       >
         <Sparkles className="w-5 h-5 fill-current" />
-        <span className="text-sm font-bold tracking-tight hidden sm:inline">Ask Gemina AI</span>
+        <span className="text-sm font-bold tracking-tight hidden sm:inline">Ask Nova AI</span>
         <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
       </button>
 
-      {/* Removed Trish — using Gemina below */}
+      {/* Removed Trish — using Nova below */}
 
 
       {/* Macro Event Analysis Modal */}
@@ -1520,14 +1520,14 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         onOpenMT5={() => { setIsOnboardingOpen(false); setIsMT5ModalOpen(true); }}
         onOpenSubscription={() => { setIsOnboardingOpen(false); setActiveTab('subscription'); }}
         onOpenHowToUse={() => { setIsOnboardingOpen(false); setActiveTab('how-to-use'); }}
-        onOpenGemina={(tab) => { setIsOnboardingOpen(false); handleOpenGemina(tab || 'chat'); }}
+        onOpenNova={(tab) => { setIsOnboardingOpen(false); handleOpenNova(tab || 'chat'); }}
       />
 
-      {/* Gemina AI Assistant Modal */}
-      <GeminaAssistantModal
-        isOpen={isGeminaOpen}
-        onClose={() => setIsGeminaOpen(false)}
-        initialTab={geminaTab}
+      {/* Nova AI Assistant Modal */}
+      <NovaAssistantModal
+        isOpen={isNovaOpen}
+        onClose={() => setIsNovaOpen(false)}
+        initialTab={novaTab}
       />
 
       {/* Floating Support Button — bottom-left with ticket badge */}

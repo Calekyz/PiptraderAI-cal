@@ -88,7 +88,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
         `Amount Paid: ${latestPayment ? `$${latestPayment.usdPrice} USD (KES ${latestPayment.kesAmount.toLocaleString()})` : '$95.00 USD (KES 12,255)'}\n` +
         `Support Contact: Pipnexaicustomer@gmail.com | +254726222093\n` +
         `===================================================\n` +
-        `All PipTraderAI plan upgrades feature real-time AI chart intelligence, Gemina AI (DeepSeek) bot execution, and 24/7 priority support.`
+        `All PipTraderAI plan upgrades feature real-time AI chart intelligence, Nova AI (Nova) bot execution, and 24/7 priority support.`
       ], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
