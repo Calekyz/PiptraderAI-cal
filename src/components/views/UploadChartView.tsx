@@ -304,44 +304,81 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
 
       // If vision succeeded, use its text as the source of truth
       if (visionOk && visionText) {
-        // Parse direction
-        const upper = visionText.toUpperCase();
-        const gemDirection: 'LONG' | 'SHORT' =
-          /BUY/.test(upper) || /BULLISH/.test(upper) ? 'LONG'
-          : /SELL/.test(upper) || /BEARISH/.test(upper) ? 'SHORT'
-          : (plan?.direction === 'SELL' ? 'SHORT' : 'LONG');
+        // ── Robust parsing of Gemini's strict format ──
+        // Priority: **Signal:** field > **Trend:** field > engine fallback
+        const signalMatch = visionText.match(/\*\*Signal:\*\*\s*(BUY|SELL|WAIT)/i);
+        const signalRaw = (signalMatch?.[1] || '').toUpperCase();
+        const trendMatch = visionText.match(/\*\*Trend:\*\*\s*(Bullish|Bearish|Ranging)/i);
+        const trendRaw = (trendMatch?.[1] || '').toUpperCase();
 
-        // Parse symbol (from the strict format we asked for)
+        let gemDirection: 'LONG' | 'SHORT';
+        let directionSource = 'signal';
+        if (signalRaw === 'BUY') {
+          gemDirection = 'LONG';
+        } else if (signalRaw === 'SELL') {
+          gemDirection = 'SHORT';
+        } else if (signalRaw === 'WAIT') {
+          gemDirection = trendRaw === 'BEARISH' ? 'SHORT' : 'LONG';
+          directionSource = 'trend';
+        } else if (trendRaw === 'BEARISH') {
+          gemDirection = 'SHORT';
+          directionSource = 'trend';
+        } else if (trendRaw === 'BULLISH') {
+          gemDirection = 'LONG';
+          directionSource = 'trend';
+        } else {
+          gemDirection = plan?.direction === 'SELL' ? 'SHORT' : 'LONG';
+          directionSource = 'engine';
+        }
+
+        // Symbol
         const symMatch = visionText.match(/\*\*Symbol:\*\*\s*([A-Z0-9\/]+)/i)
-                    || visionText.match(/([A-Z]{3}\/?[A-Z]{3}|XAU\/?USD|BTC\/?USD|ETH\/?USD|NAS100|US30|SPX500)/);
+                    || visionText.match(/([A-Z]{3}\/?[A-Z]{3}|XAU\/?USD|BTC\/?USD|ETH\/?USD|NAS100|US30|SPX500)/);
         const detectedSymbol = symMatch ? symMatch[1].replace('\/', '') : '—';
 
-        // Parse levels with flexible regex
+        // Number extractor
         const num = (pat: RegExp): string | null => {
           const m = visionText.match(pat);
-          return m ? m[1].replace(',', '') : null;
+          return m ? m[1].replace(/,/g, '') : null;
         };
         const entryV = num(/\*\*Entry:\*\*\s*([0-9.,]+)/i) || num(/Entry[\s:]+([0-9.,]+)/i);
         const slV = num(/\*\*Stop\s*Loss:\*\*\s*([0-9.,]+)/i) || num(/(?:Stop[\s-]*Loss|SL)[\s:]+([0-9.,]+)/i);
         const tp1V = num(/\*\*TP\s*1:\*\*\s*([0-9.,]+)/i) || num(/(?:TP\s*1|Take[\s-]*Profit\s*1|Target\s*1)[\s:]+([0-9.,]+)/i);
         const tp2V = num(/\*\*TP\s*2:\*\*\s*([0-9.,]+)/i) || num(/(?:TP\s*2|Take[\s-]*Profit\s*2|Target\s*2)[\s:]+([0-9.,]+)/i);
 
+        // Derive bias + order type from direction
+        const bias: 'Bullish' | 'Bearish' = gemDirection === 'LONG' ? 'Bullish' : 'Bearish';
+        const orderType = gemDirection === 'LONG' ? 'Buy Limit / Market' : 'Sell Limit / Market';
+
+        // Compute R:R from parsed levels
+        let computedRR = '—';
+        const eN = parseFloat(entryV || '0');
+        const sN = parseFloat(slV || '0');
+        const tN = parseFloat(tp1V || '0');
+        if (eN > 0 && sN > 0 && tN > 0) {
+          const risk = Math.abs(eN - sN);
+          const reward = Math.abs(tN - eN);
+          if (risk > 0.0001) computedRR = `1:${(reward / risk).toFixed(1)}`;
+        } else if (plan?.riskReward) {
+          computedRR = `1:${plan.riskReward.toFixed(1)}`;
+        }
+
         const visionPlan: TradePlan = {
           symbol: detectedSymbol,
-          subTitle: 'Gemina AI · Vision Analysis (read from your chart)',
+          subTitle: `Gemina AI · Vision Analysis${directionSource !== 'signal' ? ` (${directionSource})` : ''}`,
           direction: gemDirection,
           confidence: plan?.confidence || 75,
-          bias: gemDirection === 'LONG' ? 'Bullish' : 'Bearish',
+          bias,
           entry: entryV || (plan?.currentPrice ? plan.currentPrice.toFixed(selectedDecimals) : '—'),
-          orderType: gemDirection === 'LONG' ? 'Buy Limit / Market' : 'Sell Limit / Market',
+          orderType,
           stopLoss: slV || (plan?.stopLoss ? plan.stopLoss.toFixed(selectedDecimals) : '—'),
           stopLossDistance: '',
           takeProfit1: tp1V || (plan?.takeProfit1 ? plan.takeProfit1.toFixed(selectedDecimals) : '—'),
           takeProfit2: tp2V || (plan?.takeProfit2 ? plan.takeProfit2.toFixed(selectedDecimals) : '—'),
-          riskReward: plan?.riskReward ? `1:${plan.riskReward.toFixed(1)}` : '—',
+          riskReward: computedRR,
           recommendedRisk: '1.0% – 1.5% of equity',
           whyThisTrade: visionText,
-          adjustmentNote: 'AI vision analysis — Gemini read your actual chart, including structure, levels, and patterns.',
+          adjustmentNote: 'AI vision analysis — Gemini read your actual chart.',
         };
         setTradePlan(visionPlan);
         return;
