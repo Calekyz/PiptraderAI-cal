@@ -138,6 +138,45 @@ interface ForexFactoryNewsViewProps {
 }
 
 export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
+  // ── Format any event time in the user's local timezone ──
+  const formatLocalEventTime = React.useCallback((evt: any): string => {
+    if (!evt) return '—';
+    // Prefer raw timestamp — it's timezone-agnostic
+    const ts = evt.timestamp || (evt.date ? new Date(evt.date).getTime() : null);
+    if (ts && !isNaN(Number(ts))) {
+      try {
+        return new Date(Number(ts)).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        });
+      } catch {}
+    }
+    // Fallback: try to parse evt.time as UTC HH:MM
+    if (evt.time && /^\d{1,2}:\d{2}/.test(String(evt.time))) {
+      try {
+        const [h, m] = String(evt.time).split(':').map((n: string) => parseInt(n, 10));
+        const d = new Date();
+        d.setUTCHours(h, m, 0, 0);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch {}
+    }
+    return evt.time || '—';
+  }, []);
+
+  const formatLocalEventDate = React.useCallback((evt: any): string => {
+    if (!evt) return '—';
+    const ts = evt.timestamp || (evt.date ? new Date(evt.date).getTime() : null);
+    if (ts && !isNaN(Number(ts))) {
+      try {
+        return new Date(Number(ts)).toLocaleDateString([], {
+          weekday: 'short', month: 'short', day: 'numeric',
+        });
+      } catch {}
+    }
+    return evt.dayDate || evt.dateStr || '—';
+  }, []);
+
   onOpenMacroAnalysis,
   onNavigateToChart
 }) => {

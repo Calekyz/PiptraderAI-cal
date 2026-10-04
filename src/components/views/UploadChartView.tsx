@@ -21,6 +21,7 @@ import {
 import { AIVerificationPill } from '../AIVerificationPill';
 import { useSignalVerification } from '../../hooks/useSignalVerification';
 import { getUserEmail, handleCreditError } from '../../lib/creditsClient';
+import { compressImage } from '../../lib/imageCompress';
 
 export interface TradePlan {
   symbol: string;
@@ -155,16 +156,25 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
     }
   };
 
-  const processFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const imgData = event.target?.result as string;
-      setSelectedImage(imgData);
+  const processFile = async (file: File) => {
+    try {
+      // Compress before upload — keeps base64 well under Gemini's 4MB inline limit
+      const result = await compressImage(file, { maxDimension: 1600, quality: 0.85 });
+      console.log(`[Upload] Compressed: ${Math.round(result.originalBytes/1024)}KB → ${Math.round(result.compressedBytes/1024)}KB (${result.width}x${result.height})`);
+      setSelectedImage(result.dataUrl);
       setTradePlan(null);
-      // Automatically trigger AI analysis
-      triggerAnalysisWithImage(imgData);
-    };
-    reader.readAsDataURL(file);
+      triggerAnalysisWithImage(result.dataUrl);
+    } catch (err) {
+      console.warn('Compression failed, using original:', err);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imgData = event.target?.result as string;
+        setSelectedImage(imgData);
+        setTradePlan(null);
+        triggerAnalysisWithImage(imgData);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const triggerAnalysisWithImage = async (imgData: string) => {

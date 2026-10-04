@@ -5,6 +5,7 @@ import {
   Loader2, Trash2, FileText, Activity, ArrowRight, Maximize2
 } from 'lucide-react';
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
+import { compressImage } from '../lib/imageCompress';
 
 interface GeminaAssistantModalProps {
   isOpen: boolean;
@@ -164,9 +165,15 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
       return;
     }
     setImageMime(file.type);
-    const reader = new FileReader();
-    reader.onload = (e) => setSelectedImage(e.target?.result as string);
-    reader.readAsDataURL(file);
+    try {
+      const result = await compressImage(file, { maxDimension: 1600, quality: 0.85 });
+      setSelectedImage(result.dataUrl);
+      setImageMime(result.mimeType);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = (e) => setSelectedImage(e.target?.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAnalyzeVision = async () => {
