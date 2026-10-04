@@ -1159,6 +1159,23 @@ class PersistentDatabase {
     return user;
   }
 
+  /** Sweep all users and apply auto-expiry + Pending credit zeroing.
+   *  Returns the number of users actually modified. */
+  public sweepExpiredUsers(): number {
+    let changed = 0;
+    const before = new Map<string, number>();
+    for (const u of this.users.values()) {
+      before.set(u.id, Number(u.credits ?? 0));
+    }
+    for (const u of Array.from(this.users.values())) {
+      const updated = this.applyAutoExpiry(u);
+      if (Number(updated.credits ?? 0) !== before.get(u.id) || updated.plan !== u.plan) {
+        changed += 1;
+      }
+    }
+    return changed;
+  }
+
   public getUserById(id: string): UserEntity | undefined {
     const user = this.users.get(id);
     if (!user) return undefined;
@@ -1217,7 +1234,16 @@ class PersistentDatabase {
   }
 
   public getAllUsers(): UserEntity[] {
-    return Array.from(this.users.values());
+    const all = Array.from(this.users.values());
+    // Apply auto-expiry + Pending-credit-zeroing on every read so
+    // admin views, dashboards, and stats see live state.
+    return all.map((u) => {
+      try {
+        return this.applyAutoExpiry(u);
+      } catch {
+        return u;
+      }
+    });
   }
 
   // ─── Email verification ───

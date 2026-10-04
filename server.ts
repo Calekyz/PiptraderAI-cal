@@ -3972,7 +3972,10 @@ app.get('/api/admin/stats', (req, res) => {
 
     const activeUsers = users.filter(u => u.status !== 'SUSPENDED');
     const suspendedUsers = users.filter(u => u.status === 'SUSPENDED');
-    const totalCreditsInCirculation = users.reduce((acc, u) => acc + (u.credits || 0), 0);
+    // Exclude Pending users from credits-in-circulation total — they should always be 0.
+    const totalCreditsInCirculation = users
+      .filter((u) => u.plan !== 'Pending')
+      .reduce((acc, u) => acc + (u.credits || 0), 0);
 
     const planBreakdown = {
       Pending: users.filter(u => u.plan === 'Pending').length,
@@ -6159,7 +6162,20 @@ async function setupVite() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  
+// ── Periodic sweep: expire users + zero Pending credits every 5 min ──
+setInterval(() => {
+  try {
+    const changed = (db as any).sweepExpiredUsers?.();
+    if (changed && changed > 0) {
+      console.log(`[Auto-Expire Sweep] Cleaned up ${changed} user(s)`);
+    }
+  } catch (e: any) {
+    console.warn('[Auto-Expire Sweep] failed:', e?.message);
+  }
+}, 5 * 60 * 1000);
+
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`PipNex Server running at http://0.0.0.0:${PORT}`);
   });
 }
