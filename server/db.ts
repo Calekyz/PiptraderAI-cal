@@ -1124,16 +1124,14 @@ class PersistentDatabase {
     return newUser;
   }
 
-  public getUserById(id: string): UserEntity | undefined {
-    return this.users.get(id);
-  }
+  /**
+   * Apply auto-expiry + Pending-credit-zeroing to any user.
+   * Returns the updated entity if a change was made, else the original.
+   */
+  private applyAutoExpiry(user: UserEntity): UserEntity {
+    if (!user) return user;
 
-  public getUserByEmail(email: string): UserEntity | undefined {
-    const norm = email.trim().toLowerCase();
-    const user = Array.from(this.users.values()).find(u => u.email.toLowerCase() === norm);
-    if (!user) return undefined;
-
-    // Auto-expire paid plans when subscriptionExpiry has passed
+    // 1. Expired paid plan → Pending + 0 credits
     if (user.subscriptionExpiry && (user.plan === 'Starter' || user.plan === 'Pro' || user.plan === 'Elite')) {
       const expiryTime = new Date(user.subscriptionExpiry).getTime();
       if (!isNaN(expiryTime) && expiryTime < Date.now()) {
@@ -1143,13 +1141,35 @@ class PersistentDatabase {
           credits: 0,
         });
         if (updated) {
-          console.log(`[Auto-Expire] User ${user.email} subscription expired — downgraded to Pending`);
+          console.log(`[Auto-Expire] User ${user.email} subscription expired — downgraded to Pending, credits → 0`);
           return updated;
         }
       }
     }
 
+    // 2. Pending users must have 0 credits (defensive)
+    if (user.plan === 'Pending' && Number(user.credits ?? 0) > 0) {
+      const updated = this.updateUser(user.id, { credits: 0 } as any);
+      if (updated) {
+        console.log(`[Auto-Expire] User ${user.email} is Pending — force credits → 0`);
+        return updated;
+      }
+    }
+
     return user;
+  }
+
+  public getUserById(id: string): UserEntity | undefined {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    return this.applyAutoExpiry(user);
+  }
+
+  public getUserByEmail(email: string): UserEntity | undefined {
+    const norm = email.trim().toLowerCase();
+    const user = Array.from(this.users.values()).find(u => u.email.toLowerCase() === norm);
+    if (!user) return undefined;
+    return this.applyAutoExpiry(user);
   }
 
   public updateUser(id: string, updates: Partial<UserEntity>): UserEntity | undefined {

@@ -2012,6 +2012,16 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
 
 app.get('/api/pulse-signals', async (req, res) => {
   try {
+    const gateEmail = String(req.query.email || req.headers['x-user-email'] || '').trim();
+    const gateErr = gateEmail ? requireActivePlan(gateEmail) : null;
+    if (gateErr) {
+      return res.status(gateErr.status).json({
+        success: false,
+        error: gateErr.error,
+        message: gateErr.message,
+      });
+    }
+
     const defaultSignals = [
       {
         id: 'sig-xau-1',
@@ -2750,7 +2760,7 @@ app.post('/api/auth/register', async (req, res) => {
       countryCode,
       plan: 'Pending',
       balance: 0,
-      credits: 150,  // Welcome credits for new users
+      credits: 0,  // No credits until a plan is activated
       isVerified: false,
       authProvider: 'email',
       mt5Connected: false,
@@ -5290,16 +5300,75 @@ const ACTION_COSTS: Record<string, number> = {
  * Charge a user for an action. Returns null on success, or an error object.
  * The caller should return 402 if the result is non-null.
  */
-function chargeUserForAction(email: string | undefined, action: string): { status: number; error: string; balance?: number } | null {
-  if (!email) return null; // allow anonymous (no user identified)
+
+/**
+ * Plan gate helper — returns null if allowed, else an error object.
+ * Use on routes that don't go through chargeUserForAction.
+ */
+function requireActivePlan(
+  email: string | undefined
+): { status: number; error: string; message?: string } | null {
+  if (!email) return { status: 401, error: 'auth_required', message: 'Please log in.' };
+  const u = db.getUserByEmail(String(email).toLowerCase().trim());
+  if (!u) return { status: 404, error: 'user_not_found' };
+  if (u.plan === 'Pending') {
+    return {
+      status: 403,
+      error: 'plan_required',
+      message: 'This feature requires an active plan. Upgrade to unlock.',
+    };
+  }
+  return null;
+}
+
+function chargeUserForAction(
+  email: string | undefined,
+  action: string
+): { status: number; error: string; balance?: number; message?: string } | null {
+  // ── Auth required for all paid actions ──
+  if (!email) {
+    return {
+      status: 401,
+      error: 'auth_required',
+      message: 'Please log in to use this feature.',
+    };
+  }
+
   const cost = ACTION_COSTS[action];
   if (cost === undefined) return null; // unknown action — don't block
+
+  // ── Plan gate: block Pending BEFORE checking credits ──
+  const user = db.getUserByEmail(String(email).toLowerCase().trim());
+  if (!user) {
+    return {
+      status: 404,
+      error: 'user_not_found',
+      message: 'User account not found.',
+    };
+  }
+  if (user.plan === 'Pending') {
+    return {
+      status: 403,
+      error: 'plan_required',
+      message: 'This feature requires an active plan. Upgrade to Starter, Pro, or Elite.',
+      balance: 0,
+    };
+  }
+
+  // ── Credit check ──
   const result = db.consumeUserCredits(String(email).toLowerCase().trim(), cost, `Action: ${action}`);
   if (result.ok) return null;
   if (result.error === 'insufficient_credits') {
-    return { status: 402, error: 'insufficient_credits', balance: result.balance };
+    return {
+      status: 402,
+      error: 'insufficient_credits',
+      balance: result.balance,
+      message: 'You are out of credits. Top up or upgrade your plan.',
+    };
   }
-  return null; // user_not_found → don't block (allow graceful fallback)
+
+  // Fallback (user gone mid-request)
+  return { status: 404, error: 'user_not_found' };
 }
 
 /** GET /api/credits/balance?email=... */
@@ -6003,6 +6072,16 @@ app.post('/api/engine/analyze', async (req, res) => {
 
 app.get('/api/engine/news-bias', async (req, res) => {
   try {
+    const gateEmail = String(req.query.email || req.headers['x-user-email'] || '').trim();
+    const gateErr = gateEmail ? requireActivePlan(gateEmail) : null;
+    if (gateErr) {
+      return res.status(gateErr.status).json({
+        success: false,
+        error: gateErr.error,
+        message: gateErr.message,
+      });
+    }
+
     const events = await fetchFfEventsForEngine();
     if (!events.length) {
       // Return a graceful empty response instead of 503 so the UI can show something
