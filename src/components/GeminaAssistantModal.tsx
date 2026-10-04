@@ -159,7 +159,7 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
 
   React.useEffect(() => { refreshUsage(); }, [refreshUsage]);
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (PNG, JPG, GIF, WebP)');
       return;
