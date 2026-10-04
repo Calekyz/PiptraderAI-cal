@@ -138,6 +138,9 @@ interface ForexFactoryNewsViewProps {
 }
 
 export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
+  onOpenMacroAnalysis,
+  onNavigateToChart
+}) => {
   // ── Format any event time in the user's local timezone ──
   const formatLocalEventTime = React.useCallback((evt: any): string => {
     if (!evt) return '—';
@@ -177,9 +180,6 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
     return evt.dayDate || evt.dateStr || '—';
   }, []);
 
-  onOpenMacroAnalysis,
-  onNavigateToChart
-}) => {
   // 1. Timezone & Time Filters State
   const [selectedTimezone, setSelectedTimezone] = useState<string>(
     localStorage.getItem('pipnex_ff_timezone') || 'America/New_York'
