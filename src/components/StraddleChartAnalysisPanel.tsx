@@ -175,9 +175,70 @@ export const NovaChartAnalysisPanel: React.FC<StraddleChartAnalysisPanelProps> =
   const isBuySignal = tradeSignal.toUpperCase().includes('BUY') || tradeSignal.toUpperCase().includes('LONG');
   const isSellSignal = tradeSignal.toUpperCase().includes('SELL') || tradeSignal.toUpperCase().includes('SHORT');
 
+  // ── Normalize levels against direction ──
+  //  SHORT: SL must be > entry, TP1/TP2 must be < entry
+  //  LONG:  SL must be < entry, TP1/TP2 must be > entry
+  //  If server-side levels are inverted, this reflects them across entry.
+  const normalizeLevel = (raw: any): number => {
+    if (raw === null || raw === undefined) return NaN;
+    const cleaned = String(raw).replace(/[^0-9.\-]/g, '');
+    const n = parseFloat(cleaned);
+    return isNaN(n) ? NaN : n;
+  };
+
+  const fmtLevel = (n: number, orig: any): string => {
+    if (isNaN(n)) return String(orig ?? '—');
+    const origStr = String(orig || '');
+    const dotIdx = origStr.indexOf('.');
+    if (dotIdx >= 0) {
+      const decimals = Math.min(origStr.length - dotIdx - 1, 5);
+      return n.toFixed(decimals);
+    }
+    return n.toFixed(2);
+  };
+
+  const normalizedRisk = (() => {
+    const ra: any = (analysis as any)?.riskAnalysis;
+    if (!ra) return null;
+
+    let entry = normalizeLevel(ra.entryArea);
+    let sl = normalizeLevel(ra.stopLoss);
+    let tp1 = normalizeLevel(ra.takeProfit1);
+    let tp2 = normalizeLevel(ra.takeProfit2);
+    let swapped = false;
+
+    if (!isNaN(entry)) {
+      if (isSellSignal) {
+        if (!isNaN(sl) && sl < entry) { sl = entry + (entry - sl); swapped = true; }
+        if (!isNaN(tp1) && tp1 > entry) { tp1 = entry - (tp1 - entry); swapped = true; }
+        if (!isNaN(tp2) && tp2 > entry) { tp2 = entry - (tp2 - entry); swapped = true; }
+      } else if (isBuySignal) {
+        if (!isNaN(sl) && sl > entry) { sl = entry - (sl - entry); swapped = true; }
+        if (!isNaN(tp1) && tp1 < entry) { tp1 = entry + (entry - tp1); swapped = true; }
+        if (!isNaN(tp2) && tp2 < entry) { tp2 = entry + (entry - tp2); swapped = true; }
+      }
+    }
+
+    if (swapped) {
+      console.warn('[NovaPanel] Level inversion detected — reflected levels across entry', { entry, sl, tp1, tp2 });
+    }
+
+    return {
+      entryArea: fmtLevel(entry, ra.entryArea),
+      stopLoss: fmtLevel(sl, ra.stopLoss),
+      takeProfit1: fmtLevel(tp1, ra.takeProfit1),
+      takeProfit2: fmtLevel(tp2, ra.takeProfit2),
+      riskRewardRatio: ra.riskRewardRatio,
+      recommendedRisk: ra.recommendedRisk,
+      setupType: ra.setupType,
+      tradeExplanation: ra.tradeExplanation,
+      _swapped: swapped,
+    };
+  })();
+
   const handleCopySetup = () => {
-    if (!analysis?.riskAnalysis) return;
-    const { entryArea, stopLoss, takeProfit1, takeProfit2, riskRewardRatio, recommendedRisk } = analysis.riskAnalysis;
+    if (!analysis?.riskAnalysis || !normalizedRisk) return;
+    const { entryArea, stopLoss, takeProfit1, takeProfit2, riskRewardRatio, recommendedRisk } = normalizedRisk;
     const text = `🎯 STRADDLE AI TRADE SETUP
 Symbol: ${cleanSymbol} (${timeframe})
 Signal: ${tradeSignal}
@@ -460,7 +521,7 @@ Generated on live market price: ${priceDisplay}`;
                           <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-950/80 border border-blue-300 dark:border-blue-500/30 text-blue-800 dark:text-blue-300 font-mono">MARKET</span>
                         </div>
                         <div className={`text-base font-extrabold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                          {analysis.riskAnalysis.entryArea}
+                          {normalizedRisk?.entryArea ?? analysis.riskAnalysis.entryArea}
                         </div>
                         <span className={`text-[9px] font-sans ${isLight ? 'text-slate-500' : 'text-gray-400'}`}>Current reference level</span>
                       </div>
@@ -474,7 +535,7 @@ Generated on live market price: ${priceDisplay}`;
                           <ShieldAlert className="w-3 h-3 text-rose-500" />
                         </div>
                         <div className="text-base font-extrabold text-rose-600 dark:text-rose-400">
-                          {analysis.riskAnalysis.stopLoss}
+                          {normalizedRisk?.stopLoss ?? analysis.riskAnalysis.stopLoss}
                         </div>
                         <span className="text-[9px] text-rose-600/80 dark:text-rose-300/70 font-sans">Strict invalidation level</span>
                       </div>
@@ -488,7 +549,7 @@ Generated on live market price: ${priceDisplay}`;
                           <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-mono">50% Scale</span>
                         </div>
                         <div className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
-                          {analysis.riskAnalysis.takeProfit1}
+                          {normalizedRisk?.takeProfit1 ?? analysis.riskAnalysis.takeProfit1}
                         </div>
                         <span className="text-[9px] text-emerald-600/80 dark:text-emerald-300/70 font-sans">Move SL to Breakeven</span>
                       </div>
@@ -502,7 +563,7 @@ Generated on live market price: ${priceDisplay}`;
                           <span className="text-[9px] px-1.5 py-0.2 rounded bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-500/30 text-teal-800 dark:text-teal-300 font-mono">Runner Target</span>
                         </div>
                         <div className="text-base font-extrabold text-teal-600 dark:text-teal-400">
-                          {analysis.riskAnalysis.takeProfit2}
+                          {normalizedRisk?.takeProfit2 ?? analysis.riskAnalysis.takeProfit2}
                         </div>
                         <span className="text-[9px] text-teal-600/80 dark:text-teal-300/70 font-sans">Final target objective</span>
                       </div>
@@ -752,7 +813,7 @@ Generated on live market price: ${priceDisplay}`;
         <div className={`flex items-center justify-between text-[9px] font-mono uppercase tracking-widest px-1 ${
           isLight ? 'text-slate-500' : 'text-gray-500'
         }`}>
-          <span>GEMINA AI DESK · DEEPSEEK</span>
+          <span>NOVA AI DESK</span>
           <span>{symbol} · {timeframe}</span>
         </div>
       </form>
