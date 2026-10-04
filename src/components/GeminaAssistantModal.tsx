@@ -212,10 +212,11 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
       // Handle vision unavailable (502) — real error, not fake data
       if (res.status === 502) {
         const errData = await res.json().catch(() => ({}));
+        const reason = errData.error ? `\n\n_Reason: ${errData.error}_` : '';
         const errMsg: ChatMessage = {
           id: `gemina-502-${Date.now()}`,
           sender: 'gemina',
-          text: `⚠️ **AI vision is temporarily unavailable.**\n\n${errData.message || 'Please try again in 1–2 minutes.'}\n\nYour credits were not consumed for this attempt.`,
+          text: `⚠️ **AI vision could not process this image.**\n\n${errData.message || 'Please try again in 1–2 minutes.'}${reason}\n\nYour credits were not consumed for this attempt.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
         setMessages((prev) => [...prev, errMsg]);

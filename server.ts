@@ -1853,7 +1853,9 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
 
     try {
       const ai = getAIClient();
-      const response = await ai.models.generateContent({
+      // Race the SDK call against a hard 25-second timeout
+      const TIMEOUT_MS = 25000;
+      const call = ai.models.generateContent({
         model: 'gemini-flash-latest',
         contents: [
           {
@@ -1874,15 +1876,38 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
           temperature: 0.2
         }
       });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('vision_timeout_25s')), TIMEOUT_MS)
+      );
+      const response: any = await Promise.race([call, timeout]);
       analysis = response.text || '';
     } catch (visErr: any) {
       // ⚠️ NO FAKE DATA: return a real error so the client can show something honest.
-      console.error('[Gemina Vision] Gemini call failed:', visErr?.message);
+      const errMsg = String(visErr?.message || '');
+      console.error('[Gemina Vision] Gemini call failed:', errMsg);
+
+      // Categorize for the client so it can show a helpful message
+      let reason = 'vision_unavailable';
+      let userMessage = 'AI vision is temporarily unavailable. Please try again in a moment.';
+      if (errMsg.includes('vision_timeout_25s')) {
+        reason = 'timeout';
+        userMessage = 'Gemini took too long to respond (>25s). Please try a smaller image or retry.';
+      } else if (errMsg.includes('429') || errMsg.toLowerCase().includes('rate')) {
+        reason = 'rate_limited';
+        userMessage = 'AI vision is rate-limited right now. Please retry in 30–60 seconds.';
+      } else if (errMsg.includes('400') || errMsg.toLowerCase().includes('invalid')) {
+        reason = 'invalid_image';
+        userMessage = 'Gemini could not read this image format. Try PNG or JPG under 5MB.';
+      } else if (errMsg.includes('403')) {
+        reason = 'blocked';
+        userMessage = 'The image was blocked by safety filters. Please upload a clean trading chart.';
+      }
+
       return res.status(502).json({
         success: false,
-        error: 'vision_unavailable',
-        message: 'AI vision is temporarily unavailable. Please try again in a moment.',
-        detail: String(visErr?.message || '').slice(0, 200),
+        error: reason,
+        message: userMessage,
+        detail: errMsg.slice(0, 200),
       });
     }
 

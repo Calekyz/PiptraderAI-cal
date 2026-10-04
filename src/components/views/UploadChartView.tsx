@@ -239,10 +239,12 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
         try {
           if (visionRes.status === 403) {
             const errData = await visionRes.json().catch(() => ({}));
-            visionErrorMsg = errData.message || 'AI upload limit reached';
+            visionErrorMsg = `⚠️ ${errData.message || 'AI upload limit reached — upgrade for unlimited uploads.'}`;
           } else if (visionRes.status === 502) {
             const errData = await visionRes.json().catch(() => ({}));
-            visionErrorMsg = errData.message || 'AI vision is temporarily unavailable.';
+            const reasonText = errData.message || 'AI vision is temporarily unavailable.';
+            const codeText = errData.error ? ` (${errData.error})` : '';
+            visionErrorMsg = `⚠️ ${reasonText}${codeText}`;
           } else if (visionRes.ok) {
             const visionData = await visionRes.json();
             if (visionData?.success && visionData.analysis) {
@@ -271,7 +273,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
       // If vision FAILED entirely, show an honest error plan
       if (!visionOk && visionErrorMsg) {
         const errorPlan: TradePlan = {
-          symbol: selectedSymbol,
+          symbol: '—',                    // ← not the dropdown default
           subTitle: '⚠️ Vision Analysis Failed',
           direction: 'LONG',
           confidence: 0,
@@ -283,8 +285,8 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
           takeProfit2: '—',
           riskReward: '—',
           recommendedRisk: '—',
-          whyThisTrade: `We could not read your chart: ${visionErrorMsg}\n\nTry: a clearer/smaller image, or retry in 1–2 minutes. Credits were not consumed.`,
-          adjustmentNote: 'Chart vision is temporarily limited.',
+          whyThisTrade: `${visionErrorMsg}\n\nYou can retry with a clearer or smaller image. No credits were consumed for this attempt.`,
+          adjustmentNote: 'Gemini could not read this image.',
         };
         setTradePlan(errorPlan);
         return;
@@ -302,7 +304,7 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
         // Parse symbol (from the strict format we asked for)
         const symMatch = visionText.match(/\*\*Symbol:\*\*\s*([A-Z0-9\/]+)/i)
                     || visionText.match(/([A-Z]{3}\/?[A-Z]{3}|XAU\/?USD|BTC\/?USD|ETH\/?USD|NAS100|US30|SPX500)/);
-        const detectedSymbol = symMatch ? symMatch[1].replace('\/', '') : selectedSymbol;
+        const detectedSymbol = symMatch ? symMatch[1].replace('\/', '') : '—';
 
         // Parse levels with flexible regex
         const num = (pat: RegExp): string | null => {
