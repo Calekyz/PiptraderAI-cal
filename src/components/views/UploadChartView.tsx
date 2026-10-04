@@ -22,6 +22,7 @@ import { AIVerificationPill } from '../AIVerificationPill';
 import { useSignalVerification } from '../../hooks/useSignalVerification';
 import { getUserEmail, handleCreditError } from '../../lib/creditsClient';
 import { compressImage } from '../../lib/imageCompress';
+import { getLimits, limitLabel } from '../../lib/planLimits';
 
 export interface TradePlan {
   symbol: string;

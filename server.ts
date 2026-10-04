@@ -41,6 +41,7 @@ import { sendVerificationEmail } from './server/emailService';
 import { verifySignal } from './server/engine/geminiVerifier';
 import { sendSignalToTelegram } from './server/telegram';
 import { geminiChatReply } from './server/engine/geminiChat';
+import { getLimits, type PlanTier } from './src/lib/planLimits';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter } from './server/forexFactoryEngine';
 import PDFDocument from 'pdfkit';
@@ -1826,6 +1827,45 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
 
     const email = bodyEmail || (req.headers['x-user-email'] as string) || '';
 
+    // ── Plan + per-user daily limit enforcement ──
+    if (!email) {
+      return res.status(401).json({
+        error: 'auth_required',
+        message: 'Please log in to upload charts.',
+      });
+    }
+    const uploadUser = db.getUserByEmail(email);
+    if (!uploadUser) {
+      return res.status(404).json({
+        error: 'user_not_found',
+        message: 'User not found.',
+      });
+    }
+    const plan = uploadUser.plan || 'Pending';
+    const limits = getLimits(plan);
+
+    if (limits.chartUploadsPerDay <= 0) {
+      return res.status(403).json({
+        error: 'plan_required',
+        message: 'Chart uploads are available on Starter, Pro, and Elite plans. Upgrade to unlock.',
+        plan,
+        limit: limits.chartUploadsPerDay,
+      });
+    }
+
+    // Per-user, per-day counter
+    const usage = db.getDailyUsage(uploadUser.id, email);
+    if (isFinite(limits.chartUploadsPerDay) && usage.chartUploads >= limits.chartUploadsPerDay) {
+      return res.status(429).json({
+        error: 'daily_limit_reached',
+        message: `You've used all ${limits.chartUploadsPerDay} chart uploads for today. Resets at midnight UTC.`,
+        used: usage.chartUploads,
+        max: limits.chartUploadsPerDay,
+        plan,
+        resetsAt: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate() + 1)).toISOString(),
+      });
+    }
+
     // Charge credits (5) before calling Gemini
     const chargeErr = chargeUserForAction(email, 'chart_upload');
     if (chargeErr) {
@@ -1833,17 +1873,6 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
         error: chargeErr.error,
         message: 'Insufficient credits for chart upload. Each upload costs 5 credits.',
         balance: chargeErr.balance,
-      });
-    }
-
-    // ── AI upload cap (3 total across the platform) ──
-    const usageBefore = db.getAIVisionUsage();
-    if (usageBefore.remaining <= 0) {
-      return res.status(403).json({
-        error: 'uploads_exhausted',
-        message: 'AI vision uploads exhausted. Upgrade your plan for unlimited chart analysis.',
-        used: usageBefore.used,
-        max: usageBefore.max,
       });
     }
 
@@ -1945,12 +1974,28 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
       });
     }
 
-    // Only consume an upload when Gemini actually returned text
+    // Bump per-user daily counter on success
+    let usageAfter: any = null;
     if (analysis && analysis.trim().length > 20) {
-      db.tryConsumeAIVisionUpload();
+      const updated = db.bumpDailyUsage(uploadUser.id, email, 'chartUploads', 1);
+      usageAfter = {
+        used: updated.chartUploads,
+        max: limits.chartUploadsPerDay,
+        remaining: isFinite(limits.chartUploadsPerDay)
+          ? Math.max(0, limits.chartUploadsPerDay - updated.chartUploads)
+          : Infinity,
+        plan,
+      };
+    } else {
+      usageAfter = {
+        used: usage.chartUploads,
+        max: limits.chartUploadsPerDay,
+        remaining: isFinite(limits.chartUploadsPerDay)
+          ? Math.max(0, limits.chartUploadsPerDay - usage.chartUploads)
+          : Infinity,
+        plan,
+      };
     }
-
-    const usageAfter = db.getAIVisionUsage();
 
     res.json({
       success: true,
@@ -5638,37 +5683,41 @@ app.post('/api/referral/withdraw', (req, res) => {
 app.get('/api/user/usage', (req, res) => {
   try {
     const email = String(req.query.email || '').trim().toLowerCase();
-    if (!email) return res.status(400).json({ success: false, error: 'Email required' });
-
+    if (!email) return res.status(400).json({ success: false, error: 'email required' });
     const user = db.getUserByEmail(email);
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    const today = new Date().toISOString().split('T')[0];
-
-    const allAnalyses = (db as any).getChartAnalysesByUser ? (db as any).getChartAnalysesByUser(user.id) : [];
-    const todayAnalyses = (allAnalyses as any[]).filter((a: any) => (a.createdAt || '').startsWith(today));
-
-    const allStrategies = (db as any).getStrategiesByUser ? (db as any).getStrategiesByUser(user.id) : [];
-    const todayStrategies = (allStrategies as any[]).filter((s: any) => (s.createdAt || '').startsWith(today));
-
-    const limits: Record<string, any> = {
-      Pending: { analyses: 2, voice: 0, setups: 0 },
-      Starter: { analyses: 10, voice: 0, setups: 3 },
-      Pro: { analyses: 24, voice: 5, setups: 20 },
-      Elite: { analyses: 999, voice: 999, setups: 999 },
-    };
-    const plan = (user.plan || 'Pending') as string;
-    const lim = limits[plan] || limits.Pending;
+    const plan = user.plan || 'Pending';
+    const limits = getLimits(plan);
+    const usage = db.getDailyUsage(user.id, email);
 
     res.json({
       success: true,
       plan,
-      today: { analyses: todayAnalyses.length, voice: 0, setups: todayStrategies.length },
-      limits: lim,
+      today: {
+        chartUploads: usage.chartUploads,
+        pulseSignals: usage.pulseSignals,
+        customSetups: usage.customSetups,
+      },
+      limits: {
+        chartUploadsPerDay: limits.chartUploadsPerDay,
+        pulseSignalsPerDay: limits.pulseSignalsPerDay,
+        customSetupsPerDay: limits.customSetupsPerDay,
+      },
+      remaining: {
+        chartUploads: isFinite(limits.chartUploadsPerDay)
+          ? Math.max(0, limits.chartUploadsPerDay - usage.chartUploads)
+          : Infinity,
+        pulseSignals: isFinite(limits.pulseSignalsPerDay)
+          ? Math.max(0, limits.pulseSignalsPerDay - usage.pulseSignals)
+          : Infinity,
+        customSetups: isFinite(limits.customSetupsPerDay)
+          ? Math.max(0, limits.customSetupsPerDay - usage.customSetups)
+          : Infinity,
+      },
     });
   } catch (err: any) {
-    console.error('[User Usage]', err);
-    res.status(500).json({ success: false, error: err?.message || 'Usage stats failed' });
+    res.status(500).json({ success: false, error: err?.message || 'Failed' });
   }
 });
 

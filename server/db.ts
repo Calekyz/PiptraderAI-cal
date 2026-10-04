@@ -232,6 +232,18 @@ export interface SupportTicketEntity {
   updatedAt: string;
 }
 
+export interface DailyUsageEntity {
+  id: string;             // `${userId}:${YYYY-MM-DD}`
+  userId: string;
+  userEmail: string;
+  date: string;           // YYYY-MM-DD in UTC
+  chartUploads: number;
+  pulseSignals: number;
+  customSetups: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreditTransactionEntity {
   id: string;
   userId: string;
@@ -492,6 +504,7 @@ class PersistentDatabase {
   private chartAnalyses: Map<string, ChartAnalysisEntity> = new Map();
   private supportTickets: Map<string, SupportTicketEntity> = new Map();
   private creditTransactions: Map<string, CreditTransactionEntity> = new Map();
+  private dailyUsage: Map<string, DailyUsageEntity> = new Map();
   private adminNotifications: Map<string, AdminNotificationEntity> = new Map();
   private adminSettings: AdminSettingsEntity | null = null;
   private journalTrades: Map<string, JournalTradeEntity> = new Map();
@@ -1882,6 +1895,51 @@ class PersistentDatabase {
     return Array.from(this.creditTransactions.values())
       .filter(t => t.userId === userId)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  // ─── Daily Usage (per-user, resets at UTC midnight) ───
+  private todayKey(): string {
+    const d = new Date();
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  }
+
+  public getDailyUsage(userId: string, userEmail: string): DailyUsageEntity {
+    const date = this.todayKey();
+    const id = `${userId}:${date}`;
+    const existing = this.dailyUsage.get(id);
+    if (existing) return existing;
+    const fresh: DailyUsageEntity = {
+      id, userId, userEmail, date,
+      chartUploads: 0, pulseSignals: 0, customSetups: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.dailyUsage.set(id, fresh);
+    return fresh;
+  }
+
+  public bumpDailyUsage(
+    userId: string,
+    userEmail: string,
+    field: 'chartUploads' | 'pulseSignals' | 'customSetups',
+    by = 1
+  ): DailyUsageEntity {
+    const cur = this.getDailyUsage(userId, userEmail);
+    const next: DailyUsageEntity = {
+      ...cur,
+      [field]: (cur[field] || 0) + by,
+      updatedAt: new Date().toISOString(),
+    };
+    this.dailyUsage.set(cur.id, next);
+    return next;
+  }
+
+  /** Prune entries older than 7 days (housekeeping). */
+  public pruneDailyUsage(): void {
+    const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    for (const [k, v] of this.dailyUsage) {
+      if (v.date < cutoff) this.dailyUsage.delete(k);
+    }
   }
 
   // ─── Notifications ───
