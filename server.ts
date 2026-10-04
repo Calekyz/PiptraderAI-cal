@@ -1853,34 +1853,67 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
 
     try {
       const ai = getAIClient();
-      // Race the SDK call against a hard 25-second timeout
-      const TIMEOUT_MS = 25000;
-      const call = ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: defaultVisionPrompt },
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: cleanBase64
-                }
-              }
-            ]
-          }
-        ],
-        config: {
-          systemInstruction: "You are Gemina, a professional financial analyst and vision data extraction expert. Extract prices, symbols, changes, and provide clear bullet points.",
-          temperature: 0.2
-        }
-      });
+
+      // ── Retry across multiple models to survive 503 spikes (same as verifier) ──
+      const VISION_MODEL_CHAIN = [
+        'gemini-flash-lite-latest',  // fastest, most reliable free-tier
+        'gemini-3.1-flash-lite',
+        'gemini-2.5-flash',
+        'gemini-flash-latest',
+        'gemini-3.8-flash',
+      ];
+
+      const TIMEOUT_MS = 30000; // 30s per whole attempt
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('vision_timeout_25s')), TIMEOUT_MS)
+        setTimeout(() => reject(new Error('vision_timeout_30s')), TIMEOUT_MS)
       );
-      const response: any = await Promise.race([call, timeout]);
-      analysis = response.text || '';
+
+      const attemptAll = async () => {
+        let lastErr: any = null;
+        for (const tryModel of VISION_MODEL_CHAIN) {
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              const resp: any = await ai.models.generateContent({
+                model: tryModel,
+                contents: [
+                  {
+                    role: 'user',
+                    parts: [
+                      { text: defaultVisionPrompt },
+                      { inlineData: { mimeType: mimeType, data: cleanBase64 } }
+                    ]
+                  }
+                ],
+                config: {
+                  systemInstruction: "You are Gemina, a professional financial analyst and vision data extraction expert. Extract prices, symbols, changes, and provide clear bullet points.",
+                  temperature: 0.2
+                }
+              });
+              const text = resp?.text || '';
+              if (!text || text.trim().length < 5) throw new Error('empty response');
+              console.log(`[Gemina Vision] OK via ${tryModel} in ${Date.now()}ms`);
+              return text;
+            } catch (err: any) {
+              lastErr = err;
+              const msg = String(err?.message || '');
+              const is503 = msg.includes('503') || msg.includes('UNAVAILABLE') || msg.includes('high demand');
+              const is429 = msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED');
+              if ((is503 || is429) && attempt === 0) {
+                const delay = 500;
+                console.warn(`[Gemina Vision] ${tryModel} busy — retry in ${delay}ms`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+              }
+              // Try next model
+              console.warn(`[Gemina Vision] ${tryModel} failed: ${msg.slice(0, 100)}`);
+              break;
+            }
+          }
+        }
+        throw lastErr || new Error('all vision models exhausted');
+      };
+
+      analysis = await Promise.race([attemptAll(), timeout]);
     } catch (visErr: any) {
       // ⚠️ NO FAKE DATA: return a real error so the client can show something honest.
       const errMsg = String(visErr?.message || '');
