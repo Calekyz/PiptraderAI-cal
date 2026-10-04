@@ -113,7 +113,7 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
         },
         body: JSON.stringify({
           message: text,
-          conversationHistory: messages.map(m => ({
+          conversationHistory: messages.slice(-8).map(m => ({
             role: m.sender === 'user' ? 'user' : 'model',
             text: m.text
           }))

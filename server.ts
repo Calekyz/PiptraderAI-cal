@@ -40,6 +40,7 @@ import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase, PlanT
 import { sendVerificationEmail } from './server/emailService';
 import { verifySignal } from './server/engine/geminiVerifier';
 import { sendSignalToTelegram } from './server/telegram';
+import { geminiChatReply } from './server/engine/geminiChat';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter } from './server/forexFactoryEngine';
 import PDFDocument from 'pdfkit';
@@ -5749,7 +5750,9 @@ app.post('/api/engine/chat', async (req, res) => {
     }
     const user = email ? db.getUserByEmail(email) : null;
     const ffEvents = await fetchFfEventsForEngine();
-    const reply = await respondToUser(message, {
+
+    // ── Step 1: Try the fast, free rule engine first ──
+    let reply = await respondToUser(message, {
       user: user ? ({
         id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName,
         phone: user.phone, countryCode: user.countryCode, plan: user.plan, balance: user.balance,
@@ -5763,6 +5766,42 @@ app.post('/api/engine/chat', async (req, res) => {
       newsEngine: analyzeNews,
       forexFactoryEvents: ffEvents,
     });
+
+    // ── Step 2: If the rule engine didn't understand, use Gemini ──
+    //  (This gives users real ChatGPT-quality answers for open questions.)
+    const ruleMissed = (reply as any).intent === 'unknown' || Number((reply as any).confidence || 0) < 30;
+    if (ruleMissed) {
+      try {
+        // Pull optional chart context from the request body (client may send it)
+        const bodyChart = (req.body?.chartContext || null) as any;
+
+        const geminiResult = await geminiChatReply(message, {
+          user: user ? {
+            firstName: user.firstName,
+            plan: user.plan,
+            credits: user.credits ?? 0,
+            mt5Connected: !!user.mt5Connected,
+          } : null,
+          history: Array.isArray(req.body?.conversationHistory) ? req.body.conversationHistory : [],
+          chartContext: bodyChart,
+        });
+
+        if (geminiResult.reply && geminiResult.source === 'gemini') {
+          reply = {
+            ...reply,
+            reply: geminiResult.reply,
+            intent: 'gemini_chat',
+            confidence: 85,
+          } as any;
+          console.log(`[Chat] Hybrid → Gemini (rule engine missed). intent was "${(reply as any).intent}"`);
+        } else {
+          console.log(`[Chat] Gemini skipped — falling back to rule engine reply`);
+        }
+      } catch (err: any) {
+        console.warn('[Chat] Gemini chat failed:', err?.message);
+        // Fall through — use the rule engine reply
+      }
+    }
 
     // ── Option B: if the reply contains a real setup, charge an extra 8 credits ──
     //    (total 10 = chat_message 2 + ai_trade_setup 8)

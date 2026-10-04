@@ -516,7 +516,23 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
       const response = await fetch('/api/engine/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: engineQuery, email: getUserEmail() })
+        body: JSON.stringify({
+          message: engineQuery,
+          email: getUserEmail(),
+          // Send recent chat history so Gemini has context for follow-ups
+          conversationHistory: chatMessages.slice(-8).map((m) => ({
+            role: m.sender === 'user' ? 'user' : 'model',
+            text: m.text,
+          })),
+          // Send live chart context so Gemini can reference prices/indicators
+          chartContext: {
+            symbol: selectedAsset?.symbol,
+            timeframe: currentTfObj?.api,
+            price: quote?.price,
+            trend: indicators?.marketStructure,
+            rsi: indicators?.rsi,
+          },
+        })
       });
 
       if (await handleCreditError(response)) {
