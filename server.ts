@@ -1875,14 +1875,19 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
         }
       });
       analysis = response.text || '';
-    } catch (visErr) {
-      console.warn('Vision analysis fallback to text parser:', visErr);
-      analysis = `### 📊 Gemina AI Vision Extraction\n\n- **XAUUSD**: 4,454.990 | Change: -147.155 (-3.20%)\n- **EURUSD**: 1.15821 | Change: -0.00700 (-0.60%)\n- **BTCUSD**: 78,121.48 | Change: -282.29 (-0.36%)\n- **US30**: 53,554.4 | Change: -9.9 (-0.02%)\n- **GBPUSD**: 1.35370 | Change: -0.01170 (-0.86%)\n\n**Market Summary**: High market volatility observed across commodities and forex pairs. Gold (XAUUSD) has experienced an aggressive intraday pullback while US equities (US30) remain in tight consolidation.`;
+    } catch (visErr: any) {
+      // ⚠️ NO FAKE DATA: return a real error so the client can show something honest.
+      console.error('[Gemina Vision] Gemini call failed:', visErr?.message);
+      return res.status(502).json({
+        success: false,
+        error: 'vision_unavailable',
+        message: 'AI vision is temporarily unavailable. Please try again in a moment.',
+        detail: String(visErr?.message || '').slice(0, 200),
+      });
     }
 
-    // Only consume an upload if Gemini actually ran (analysis non-empty and not the fallback)
-    const usedFallback = analysis.startsWith('### 📊 Gemina AI Vision Extraction');
-    if (!usedFallback) {
+    // Only consume an upload when Gemini actually returned text
+    if (analysis && analysis.trim().length > 20) {
       db.tryConsumeAIVisionUpload();
     }
 
@@ -1890,7 +1895,7 @@ app.post(['/api/gemina-vision-analyze', '/api/screenshot-analyze'], async (req, 
 
     res.json({
       success: true,
-      analysis: analysis,
+      analysis: analysis.trim() || 'The image could not be interpreted. Please upload a clearer screenshot.',
       assistant: 'Gemina AI',
       provider: 'Gemini',
       aiUsage: usageAfter,

@@ -209,9 +209,36 @@ export const GeminaAssistantModal: React.FC<GeminaAssistantModalProps> = ({
         return;
       }
 
+      // Handle vision unavailable (502) — real error, not fake data
+      if (res.status === 502) {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg: ChatMessage = {
+          id: `gemina-502-${Date.now()}`,
+          sender: 'gemina',
+          text: `⚠️ **AI vision is temporarily unavailable.**\n\n${errData.message || 'Please try again in 1–2 minutes.'}\n\nYour credits were not consumed for this attempt.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, errMsg]);
+        setIsAnalyzingVision(false);
+        setSelectedImage(null);
+        return;
+      }
+
       const data = await res.json();
+      if (!data?.success || !data?.analysis) {
+        const errMsg: ChatMessage = {
+          id: `gemina-noanalysis-${Date.now()}`,
+          sender: 'gemina',
+          text: `⚠️ Could not read the image. ${data?.message || 'Try a clearer screenshot.'}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, errMsg]);
+        setIsAnalyzingVision(false);
+        setSelectedImage(null);
+        return;
+      }
       if (data.aiUsage) setAiUsage(data.aiUsage);
-      const analysisText = data.analysis || "Screenshot parsed successfully.";
+      const analysisText = data.analysis;
 
       const botVisionMsg: ChatMessage = {
         id: `gemina-vision-${Date.now()}`,

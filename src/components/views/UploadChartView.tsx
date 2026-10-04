@@ -172,46 +172,43 @@ export const UploadChartView: React.FC<UploadChartViewProps> = ({ user, onOpenGe
     setIsAnalyzing(true);
     try {
       // ── 1. Send image to Gemina vision (Gemini reads the actual chart) ──
+      // ── Run vision + engine truly in parallel ──
       let visionText = '';
       let visionOk = false;
-      try {
-        const visionRes = await fetch('/api/gemina-vision-analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageBase64: imgData,
-            mimeType: 'image/png',
-            email: user?.email || getUserEmail(),
-            prompt: `You are Gemina, a professional trading analyst. Read this chart carefully and give a specific analysis:
-1. Identify the symbol and timeframe from the chart
-2. Identify the trend (bullish/bearish/ranging) based on structure
-3. Identify key levels: support, resistance, recent highs/lows
-4. Identify any chart patterns (flags, triangles, head & shoulders, etc.)
-5. Give a clear trading call: BUY / SELL / WAIT with entry, stop loss, and 2 take-profit targets
-6. Explain the reasoning in 3-4 sentences
+      let visionErrorMsg = '';
 
-Be specific and reference the actual price levels you see in the chart.`
-          })
-        });
-        if (visionRes.status === 402) {
-          await handleCreditError(visionRes);
-          setIsAnalyzing(false);
-          return;
-        }
-        if (visionRes.ok) {
-          const visionData = await visionRes.json();
-          visionText = visionData.analysis || '';
-          visionOk = true;
-        } else if (visionRes.status === 403) {
-          const errData = await visionRes.json().catch(() => ({}));
-          visionText = `⚠️ ${errData.message || 'AI upload limit reached'}`;
-        }
-      } catch (e) {
-        console.warn('Vision call failed:', e);
-      }
+      const visionPromise = fetch('/api/gemina-vision-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: imgData,
+          mimeType: 'image/png',
+          email: user?.email || getUserEmail(),
+          prompt: `You are Gemina, an expert trading analyst. Read the chart image carefully. Reply in STRICT format:
 
-      // ── 2. In parallel, get the rule-based engine plan for the selected symbol ──
-      const res = await fetch('/api/engine/analyze', {
+**Symbol:** <symbol you see in the chart>
+**Timeframe:** <timeframe you see>
+
+**Trend:** <Bullish | Bearish | Ranging>
+
+**Key Levels:**
+- Support: <price>
+- Resistance: <price>
+
+**Chart Pattern:** <pattern you see, or 'None'>
+
+**Signal:** <BUY | SELL | WAIT>
+
+**Entry:** <price>
+**Stop Loss:** <price>
+**TP1:** <price>
+**TP2:** <price>
+
+**Reasoning:** <2-4 sentences referencing the actual prices and structure you see.>`
+        })
+      });
+
+      const enginePromise = fetch('/api/engine/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,12 +219,121 @@ Be specific and reference the actual price levels you see in the chart.`
         })
       });
 
-      if (await handleCreditError(res)) {
+      // Await both
+      const [visionRes, res] = await Promise.all([visionPromise.catch(() => null), enginePromise.catch(() => null)]);
+
+      // Handle credit errors first (either call)
+      if (visionRes && visionRes.status === 402) {
+        await handleCreditError(visionRes);
         setIsAnalyzing(false);
         return;
       }
-      const data = await res.json();
-      const plan = data.plan;
+      if (res && res.status === 402) {
+        await handleCreditError(res);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      // Parse vision
+      if (visionRes) {
+        try {
+          if (visionRes.status === 403) {
+            const errData = await visionRes.json().catch(() => ({}));
+            visionErrorMsg = errData.message || 'AI upload limit reached';
+          } else if (visionRes.status === 502) {
+            const errData = await visionRes.json().catch(() => ({}));
+            visionErrorMsg = errData.message || 'AI vision is temporarily unavailable.';
+          } else if (visionRes.ok) {
+            const visionData = await visionRes.json();
+            if (visionData?.success && visionData.analysis) {
+              visionText = visionData.analysis;
+              visionOk = true;
+            } else {
+              visionErrorMsg = visionData?.message || 'Vision returned no analysis.';
+            }
+          }
+        } catch (e) {
+          visionErrorMsg = 'Could not read vision response.';
+        }
+      } else {
+        visionErrorMsg = 'Network error contacting AI vision.';
+      }
+
+      // Parse engine
+      let plan: any = null;
+      if (res && res.ok) {
+        try {
+          const data = await res.json();
+          plan = data.plan;
+        } catch {}
+      }
+
+      // If vision FAILED entirely, show an honest error plan
+      if (!visionOk && visionErrorMsg) {
+        const errorPlan: TradePlan = {
+          symbol: selectedSymbol,
+          subTitle: '⚠️ Vision Analysis Failed',
+          direction: 'LONG',
+          confidence: 0,
+          bias: 'Bullish',
+          entry: '—',
+          orderType: 'Retry',
+          stopLoss: '—',
+          takeProfit1: '—',
+          takeProfit2: '—',
+          riskReward: '—',
+          recommendedRisk: '—',
+          whyThisTrade: `We could not read your chart: ${visionErrorMsg}\n\nTry: a clearer/smaller image, or retry in 1–2 minutes. Credits were not consumed.`,
+          adjustmentNote: 'Chart vision is temporarily limited.',
+        };
+        setTradePlan(errorPlan);
+        return;
+      }
+
+      // If vision succeeded, use its text as the source of truth
+      if (visionOk && visionText) {
+        // Parse direction
+        const upper = visionText.toUpperCase();
+        const gemDirection: 'LONG' | 'SHORT' =
+          /BUY/.test(upper) || /BULLISH/.test(upper) ? 'LONG'
+          : /SELL/.test(upper) || /BEARISH/.test(upper) ? 'SHORT'
+          : (plan?.direction === 'SELL' ? 'SHORT' : 'LONG');
+
+        // Parse symbol (from the strict format we asked for)
+        const symMatch = visionText.match(/\*\*Symbol:\*\*\s*([A-Z0-9\/]+)/i)
+                    || visionText.match(/([A-Z]{3}\/?[A-Z]{3}|XAU\/?USD|BTC\/?USD|ETH\/?USD|NAS100|US30|SPX500)/);
+        const detectedSymbol = symMatch ? symMatch[1].replace('\/', '') : selectedSymbol;
+
+        // Parse levels with flexible regex
+        const num = (pat: RegExp): string | null => {
+          const m = visionText.match(pat);
+          return m ? m[1].replace(',', '') : null;
+        };
+        const entryV = num(/\*\*Entry:\*\*\s*([0-9.,]+)/i) || num(/Entry[\s:]+([0-9.,]+)/i);
+        const slV = num(/\*\*Stop\s*Loss:\*\*\s*([0-9.,]+)/i) || num(/(?:Stop[\s-]*Loss|SL)[\s:]+([0-9.,]+)/i);
+        const tp1V = num(/\*\*TP\s*1:\*\*\s*([0-9.,]+)/i) || num(/(?:TP\s*1|Take[\s-]*Profit\s*1|Target\s*1)[\s:]+([0-9.,]+)/i);
+        const tp2V = num(/\*\*TP\s*2:\*\*\s*([0-9.,]+)/i) || num(/(?:TP\s*2|Take[\s-]*Profit\s*2|Target\s*2)[\s:]+([0-9.,]+)/i);
+
+        const visionPlan: TradePlan = {
+          symbol: detectedSymbol,
+          subTitle: 'Gemina AI · Vision Analysis (read from your chart)',
+          direction: gemDirection,
+          confidence: plan?.confidence || 75,
+          bias: gemDirection === 'LONG' ? 'Bullish' : 'Bearish',
+          entry: entryV || (plan?.currentPrice ? plan.currentPrice.toFixed(selectedDecimals) : '—'),
+          orderType: gemDirection === 'LONG' ? 'Buy Limit / Market' : 'Sell Limit / Market',
+          stopLoss: slV || (plan?.stopLoss ? plan.stopLoss.toFixed(selectedDecimals) : '—'),
+          stopLossDistance: '',
+          takeProfit1: tp1V || (plan?.takeProfit1 ? plan.takeProfit1.toFixed(selectedDecimals) : '—'),
+          takeProfit2: tp2V || (plan?.takeProfit2 ? plan.takeProfit2.toFixed(selectedDecimals) : '—'),
+          riskReward: plan?.riskReward ? `1:${plan.riskReward.toFixed(1)}` : '—',
+          recommendedRisk: '1.0% – 1.5% of equity',
+          whyThisTrade: visionText,
+          adjustmentNote: 'AI vision analysis — Gemini read your actual chart, including structure, levels, and patterns.',
+        };
+        setTradePlan(visionPlan);
+        return;
+      }
 
       // ── 3. VISION-FIRST: when Gemini reads the chart, show its analysis as primary ──
       if (visionOk && visionText) {
