@@ -219,6 +219,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-4xl mx-auto space-y-7">
           
+          {/* Elite Class Traders Kicker */}
+          <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-gradient-to-r from-purple-900/40 via-indigo-900/40 to-purple-900/40 border border-purple-500/40 text-transparent bg-clip-text text-xs sm:text-sm font-bold tracking-[0.15em] uppercase shadow-lg backdrop-blur-md">
+            <span className="text-purple-400 not-italic">⚡</span>
+            <span className="bg-gradient-to-r from-purple-300 via-white to-purple-300 bg-clip-text text-transparent">
+              PipTrader · Elite Class Traders Tool
+            </span>
+          </div>
+
           {/* Eyebrow Pill */}
           <div className="inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-[#131728]/80 border border-[#242b48] text-gray-200 text-xs sm:text-sm font-medium tracking-wide shadow-md backdrop-blur-md">
             <span>🚀 Next-Gen Forex AI Platform</span>

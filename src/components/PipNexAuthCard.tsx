@@ -347,7 +347,9 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
               </span>
             </div>
 
-        {/* Sign up / in with Google Button */}
+        {/* ─── GOOGLE AUTH TEMPORARILY HIDDEN ───
+             To restore: change {false && ( to {( on the next line  */}
+        {false && (
         <button
           id="google-auth-btn"
           type="button"
@@ -377,6 +379,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
             {authMode === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}
           </span>
         </button>
+        )}
 
         {/* "or use email" Divider */}
         <div className="relative my-5 text-center">
@@ -837,18 +840,22 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
         onSelect={(country) => setSelectedCountry(country)}
       />
 
-      <GoogleSignInPromptModal
-        isOpen={showGoogleModal}
-        onClose={() => setShowGoogleModal(false)}
-        initialEmail={email}
-        isSignUp={authMode === 'signup'}
-        onSuccess={(profile) => {
-          saveActiveSession(profile);
-          setLastUsedEmail(profile.email);
-          triggerConfetti();
-          onSuccessAuth(profile);
-        }}
-      />
+      {/* ─── GOOGLE AUTH MODAL TEMPORARILY HIDDEN ───
+           To restore: change {false && ( back to {(  */}
+      {false && (
+        <GoogleSignInPromptModal
+          isOpen={showGoogleModal}
+          onClose={() => setShowGoogleModal(false)}
+          initialEmail={email}
+          isSignUp={authMode === 'signup'}
+          onSuccess={(profile) => {
+            saveActiveSession(profile);
+            setLastUsedEmail(profile.email);
+            triggerConfetti();
+            onSuccessAuth(profile);
+          }}
+        />
+      )}
 
       <TermsModal
         isOpen={showTermsModal}
