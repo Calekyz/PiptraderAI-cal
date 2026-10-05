@@ -115,25 +115,51 @@ const COUNTRY_METAS: Record<string, { flag: string; name: string; pairs: string[
 // 1. LIVE ECONOMIC CALENDAR SCRAPING / FEED
 // ==========================================
 
-export async function fetchForexFactoryCalendar(period: 'thisweek' | 'nextweek' = 'thisweek'): Promise<FFCalendarEvent[]> {
-  const targetUrl = period === 'nextweek'
-    ? 'https://nfs.faireconomy.media/ff_calendar_nextweek.json'
-    : 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+async function fetchFFRawFromSources(period: 'thisweek' | 'nextweek'): Promise<any[]> {
+  const sources = period === 'nextweek'
+    ? [
+        'https://ready-chicken-5023.calekyz.deno.net',
+        'https://nfs.faireconomy.media/ff_calendar_nextweek.json',
+      ]
+    : [
+        'https://ready-chicken-5023.calekyz.deno.net',
+        'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+      ];
 
+  for (const url of sources) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+        },
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        console.log(`[FF] Fetched ${data.length} events from ${url}`);
+        return data;
+      }
+    } catch (err: any) {
+      console.warn(`[FF] ${url} failed: ${err?.message}`);
+    }
+  }
+  return [];
+}
+
+export async function fetchForexFactoryCalendar(period: 'thisweek' | 'nextweek' = 'thisweek'): Promise<FFCalendarEvent[]> {
   const now = Date.now();
   let events: FFCalendarEvent[] = [];
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(targetUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
-      }
-    });
-    clearTimeout(timeoutId);
+    const res = {
+      ok: true,
+      json: async () => fetchFFRawFromSources(period),
+    } as any;
 
     if (res.ok) {
       const rawEvents = (await res.json()) as any[];
