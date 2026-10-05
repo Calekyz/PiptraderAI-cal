@@ -101,6 +101,10 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
     createdAt: string;
   }>>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedNotif, setSelectedNotif] = useState<null | {
+    id: string; title: string; message: string;
+    createdAt: string; urgency?: string;
+  }>(null);
 
   // Local theme state fallback if not controlled
   const [localTheme, setLocalTheme] = useState<'dark' | 'light'>(() => {
@@ -907,7 +911,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                           return (
                             <div
                               key={n.id}
-                              onClick={() => markNotificationRead(n.id)}
+                              onClick={() => { markNotificationRead(n.id); setSelectedNotif(n); setIsNotificationsOpen(false); }}
                               className="p-2.5 rounded-xl bg-[#faf9ff] dark:bg-[#151829] border border-purple-100 dark:border-purple-900/30 flex items-start gap-2.5 cursor-pointer hover:bg-white dark:hover:bg-[#1a1e30] transition-colors"
                             >
                               <Bell className={`w-4 h-4 shrink-0 mt-0.5 ${urgencyColor}`} />
@@ -1522,6 +1526,65 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         onOpenHowToUse={() => { setIsOnboardingOpen(false); setActiveTab('how-to-use'); }}
         onOpenNova={(tab) => { setIsOnboardingOpen(false); handleOpenNova(tab || 'chat'); }}
       />
+
+      {/* ═══ Full Notification Modal ═══ */}
+      {selectedNotif && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setSelectedNotif(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-white dark:bg-[#0a0c16] border border-[#e5e7eb] dark:border-[#1a1e30] rounded-3xl p-6 shadow-2xl text-[#111] dark:text-white relative max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 pb-4 border-b border-gray-100 dark:border-[#161828]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  selectedNotif.urgency === 'CRITICAL' ? 'bg-rose-500/10 border border-rose-500/40 text-rose-500' :
+                  selectedNotif.urgency === 'WARNING' ? 'bg-amber-500/10 border border-amber-500/40 text-amber-500' :
+                  selectedNotif.urgency === 'SUCCESS' ? 'bg-emerald-500/10 border border-emerald-500/40 text-emerald-500' :
+                  'bg-purple-500/10 border border-purple-500/40 text-purple-500'
+                }`}>
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-sm text-[#0f172a] dark:text-white leading-tight">
+                    {selectedNotif.title}
+                  </div>
+                  <div className="text-[10px] text-[#94a3b8] font-mono mt-0.5">
+                    {relTime(selectedNotif.createdAt)}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNotif(null)}
+                className="p-2 rounded-xl bg-gray-50 dark:bg-[#121422] text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-[#1e2338] transition-colors cursor-pointer shrink-0"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Full message body */}
+            <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">
+              <div className="text-[13px] text-[#334155] dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                {selectedNotif.message}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-4 border-t border-gray-100 dark:border-[#161828] flex justify-end">
+              <button
+                onClick={() => setSelectedNotif(null)}
+                className="px-5 py-2.5 rounded-xl bg-[#5b3fe4] hover:bg-[#4d32d0] text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Nova AI Assistant Modal */}
       <NovaAssistantModal
