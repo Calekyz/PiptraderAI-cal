@@ -59,6 +59,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
   const [bulkDeletePassword, setBulkDeletePassword] = useState('');
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState('');
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [serverPendingCount, setServerPendingCount] = useState<number | null>(null);
 
   const [activeUser, setActiveUser] = useState<AdminUserItem | null>(null);
   const [activeUserDetail, setActiveUserDetail] = useState<{
@@ -155,6 +156,21 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     setSelectedUserIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
+  };
+
+  
+  const refreshPendingCount = async (): Promise<number | null> => {
+    try {
+      const pending = await AdminApi.getUsers({ plan: 'Pending', status: 'all', sort: 'newest' });
+      const n = pending.length;
+      setServerPendingCount(n);
+      console.log('[PendingCount] server says:', n);
+      return n;
+    } catch (e) {
+      console.warn('[PendingCount] fetch failed:', e);
+      setServerPendingCount(null);
+      return null;
+    }
   };
 
   const handleOpenDetail = async (user: AdminUserItem) => {
@@ -583,7 +599,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               title="Permanently delete ALL pending accounts"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Delete All Pending ({pendingCount})
+              Delete All Pending ({serverPendingCount ?? pendingCount})
             </button>
             <button
               onClick={() => setSelectedUserIds([])}
@@ -598,16 +614,18 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       {/* ── Danger Zone: always visible ── */}
       <div className="flex flex-wrap items-center justify-end gap-2 mt-4">
         <button
-          onClick={() => {
+          onClick={async () => {
             setBulkDeletePassword('');
             setBulkDeleteConfirm('');
+            setServerPendingCount(null); // clear stale
             setIsBulkDeletePendingOpen(true);
+            await refreshPendingCount();
           }}
           className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-1.5 shadow-lg"
           title="Permanently delete ALL pending accounts (requires admin password)"
         >
           <Trash2 className="w-4 h-4" />
-          Delete All Pending ({pendingCount})
+          Delete All Pending ({serverPendingCount ?? pendingCount})
         </button>
       </div>
 
@@ -1113,7 +1131,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               <div className="flex-1">
                 <h3 className="font-bold text-white text-base">Mass Delete Pending Accounts</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Permanently delete <strong className="text-rose-300">{pendingCount}</strong> pending account(s).
+                  Permanently delete <strong className="text-rose-300">{serverPendingCount ?? pendingCount}</strong> pending account(s).
                 </p>
               </div>
             </div>
@@ -1162,7 +1180,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               </button>
               <button
                 onClick={handleBulkDeletePendingSubmit}
-                disabled={isBulkDeleting || bulkDeleteConfirm !== 'DELETE' || !bulkDeletePassword || pendingCount === 0}
+                disabled={isBulkDeleting || bulkDeleteConfirm !== 'DELETE' || !bulkDeletePassword || (serverPendingCount ?? pendingCount) === 0}
                 className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold"
               >
                 {isBulkDeleting ? 'Deleting...' : `Delete ${pendingCount} Account(s)`}
