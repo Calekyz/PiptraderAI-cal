@@ -333,6 +333,10 @@ export interface BroadcastAnnouncementEntity {
   message: string;
   urgency: 'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS';
   targetSegment: 'ALL' | 'PENDING' | 'STARTER' | 'PRO' | 'ELITE';
+  /** If set, only this user sees the broadcast (for admin → specific user messages) */
+  targetEmail?: string;
+  /** Optional icon/type for UI differentiation */
+  kind?: 'BROADCAST' | 'ADMIN_MESSAGE' | 'SYSTEM';
   author: string;
   isActive: boolean;
   createdAt: string;
@@ -853,6 +857,8 @@ class PersistentDatabase {
     return {
       id: r.id, title: r.title, message: r.message, urgency: r.urgency,
       targetSegment: r.targetSegment, author: r.author, isActive: r.isActive ?? true,
+      targetEmail: r.targetEmail ?? r.target_email ?? undefined,
+      kind: r.kind ?? 'BROADCAST',
       createdAt: toIso(r.createdAt) || new Date().toISOString(),
     };
   }
@@ -860,6 +866,8 @@ class PersistentDatabase {
     return {
       id: b.id, title: b.title, message: b.message, urgency: b.urgency,
       targetSegment: b.targetSegment, author: b.author, isActive: b.isActive ?? true,
+    targetEmail: b.targetEmail ?? null,
+    kind: b.kind ?? 'BROADCAST',
       createdAt: toDate(b.createdAt) || new Date(),
     };
   }
@@ -1728,18 +1736,40 @@ class PersistentDatabase {
   public adminSendMessage(userId: string, subject: string, message: string, template = 'Custom Message', adminEmail = 'Pipnexadmin', adminName = 'Admin Team') {
     const user = this.users.get(userId);
     if (!user) return undefined;
+
+    // 1. Admin-panel notification (internal log for admins)
     this.createAdminNotification({
       type: 'SUPPORT_MESSAGE',
       title: `Message sent to ${user.firstName} ${user.lastName}`,
       message: `[${template}] ${subject}: ${message.substring(0, 80)}...`,
       isRead: true,
     });
+
+    // 2. Targeted broadcast — this is what makes the user's BELL light up
+    try {
+      this.createBroadcast({
+        title: subject,
+        message: message,
+        urgency: 'INFO',
+        targetSegment: 'ALL',   // segment fallback (unused when targetEmail set)
+        author: adminName,
+        isActive: true,
+        targetEmail: user.email.toLowerCase(),
+        kind: 'ADMIN_MESSAGE',
+      } as any);
+      console.log(`[Admin Message] Broadcast created for ${user.email} — "${subject}"`);
+    } catch (err: any) {
+      console.warn('[Admin Message] Failed to create user broadcast:', err?.message);
+    }
+
+    // 3. Audit log
     const log = this.createAuditLog({
       adminEmail, adminName, adminRole: 'USER_ADMIN', action: 'USER_MESSAGE',
       targetId: user.id, targetEmail: user.email,
       userAffected: `${user.firstName} ${user.lastName} (${user.email})`,
       details: `Sent direct message template "${template}" [Subject: ${subject}].`, reason: subject,
     });
+
     return { success: true, log };
   }
 

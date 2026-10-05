@@ -41,6 +41,7 @@ import { sendVerificationEmail } from './server/emailService';
 import { verifySignal } from './server/engine/geminiVerifier';
 import { sendSignalToTelegram } from './server/telegram';
 import { geminiChatReply } from './server/engine/geminiChat';
+import { startBriefingScheduler } from './server/telegramBriefing';
 import { getLimits, type PlanTier } from './src/lib/planLimits';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter } from './server/forexFactoryEngine';
@@ -4838,6 +4839,11 @@ app.get('/api/notifications', (req, res) => {
     const visible = all
       .filter((b: any) => b && b.isActive !== false)
       .filter((b: any) => {
+        // ── Direct message: only the target user sees it ──
+        if (b.targetEmail) {
+          return String(b.targetEmail).toLowerCase().trim() === userEmail;
+        }
+        // ── Broadcast: segment match ──
         const seg = String(b.targetSegment || 'ALL').toUpperCase();
         if (seg === 'ALL') return true;
         const segNorm = planAlias[seg] || seg;
@@ -6174,6 +6180,14 @@ setInterval(() => {
     console.warn('[Auto-Expire Sweep] failed:', e?.message);
   }
 }, 5 * 60 * 1000);
+
+
+// Start the Telegram briefing scheduler (6am + 4pm EAT)
+try {
+  startBriefingScheduler();
+} catch (err: any) {
+  console.warn('[Briefing] Scheduler failed to start:', err?.message);
+}
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`PipNex Server running at http://0.0.0.0:${PORT}`);
