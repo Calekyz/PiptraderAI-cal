@@ -2381,7 +2381,6 @@ export async function initializeDatabase(): Promise<void> {
 // ============================================================================
 // KV STORE — persistent runtime state (telegram dedupe, briefings, etc.)
 // ============================================================================
-import { eq } from 'drizzle-orm';
 import { pipnexKvStore } from '../src/db/schema';
 
 export async function kvGet<T = any>(key: string): Promise<T | null> {
