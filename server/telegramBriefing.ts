@@ -344,8 +344,9 @@ async function sendAndScheduleDeletion(text: string): Promise<void> {
 
     const data: any = await res.json().catch(() => ({}));
     if (!res.ok || data?.ok === false) {
-      console.error('[Briefing] sendMessage FAILED:', data?.description || res.status);
-      return;
+      const msg = data?.description || `HTTP ${res.status}`;
+      console.error('[Briefing] sendMessage FAILED:', msg);
+      throw new Error(`sendMessage failed: ${msg}`);
     }
 
     const messageId = data?.result?.message_id;
