@@ -135,13 +135,43 @@ Keep it concise, professional, no fluff. No emojis in the text body.`;
 
 // ── Compose the full briefing message ─────────────────────────────────
 async function buildBriefingMessage(session: 'asian' | 'nyc'): Promise<string> {
-  // 1. Fetch events
+  // 1. Fetch events — try Deno proxy first (bypasses FF IP block on Render),
+  //    then fall back to the direct FF URL (same strategy as the main engine)
   let events: Array<any> = [];
+  const SOURCES = [
+    'https://ready-chicken-5023.calekyz.deno.net',
+    'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+  ];
   try {
-    const res = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
-    });
-    const raw: any[] = await res.json();
+    let raw: any[] = [];
+    for (const url of SOURCES) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Referer': 'https://www.forexfactory.com/',
+          },
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('json')) {
+          console.warn(`[Briefing] ${url} returned ${contentType} (not JSON) — trying next`);
+          continue;
+        }
+        const parsed = await res.json();
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          raw = parsed;
+          console.log(`[Briefing] Fetched ${raw.length} events from ${url}`);
+          break;
+        }
+      } catch (e: any) {
+        console.warn(`[Briefing] ${url} failed: ${e?.message}`);
+      }
+    }
+
+    if (raw.length === 0) {
+      console.warn('[Briefing] All event sources failed — no events will be shown');
+    }
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
     const tomorrow = new Date(today.getTime() + 24 * 3600 * 1000);
