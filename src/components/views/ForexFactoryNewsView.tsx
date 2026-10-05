@@ -216,7 +216,7 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
   const loadAllData = async () => {
     try {
       setIsRefreshing(true);
-      const period = dateFilter === 'nextweek' ? 'nextweek' : 'thisweek';
+      const period = 'thisweek';
 
       const [calRes, newsRes, quotesRes] = await Promise.all([
         fetch(`/api/forex-factory/calendar?period=${period}`),
@@ -473,7 +473,7 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
             <span className="text-xs font-bold text-[#475569] dark:text-slate-300 mr-1 flex items-center gap-1">
               <CalendarIcon className="w-3.5 h-3.5" /> Date:
             </span>
-            {(['today', 'tomorrow', 'thisweek', 'nextweek', 'all'] as const).map((filterKey) => {
+            {(['today', 'tomorrow', 'thisweek', 'all'] as const).map((filterKey) => {
               const labels: Record<string, string> = {
                 today: 'Today',
                 tomorrow: 'Tomorrow',
