@@ -139,20 +139,30 @@
     <!-- PWA: Service Worker Registration             -->
     <!-- ============================================ -->
     <script>
-      if ('serviceWorker' in navigator) {
+            if ('serviceWorker' in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          console.log('[PWA] New SW active — reloading page');
+          window.location.reload();
+        });
+
         window.addEventListener('load', () => {
           navigator.serviceWorker
             .register('/sw.js', { scope: '/' })
             .then((reg) => {
               console.log('[PWA] Service worker registered at:', reg.scope);
 
-              // Detect new version availability
+              if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+
               reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 if (!newWorker) return;
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('[PWA] New version available. Refresh to update.');
+                    console.log('[PWA] New version installed — activating');
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
                   }
                 });
               });

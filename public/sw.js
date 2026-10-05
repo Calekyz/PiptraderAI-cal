@@ -1,21 +1,20 @@
 // ============================================================
-// PipNex AI — Service Worker
+// PipNex AI — Service Worker (v2)
 // Strategy:
-//   - Static assets: cache-first (fast, offline-friendly)
-//   - Navigation:   network-first, offline fallback
-//   - API calls:    network-only (never serve stale user/payment data)
-//   - POST/PUT/DELETE: skipped entirely
+//   - Navigation:  network-only, offline fallback (NO HTML caching)
+//   - Static:      stale-while-revalidate (fast + auto-updates)
+//   - API calls:   network-only (never serve stale user data)
+//   - Auto-reload on update via controllerchange handler in index.html
 // ============================================================
 
-const CACHE_VERSION = 'pipnex-v1';
-const STATIC_CACHE = `${CACHE_VERSION}-static`;
+const CACHE_VERSION = 'pipnex-v2';        // ← bump this whenever deploy breaks SW behavior
+const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
-const OFFLINE_URL = '/offline.html';
+const OFFLINE_URL   = '/offline.html';
 
+// ⚠️ Never precache '/' or '/index.html' — that's what causes stale HTML → white screen
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/offline.html',
+  OFFLINE_URL,
   '/manifest.webmanifest',
 ];
 
@@ -42,6 +41,11 @@ self.addEventListener('activate', (event) => {
         )
       )
       .then(() => self.clients.claim())
+      .then(() =>
+        self.clients.matchAll({ type: 'window' }).then((clients) => {
+          clients.forEach((c) => c.postMessage({ type: 'SW_UPDATED' }));
+        })
+      )
   );
 });
 
@@ -50,41 +54,20 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // 1. Only handle GET requests
   if (request.method !== 'GET') return;
-
-  // 2. Skip cross-origin (Google Fonts, Nova, TradingView, etc.)
   if (url.origin !== self.location.origin) return;
-
-  // 3. Skip API routes — always go to network
   if (url.pathname.startsWith('/api/')) return;
+  if (url.pathname === '/sw.js') return;   // never intercept the SW itself
 
-  // 4. Skip auth / payment / admin routes explicitly
-  if (
-    url.pathname.startsWith('/api/auth') ||
-    url.pathname.startsWith('/api/payments') ||
-    url.pathname.startsWith('/api/admin') ||
-    url.pathname.startsWith('/api/wallet')
-  ) return;
-
-  // 5. Navigation requests → network-first, fall back to offline page
+  // 1. NAVIGATION → network-only. No HTML caching ever.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache the fresh index.html
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(OFFLINE_URL))
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
 
-  // 6. Static assets → cache-first
+  // 2. STATIC ASSETS → stale-while-revalidate
   const isStaticAsset =
     url.pathname.startsWith('/assets/') ||
     url.pathname.startsWith('/icons/') ||
@@ -93,27 +76,29 @@ self.addEventListener('fetch', (event) => {
   if (isStaticAsset) {
     event.respondWith(
       caches.match(request).then((cached) => {
-        if (cached) return cached;
+        const networkFetch = fetch(request)
+          .then((response) => {
+            if (response && response.status === 200 && response.type === 'basic') {
+              const clone = response.clone();
+              caches.open(STATIC_CACHE).then((c) => c.put(request, clone));
+            }
+            return response;
+          })
+          .catch(() => cached);
 
-        return fetch(request).then((response) => {
-          if (response && response.status === 200 && response.type === 'basic') {
-            const clone = response.clone();
-            caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        });
+        return cached || networkFetch;
       })
     );
     return;
   }
 
-  // 7. Everything else → network-first, cache fallback
+  // 3. EVERYTHING ELSE → network-first
   event.respondWith(
     fetch(request)
       .then((response) => {
         if (response && response.status === 200) {
           const clone = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+          caches.open(RUNTIME_CACHE).then((c) => c.put(request, clone));
         }
         return response;
       })
@@ -121,7 +106,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// ─── MESSAGE HANDLER (for skipWaiting from the app) ────────
+// ─── MESSAGE HANDLER ────────────────────────────────────────
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
