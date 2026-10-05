@@ -5152,6 +5152,32 @@ app.get('/api/support/tickets/:id', (req, res) => {
   }
 });
 
+
+// ==========================================
+// TELEGRAM BRIEFING: ADMIN TEST TRIGGER
+// ==========================================
+app.post('/api/admin/telegram-briefing-test', async (req, res) => {
+  try {
+    const adminUser = (req.body?.adminUsername || req.headers['x-admin-user'] || '').toString().toLowerCase();
+    if (adminUser !== ADMIN_ALLOWED_USERNAME.toLowerCase()) {
+      return res.status(403).json({ success: false, error: 'Admin authentication required' });
+    }
+
+    const session = req.body?.session === 'nyc' ? 'nyc' : 'asian';
+    const { sendDailyBriefing } = require('./server/telegramBriefing');
+    const result = await sendDailyBriefing(session);
+
+    res.json({
+      success: true,
+      session,
+      result,
+      channel: process.env.TELEGRAM_BRIEFING_CHANNEL_ID || '@calekyz',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Briefing test failed' });
+  }
+});
+
 // Vite / static file serving
 
 // ==========================================
