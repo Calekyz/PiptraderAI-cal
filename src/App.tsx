@@ -13,7 +13,7 @@ import { AdminApp } from './admin/AdminApp';
 import { MaintenancePage } from './components/MaintenancePage';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { UserProfile } from './types';
-import { X, ShieldAlert, Bot } from 'lucide-react';
+import { Bot, ShieldAlert, Sparkles, X } from 'lucide-react';
 import { NovaAssistantModal } from './components/NovaAssistantModal';
 import { clearAllUserState,
   enterAsDevUser,
