@@ -223,7 +223,7 @@ export interface SupportTicketEntity {
   internalNotes?: string[];
   replies: Array<{
     id: string;
-    sender: 'user' | 'agent' | 'system';
+    sender: 'user' | 'agent' | 'admin' | 'system';
     senderName: string;
     text: string;
     timestamp: string;
@@ -600,6 +600,10 @@ class PersistentDatabase {
         autoCloseResolvedTicketsDays: s.autoCloseResolvedTicketsDays,
         securityEnforceMfa: s.securityEnforceMfa,
         sessionTimeoutMinutes: s.sessionTimeoutMinutes,
+        aiVisionUploadsUsed: s.aiVisionUploadsUsed ?? 0,
+        aiVisionUploadsMax: s.aiVisionUploadsMax ?? 3,
+        aiVerificationsUsed: s.aiVerificationsUsed ?? 0,
+        tutorialVideos: s.tutorialVideos ?? {},
       };
     }
   }
