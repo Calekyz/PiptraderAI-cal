@@ -27,7 +27,7 @@ interface TelegramSignalInput {
   aiSummary?: string;
 }
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const BOT_TOKEN = process.env.TELEGRAM_SIGNAL_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
 
 function resolveChannels(): string[] {
   const raw =
