@@ -96,14 +96,16 @@ function dedupeKey(sig: TelegramSignalInput): string {
 function isDuplicate(key: string): boolean {
   const last = dedupeCache.get(key);
   if (last && Date.now() - last < DEDUPE_WINDOW_MS) return true;
+  return false;
+}
+
+function markSent(key: string): void {
   dedupeCache.set(key, Date.now());
   if (dedupeCache.size > 500) {
     const cutoff = Date.now() - DEDUPE_WINDOW_MS;
     for (const [k, v] of dedupeCache) if (v < cutoff) dedupeCache.delete(k);
   }
-  // Fire-and-forget persist — don't block the send
   persistState().catch(() => {});
-  return false;
 }
 
 // ── HTML escape ───────────────────────────────────────────────────
@@ -239,8 +241,14 @@ export async function sendSignalToTelegram(
       }
     });
 
-    if (failed.length === CHANNELS.length)
+    if (failed.length === CHANNELS.length) {
+      // All channels failed — do NOT mark dedupe so retries can succeed later
+      console.warn(`[Telegram] All channels failed — dedupe NOT recorded`);
       return { ok: false, error: 'all channels failed' };
+    }
+
+    // Only mark as sent if at least one channel succeeded
+    markSent(key);
 
     console.log(
       `[Telegram] Sent ${sig.direction} ${sig.symbol} (${sig.confidence}%) to ${CHANNELS.length - failed.length}/${CHANNELS.length} channel(s)`
