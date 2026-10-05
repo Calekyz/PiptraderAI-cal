@@ -5092,7 +5092,7 @@ app.get('/api/telegram/status', (req, res) => {
     res.json({
       success: true,
       configured: isTelegramConfigured(),
-      channel: process.env.TELEGRAM_CHANNEL_ID || '@peshyFx',
+      channel: process.env.TELEGRAM_CHANNEL_ID || '@peshfx',
       enabled: process.env.TELEGRAM_SIGNALS_ENABLED !== 'false',
     });
   } catch (err: any) {
