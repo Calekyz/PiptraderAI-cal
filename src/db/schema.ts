@@ -460,6 +460,16 @@ export const pipnexEarlyAccess = pgTable('pipnex_early_access', {
 });
 
 // ============================================================================
+// KEY-VALUE STORE (persistent runtime state: telegram dedupe, briefings, etc.)
+// ============================================================================
+export const pipnexKvStore = pgTable('pipnex_kv_store', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+
+// ============================================================================
 // RELATIONS (legacy)
 // ============================================================================
 

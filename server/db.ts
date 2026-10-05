@@ -2377,3 +2377,46 @@ export const db = new PersistentDatabase();
 export async function initializeDatabase(): Promise<void> {
   await db.initialize();
 }
+
+// ============================================================================
+// KV STORE — persistent runtime state (telegram dedupe, briefings, etc.)
+// ============================================================================
+import { eq } from 'drizzle-orm';
+import { pipnexKvStore } from '../src/db/schema';
+
+export async function kvGet<T = any>(key: string): Promise<T | null> {
+  try {
+    const rows = await pgDb.select().from(pipnexKvStore).where(eq(pipnexKvStore.key, key));
+    if (!rows || rows.length === 0) return null;
+    return rows[0].value as T;
+  } catch (err: any) {
+    console.warn(`[KV] get "${key}" failed:`, err?.message);
+    return null;
+  }
+}
+
+export async function kvSet<T = any>(key: string, value: T): Promise<boolean> {
+  try {
+    await pgDb
+      .insert(pipnexKvStore)
+      .values({ key, value: value as any })
+      .onConflictDoUpdate({
+        target: pipnexKvStore.key,
+        set: { value: value as any, updatedAt: new Date() },
+      });
+    return true;
+  } catch (err: any) {
+    console.warn(`[KV] set "${key}" failed:`, err?.message);
+    return false;
+  }
+}
+
+export async function kvDelete(key: string): Promise<boolean> {
+  try {
+    await pgDb.delete(pipnexKvStore).where(eq(pipnexKvStore.key, key));
+    return true;
+  } catch (err: any) {
+    console.warn(`[KV] delete "${key}" failed:`, err?.message);
+    return false;
+  }
+}

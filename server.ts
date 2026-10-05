@@ -39,9 +39,9 @@ import {
 import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase, PlanTier } from './server/db';
 import { sendVerificationEmail } from './server/emailService';
 import { verifySignal } from './server/engine/geminiVerifier';
-import { sendSignalToTelegram } from './server/telegram';
+import { sendSignalToTelegram, initTelegramSignalState } from './server/telegram';
 import { geminiChatReply } from './server/engine/geminiChat';
-import { startBriefingScheduler } from './server/telegramBriefing';
+import { startBriefingScheduler, initBriefingState } from './server/telegramBriefing';
 import { getLimits, type PlanTier } from './src/lib/planLimits';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter } from './server/forexFactoryEngine';
@@ -6250,6 +6250,14 @@ app.get('/api/engine/scan', async (req, res) => {
 async function setupVite() {
   // Load all user data from Postgres into memory before accepting traffic
   await initializeDatabase();
+
+  // Load persistent Telegram state from DB (survives deploys)
+  try {
+    await initTelegramSignalState();
+    await initBriefingState();
+  } catch (err: any) {
+    console.warn('[Boot] Telegram state init failed:', err?.message);
+  }
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

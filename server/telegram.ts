@@ -1,14 +1,13 @@
 // ============================================================================
-// TELEGRAM SIGNAL BROADCASTING (v2)
+// TELEGRAM SIGNAL BROADCASTING (v3 — DB-backed state)
 // ----------------------------------------------------------------------------
 // • Multi-channel: TELEGRAM_SIGNAL_GROUPS=@a,@b (falls back to TELEGRAM_CHANNEL_ID)
 // • Auto-deletes previous signal per channel before next one lands
 // • 4-hour dedupe window (TELEGRAM_DEDUPE_MINUTES, default 240)
-// • Persistent state file so restarts don't wipe dedupe / last-msg-id
+// • Persistent state in Postgres (pipnex_kv_store) — survives deploys/restarts
 // ============================================================================
 
-import fs from 'fs';
-import path from 'path';
+import { kvGet, kvSet } from './db';
 
 interface TelegramSignalInput {
   symbol: string;
@@ -43,65 +42,54 @@ const DEDUPE_WINDOW_MS =
   Number(process.env.TELEGRAM_DEDUPE_MINUTES || 240) * 60 * 1000;
 const DELETE_PREVIOUS = process.env.TELEGRAM_DELETE_PREVIOUS !== 'false';
 
-const STATE_FILE = path.join(
-  process.env.PAYMENTS_DATA_DIR || process.cwd(),
-  'telegram-state.json'
-);
+const STATE_KEY = 'telegram:signal-state';
 
 const dedupeCache: Map<string, number> = new Map();
 const lastMessageId: Map<string, number> = new Map();
 
-// ── Persistence ───────────────────────────────────────────────────
-function loadState(): void {
+// ── DB-backed state ───────────────────────────────────────────────
+export async function initTelegramSignalState(): Promise<void> {
   try {
-    if (!fs.existsSync(STATE_FILE)) return;
-    const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const data = await kvGet<{
+      dedupe: Record<string, number>;
+      lastMessageId: Record<string, number>;
+    }>(STATE_KEY);
+    if (!data) {
+      console.log('[Telegram] No persisted state — starting fresh');
+      return;
+    }
     const now = Date.now();
-    if (data?.dedupe) {
+    if (data.dedupe) {
       for (const [k, v] of Object.entries(data.dedupe)) {
-        if (typeof v === 'number' && now - v < DEDUPE_WINDOW_MS) {
-          dedupeCache.set(k, v);
-        }
+        if (typeof v === 'number' && now - v < DEDUPE_WINDOW_MS) dedupeCache.set(k, v);
       }
     }
-    if (data?.lastMessageId) {
+    if (data.lastMessageId) {
       for (const [k, v] of Object.entries(data.lastMessageId)) {
         if (typeof v === 'number') lastMessageId.set(k, v);
       }
     }
     console.log(
-      `[Telegram] Loaded state: ${dedupeCache.size} dedupe, ${lastMessageId.size} msgIds`
+      `[Telegram] Loaded state from DB: ${dedupeCache.size} dedupe, ${lastMessageId.size} msgIds`
     );
   } catch (e: any) {
     console.warn('[Telegram] state load failed:', e?.message);
   }
 }
 
-function saveState(): void {
+async function persistState(): Promise<void> {
   try {
-    const dir = path.dirname(STATE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(
-      STATE_FILE,
-      JSON.stringify(
-        {
-          dedupe: Object.fromEntries(dedupeCache),
-          lastMessageId: Object.fromEntries(lastMessageId),
-        },
-        null,
-        2
-      )
-    );
+    await kvSet(STATE_KEY, {
+      dedupe: Object.fromEntries(dedupeCache),
+      lastMessageId: Object.fromEntries(lastMessageId),
+    });
   } catch (e: any) {
     console.warn('[Telegram] state save failed:', e?.message);
   }
 }
 
-loadState();
-
 // ── Dedupe ────────────────────────────────────────────────────────
 function dedupeKey(sig: TelegramSignalInput): string {
-  // No confidence bucket — any same-symbol/direction/timeframe within window is a dup
   return `${sig.symbol}|${sig.direction}|${sig.timeframe || 'M15'}`;
 }
 
@@ -113,6 +101,8 @@ function isDuplicate(key: string): boolean {
     const cutoff = Date.now() - DEDUPE_WINDOW_MS;
     for (const [k, v] of dedupeCache) if (v < cutoff) dedupeCache.delete(k);
   }
+  // Fire-and-forget persist — don't block the send
+  persistState().catch(() => {});
   return false;
 }
 
@@ -198,10 +188,10 @@ async function sendToChannel(channel: string, text: string): Promise<void> {
   const newId = data?.result?.message_id;
   if (newId) {
     lastMessageId.set(channel, newId);
-    saveState();
+    await persistState();
   }
 
-  // 2. Delete the previous signal message (only after new one succeeded)
+  // 2. Delete the previous signal message
   if (DELETE_PREVIOUS && prevId && prevId !== newId) {
     try {
       await tgApi('deleteMessage', { chat_id: channel, message_id: prevId });

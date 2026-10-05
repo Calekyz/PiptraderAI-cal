@@ -5,56 +5,59 @@
 // 6am, 12pm, and 5pm EAT. Each message auto-deletes after 5 hours.
 // ============================================================================
 
-import fs from 'fs';
-import path from 'path';
 import { fetchRealCandles } from './marketData';
+import { kvGet, kvSet } from './db';
 import { analyzeMarket } from './engine';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const BRIEFING_CHANNEL = process.env.TELEGRAM_BRIEFING_CHANNEL_ID || '@calekyz';
 const DELETE_AFTER_MS = 5 * 60 * 60 * 1000; // 5 hours
-const STATE_FILE = path.join(
-  process.env.PAYMENTS_DATA_DIR || process.cwd(),
-  'briefing-state.json'
-);
+const STATE_KEY = 'briefing:state';
 
 interface PendingDeletion { channel: string; messageId: number; deleteAt: number; }
 let pendingDeletions: PendingDeletion[] = [];
 const sentBriefings = new Set<string>();
 
-function loadPendingDeletions(): void {
+export async function initBriefingState(): Promise<void> {
   try {
-    if (!fs.existsSync(STATE_FILE)) return;
-    const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-    if (Array.isArray(data?.pendingDeletions)) {
+    const data = await kvGet<{
+      pendingDeletions?: PendingDeletion[];
+      sentBriefings?: string[];
+    }>(STATE_KEY);
+    if (!data) {
+      console.log('[Briefing] No persisted state — starting fresh');
+      return;
+    }
+    if (Array.isArray(data.pendingDeletions)) {
       pendingDeletions = data.pendingDeletions.filter(
-        (d: any) => d && typeof d.channel === 'string' && typeof d.messageId === 'number' && typeof d.deleteAt === 'number'
+        (d) => d && typeof d.channel === 'string' && typeof d.messageId === 'number' && typeof d.deleteAt === 'number'
       );
     }
-    if (Array.isArray(data?.sentBriefings)) {
+    if (Array.isArray(data.sentBriefings)) {
       for (const k of data.sentBriefings) {
         if (typeof k === 'string') sentBriefings.add(k);
       }
     }
-    console.log(`[Briefing] Loaded ${pendingDeletions.length} pending deletion(s), ${sentBriefings.size} sent marker(s)`);
+    console.log(`[Briefing] Loaded state from DB: ${pendingDeletions.length} pending deletion(s), ${sentBriefings.size} sent marker(s)`);
   } catch (e: any) {
     console.warn('[Briefing] state load failed:', e?.message);
   }
 }
 
-function savePendingDeletions(): void {
+async function saveState(): Promise<void> {
   try {
-    const dir = path.dirname(STATE_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(STATE_FILE, JSON.stringify({ pendingDeletions, sentBriefings: [...sentBriefings] }, null, 2));
+    await kvSet(STATE_KEY, {
+      pendingDeletions,
+      sentBriefings: [...sentBriefings],
+    });
   } catch (e: any) {
     console.warn('[Briefing] state save failed:', e?.message);
   }
 }
 
-function scheduleDeletion(channel: string, messageId: number): void {
+async function scheduleDeletion(channel: string, messageId: number): Promise<void> {
   pendingDeletions.push({ channel, messageId, deleteAt: Date.now() + DELETE_AFTER_MS });
-  savePendingDeletions();
+  await saveState();
 }
 
 async function sweepDeletions(): Promise<void> {
@@ -78,10 +81,8 @@ async function sweepDeletions(): Promise<void> {
     }
   }
   pendingDeletions = remaining;
-  savePendingDeletions();
+  await saveState();
 }
-
-loadPendingDeletions();
 
 // ── Admin contact info ────────────────────────────────────────────────
 const CONTACTS = {
@@ -356,7 +357,7 @@ async function sendAndScheduleDeletion(text: string): Promise<void> {
     }
 
     console.log(`[Briefing] Sent to ${BRIEFING_CHANNEL} (msg ${messageId}), will delete in 5h`);
-    scheduleDeletion(BRIEFING_CHANNEL, messageId);
+    await scheduleDeletion(BRIEFING_CHANNEL, messageId);
   } catch (err: any) {
     console.error('[Briefing] Send failed:', err?.message);
   }
@@ -401,7 +402,7 @@ export function startBriefingScheduler(): void {
           const key = `${sess.id}:${nairobiDate}`;
           if (!sentBriefings.has(key)) {
             sentBriefings.add(key);
-            savePendingDeletions(); // persist BEFORE send so a crash mid-send doesn't duplicate
+            await saveState();
             await sendDailyBriefing(sess.id);
           }
         }
@@ -414,7 +415,7 @@ export function startBriefingScheduler(): void {
         for (const k of sentBriefings) {
           if (k.split(':')[1] < cutoff) sentBriefings.delete(k);
         }
-        savePendingDeletions();
+        await saveState();
       }
     } catch (err: any) {
       console.warn('[Briefing] Scheduler tick failed:', err?.message);
