@@ -4035,6 +4035,16 @@ app.get('/api/admin/users', (req, res) => {
     const { search, plan, status, sort = 'newest' } = req.query as { search?: string; plan?: string; status?: string; sort?: string };
     let users = db.getAllUsers();
 
+    // Compute LIVE online status from lastActiveAt (within last 3 minutes)
+    const ONLINE_WINDOW_MS = 3 * 60 * 1000;
+    const now = Date.now();
+    users = users.map((u) => ({
+      ...u,
+      isOnline: u.lastActiveAt
+        ? (now - new Date(u.lastActiveAt).getTime()) < ONLINE_WINDOW_MS
+        : false,
+    }));
+
     if (search) {
       const q = search.toLowerCase().trim();
       users = users.filter(u => 
@@ -5152,6 +5162,26 @@ app.get('/api/support/tickets/:id', (req, res) => {
   }
 });
 
+
+
+// ==========================================
+// USER: HEARTBEAT (updates lastActiveAt)
+// ==========================================
+app.post('/api/user/heartbeat', (req, res) => {
+  try {
+    const email = String(req.body?.email || req.headers['x-user-email'] || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, error: 'email required' });
+    const user = db.getUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, error: 'user not found' });
+    db.updateUser(user.id, {
+      isOnline: true,
+      lastActiveAt: new Date().toISOString(),
+    } as any);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message });
+  }
+});
 
 // Vite / static file serving
 

@@ -347,6 +347,27 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
     };
   }, [user?.email]);
 
+  // ── Send heartbeat to keep online status fresh ──
+  useEffect(() => {
+    const email = user?.email;
+    if (!email) return;
+    const beat = () => {
+      fetch('/api/user/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
+    };
+    beat(); // immediate
+    const id = setInterval(beat, 60_000); // every 60s
+    const onVis = () => { if (document.visibilityState === 'visible') beat(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [user?.email]);
+
   // Show onboarding once on first login
   useEffect(() => {
     try {
