@@ -17,3 +17,8 @@ dist
 *.bak.*
 *.broken
 src.bak.*
+
+# Runtime state (auto-generated)
+telegram-state.json
+briefing-state.json
+data/
