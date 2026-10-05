@@ -1780,39 +1780,11 @@ Never claim that you performed an action unless the system actually performed an
 // GEMINA AI & DEEPSEEK INTEGRATION
 // ============================================================================
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-66f62adcd6634988b3716806a4ffeb38';
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const DEEPSEEK_API_URL = 'https://api.nova.com/v1/chat/completions';
 
 const GEMINA_AI_SYSTEM_INSTRUCTION = `You are Nova, a professional financial analyst assistant. Respond clearly and concisely with expert market insights, technical analysis (support/resistance, market structure, trend direction, order blocks, FVG), risk management (1-2% risk per trade), and institutional trade plans.`;
 
-async function callNovaAPI(
-  messages: Array<{ role: string; content: string }>,
-  _tag: string,
-  temperature: number
-): Promise<string> {
-  try {
-    const res = await fetch(DEEPSEEK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages,
-        temperature
-      })
-    });
-    if (!res.ok) {
-      console.error('callNovaAPI upstream:', res.status, await res.text().catch(() => ''));
-      return '';
-    }
-    const data: any = await res.json();
-    return data?.choices?.[0]?.message?.content || '';
-  } catch (err) {
-    console.error('callNovaAPI failed:', err);
-    return '';
-  }
-}
+// [removed] callNovaAPI — replaced by Gemini via @google/genai
 
 app.post(['/api/nova-chat', '/api/nova-chat', '/api/straddle-chat', '/api/trish-chat'], async (req, res) => {
   try {

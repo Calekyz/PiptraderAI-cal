@@ -326,7 +326,7 @@ export const NovaAssistantModal: React.FC<NovaAssistantModalProps> = ({
         <div className="bg-[#1e222d] border-b border-[#2a2e39] px-4 sm:px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2962ff] to-[#7c3aed] flex items-center justify-center text-white shadow-md">
-              <Sparkles className="w-5 h-5" />
+              <Bot className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export const NovaAssistantModal: React.FC<NovaAssistantModalProps> = ({
                   <div key={msg.id} className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
                     {!isUser && (
                       <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#2962ff] to-[#7c3aed] flex items-center justify-center text-white shrink-0 shadow-xs mt-1">
-                        <Sparkles className="w-4 h-4" />
+                        <Bot className="w-4 h-4" />
                       </div>
                     )}
                     <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 text-xs sm:text-sm leading-relaxed shadow-xs ${isUser ? 'bg-[#2962ff] text-white rounded-tr-none' : 'bg-[#1e222d] text-[#d1d4dc] border border-[#2a2e39] rounded-tl-none'}`}>

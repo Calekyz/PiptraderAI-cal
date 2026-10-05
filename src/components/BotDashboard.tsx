@@ -60,6 +60,7 @@ import { MacroAnalysisModal } from './MacroAnalysisModal';
 import { UpgradePlanModal } from './UpgradePlanModal';
 import { MT5ConnectionModal } from './MT5ConnectionModal';
 import { MyProfileModal } from './MyProfileModal';
+import { NovaAssistantModal } from './NovaAssistantModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { PendingPaymentBanner } from './PendingPaymentBanner';
 import { AuditLockScreen } from './AuditLockScreen';
@@ -286,6 +287,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
   // Modals state
   const [isTrishOpen, setIsTrishOpen] = useState(false); // legacy — kept to avoid breaking callers
+  const [isNovaOpen, setIsNovaOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [creditsToast, setCreditsToast] = useState<{ balance: number; message: string } | null>(null);
   const [displayedCredits, setDisplayedCredits] = useState<number>((user as any)?.credits ?? 0);
@@ -377,9 +379,11 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       }
     } catch {}
   }, [user?.email]);
+  const [novaTab, setNovaTab] = useState<'chat' | 'vision'>('chat');
 
   const handleOpenNova = (tab: 'chat' | 'vision' = 'chat') => {
-    window.dispatchEvent(new CustomEvent('open-nova', { detail: { tab } }));
+    setNovaTab(tab);
+    setIsNovaOpen(true);
   };
   const [selectedMacroEvent, setSelectedMacroEvent] = useState<MacroEvent | null>(null);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
@@ -1382,6 +1386,17 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
       </div>
 
       {/* Trish Voice & Chat AI Assistant Modal */}
+      {/* ── Floating Nova AI launcher ── */}
+      <button
+        id="floating-nova-btn"
+        onClick={() => handleOpenNova('chat')}
+        className="fixed bottom-56 right-6 z-50 group flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white shadow-2xl hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all active:scale-95 cursor-pointer border border-purple-300/40"
+        title="Open Nova AI Assistant"
+      >
+        <Sparkles className="w-5 h-5 fill-current" />
+        <span className="text-sm font-bold tracking-tight hidden sm:inline">Ask Nova AI</span>
+        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white animate-pulse" />
+      </button>
 
       {/* Removed Trish — using Nova below */}
 
@@ -1591,6 +1606,13 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Nova AI Assistant Modal */}
+      <NovaAssistantModal
+        isOpen={isNovaOpen}
+        onClose={() => setIsNovaOpen(false)}
+        initialTab={novaTab}
+      />
 
       {/* Floating Support Button — bottom-left with ticket badge */}
       <FloatingSupportButton
