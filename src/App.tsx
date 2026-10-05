@@ -440,7 +440,7 @@ export default function App() {
         onClick={() => setIsNovaOpen(true)}
         title="Ask Nova AI"
         aria-label="Open Nova AI Assistant"
-        className="fixed bottom-28 right-6 z-40 w-14 h-14 rounded-full 
+        className="fixed bottom-40 right-6 z-40 w-14 h-14 rounded-full 
                    bg-gradient-to-br from-[#2962ff] to-[#7c3aed] 
                    text-white shadow-2xl shadow-purple-900/30
                    hover:scale-110 active:scale-95 

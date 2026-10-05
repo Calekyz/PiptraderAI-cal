@@ -36,7 +36,7 @@ import {
   PaymentRecord,
   PaymentMethod
 } from './server/paymentEngine';
-import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase, PlanTier } from './server/db';
+import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase } from './server/db';
 import { sendVerificationEmail } from './server/emailService';
 import { verifySignal } from './server/engine/geminiVerifier';
 import { sendSignalToTelegram, initTelegramSignalState } from './server/telegram';
@@ -54,11 +54,7 @@ import {
   respondToUser,
 } from './server/engine';
 
-// CJS-safe __filename / __dirname (works when bundled by esbuild to cjs)
-const __filename =
-  typeof __filename !== 'undefined'
-    ? __filename
-    : (typeof require !== 'undefined' && typeof module !== 'undefined' ? require('path').resolve() : process.cwd() + '/server.js');
+// __filename / __dirname provided by Node's CJS runtime (esbuild bundles server to cjs)
 const __dirname = path.dirname(__filename);
 
 const app = express();
@@ -5492,11 +5488,12 @@ function chargeUserForAction(
   // ── Credit check ──
   const result = db.consumeUserCredits(String(email).toLowerCase().trim(), cost, `Action: ${action}`);
   if (result.ok) return null;
-  if (result.error === 'insufficient_credits') {
+  const errResult = result as { ok: false; error: string; balance?: number };
+  if (errResult.error === 'insufficient_credits') {
     return {
       status: 402,
       error: 'insufficient_credits',
-      balance: result.balance,
+      balance: errResult.balance,
       message: 'You are out of credits. Top up or upgrade your plan.',
     };
   }
@@ -5856,7 +5853,7 @@ app.post('/api/referral/withdraw', (req, res) => {
       db.createAuditLog({
         adminEmail: 'system',
         adminName: 'Referral System',
-        adminRole: 'SYSTEM',
+        adminRole: 'SYSTEM' as any,
         action: 'REFERRAL_WITHDRAW',
         targetId: user.id,
         targetEmail: user.email,
@@ -6013,7 +6010,7 @@ app.post('/api/engine/chat', async (req, res) => {
       } as any) : null,
       signalEngine: async (symbol: string, timeframe = 'M15') => {
         const data = await fetchRealCandles(symbol, timeframe);
-        return analyzeMarket({ symbol, timeframe, candles: data.candles });
+        return analyzeMarket({ symbol, timeframe, candles: data.candles as any });
       },
       newsEngine: analyzeNews,
       forexFactoryEvents: ffEvents,
@@ -6074,7 +6071,7 @@ app.post('/api/engine/chat', async (req, res) => {
           console.log(`[Credits] Extra 8 charged to ${email} for setup. New balance: ${newBalance}`);
         } else {
           // Insufficient for the extra — allow the reply anyway (we already did the work)
-          console.warn(`[Credits] Could not charge extra 8 for ${email}: ${extra.error}`);
+          console.warn(`[Credits] Could not charge extra 8 for ${email}: ${(extra as any).error}`);
         }
       }
     } catch (creditErr: any) {
@@ -6114,7 +6111,7 @@ app.post('/api/engine/analyze', async (req, res) => {
     if (!data || !data.candles || data.candles.length < 30) {
       return res.status(400).json({ success: false, error: `Not enough candle data for ${symbol} ${timeframe}.` });
     }
-    const plan = analyzeMarket({ symbol, timeframe, candles: data.candles });
+    const plan = analyzeMarket({ symbol, timeframe, candles: data.candles as any });
 
     // Save to chart_analyses if userId provided
     if (userId && plan) {
@@ -6123,7 +6120,7 @@ app.post('/api/engine/analyze', async (req, res) => {
           userId,
           symbol,
           timeframe,
-          direction: plan.direction,
+          direction: plan.direction === 'WAIT' ? 'NEUTRAL' : plan.direction,
           entryPrice: String(plan.entry),
           stopLoss: String(plan.stopLoss),
           takeProfit1: String(plan.takeProfit1),
