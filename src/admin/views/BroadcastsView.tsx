@@ -21,7 +21,7 @@ export const BroadcastsView: React.FC = () => {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [urgency, setUrgency] = useState<'INFO' | 'WARNING' | 'CRITICAL' | 'SUCCESS'>('INFO');
-  const [targetSegment, setTargetSegment] = useState<'ALL' | 'FREE_TRIAL' | 'PRO' | 'ELITE' | 'PLATINUM'>('ALL');
+  const [targetSegment, setTargetSegment] = useState<'ALL' | 'PENDING' | 'STARTER' | 'PRO' | 'ELITE'>('ALL');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -148,7 +148,8 @@ export const BroadcastsView: React.FC = () => {
                   className="w-full px-3 py-2 bg-[#161a30] border border-[#262b49] rounded-xl text-xs text-white"
                 >
                   <option value="ALL">All Traders</option>
-                  <option value="PENDING">Pending Members</option>
+                  <option value="PENDING">Pending Members (never paid / expired)</option>
+                  <option value="STARTER">Starter Members</option>
                   <option value="PRO">Pro Tier</option>
                   <option value="ELITE">Elite Institutional</option>
                 </select>
