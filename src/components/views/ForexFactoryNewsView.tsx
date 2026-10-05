@@ -184,7 +184,7 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
   const [selectedTimezone, setSelectedTimezone] = useState<string>(
     localStorage.getItem('pipnex_ff_timezone') || 'America/New_York'
   );
-  const [dateFilter, setDateFilter] = useState<'today' | 'tomorrow' | 'thisweek' | 'nextweek' | 'all'>('thisweek');
+  const [dateFilter, setDateFilter] = useState<'today' | 'tomorrow' | 'thisweek' | 'all'>('thisweek');
 
   // 2. Navigation Category Tab State
   const [activeCategory, setActiveCategory] = useState<string>('All News');
@@ -478,7 +478,6 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
                 today: 'Today',
                 tomorrow: 'Tomorrow',
                 thisweek: 'This Week',
-                nextweek: 'Next Week',
                 all: 'All Upcoming'
               };
 
