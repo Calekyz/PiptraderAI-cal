@@ -218,6 +218,17 @@ export const AdminApi = {
     return res.sentCount;
   },
 
+  async bulkDeletePending(adminPassword: string, confirmation: string, reason?: string): Promise<{ deletedCount: number; emails: string[] }> {
+    const res = await request<{ deletedCount: number; emails: string[]; error?: string }>(
+      '/api/admin/users/bulk/delete-pending',
+      {
+        method: 'POST',
+        body: JSON.stringify({ adminPassword, confirmation, reason })
+      }
+    );
+    return { deletedCount: res.deletedCount || 0, emails: res.emails || [] };
+  },
+
   async modifyCredits(id: string, action: 'ADD' | 'REMOVE' | 'SET', amount: number, reason: string): Promise<{ user: AdminUserItem; transaction: AdminCreditTransaction }> {
     return await request(`/api/admin/users/${id}/credits`, {
       method: 'POST',

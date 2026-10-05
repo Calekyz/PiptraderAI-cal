@@ -55,6 +55,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 
   const [isBulkSuspendOpen, setIsBulkSuspendOpen] = useState(false);
   const [isBulkMessageOpen, setIsBulkMessageOpen] = useState(false);
+  const [isBulkDeletePendingOpen, setIsBulkDeletePendingOpen] = useState(false);
+  const [bulkDeletePassword, setBulkDeletePassword] = useState('');
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState('');
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const [activeUser, setActiveUser] = useState<AdminUserItem | null>(null);
   const [activeUserDetail, setActiveUserDetail] = useState<{
@@ -413,6 +417,37 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     }
   };
 
+  const pendingCount = filteredUsers.filter(u => u.plan === 'Pending').length;
+
+  const handleBulkDeletePendingSubmit = async () => {
+    if (bulkDeleteConfirm !== 'DELETE') {
+      alert('Please type DELETE in the confirmation field.');
+      return;
+    }
+    if (!bulkDeletePassword) {
+      alert('Admin password required.');
+      return;
+    }
+    try {
+      setIsBulkDeleting(true);
+      const result = await AdminApi.bulkDeletePending(
+        bulkDeletePassword,
+        bulkDeleteConfirm,
+        'Admin mass-delete of pending accounts'
+      );
+      alert(`✅ Deleted ${result.deletedCount} pending account(s).`);
+      setIsBulkDeletePendingOpen(false);
+      setBulkDeletePassword('');
+      setBulkDeleteConfirm('');
+      fetchUsers();
+      if (onRefreshStats) onRefreshStats();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete pending accounts');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const handleBulkMessageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedUserIds.length === 0) return;
@@ -537,6 +572,18 @@ export const UserManagement: React.FC<UserManagementProps> = ({
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Bulk Reactivate
+            </button>
+            <button
+              onClick={() => {
+                setBulkDeletePassword('');
+                setBulkDeleteConfirm('');
+                setIsBulkDeletePendingOpen(true);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-1.5"
+              title="Permanently delete ALL pending accounts"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete All Pending ({pendingCount})
             </button>
             <button
               onClick={() => setSelectedUserIds([])}
@@ -1038,6 +1085,77 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       )}
 
       {/* BULK SUSPEND MODAL */}
+      {/* ═══ Mass Delete Pending Accounts Modal ═══ */}
+      {isBulkDeletePendingOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0e1224] border border-rose-500/40 rounded-2xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-white text-base">Mass Delete Pending Accounts</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Permanently delete <strong className="text-rose-300">{pendingCount}</strong> pending account(s).
+                </p>
+              </div>
+            </div>
+
+            {/* Warning */}
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs leading-relaxed">
+              ⚠️ <strong>This cannot be undone.</strong> All pending users and their data will be permanently removed.
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Admin Password
+              </label>
+              <input
+                type="password"
+                value={bulkDeletePassword}
+                onChange={(e) => setBulkDeletePassword(e.target.value)}
+                placeholder="Enter your admin password"
+                className="w-full px-3 py-2 bg-[#1b1122] border border-rose-500/30 rounded-xl text-white text-xs font-mono outline-none focus:border-rose-500"
+              />
+            </div>
+
+            {/* Confirm text */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                Type <span className="text-rose-400 font-mono font-bold">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={bulkDeleteConfirm}
+                onChange={(e) => setBulkDeleteConfirm(e.target.value)}
+                placeholder="DELETE"
+                className="w-full px-3 py-2 bg-[#1b1122] border border-rose-500/30 rounded-xl text-white text-xs font-mono outline-none focus:border-rose-500"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setIsBulkDeletePendingOpen(false)}
+                disabled={isBulkDeleting}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDeletePendingSubmit}
+                disabled={isBulkDeleting || bulkDeleteConfirm !== 'DELETE' || !bulkDeletePassword || pendingCount === 0}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold"
+              >
+                {isBulkDeleting ? 'Deleting...' : `Delete ${pendingCount} Account(s)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isBulkSuspendOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0e1224] border border-[#262d4e] rounded-2xl p-6 shadow-2xl space-y-4">

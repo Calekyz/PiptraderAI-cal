@@ -5183,6 +5183,72 @@ app.post('/api/user/heartbeat', (req, res) => {
   }
 });
 
+
+// ==========================================
+// ADMIN: BULK DELETE PENDING ACCOUNTS
+// ==========================================
+app.post('/api/admin/users/bulk/delete-pending', (req, res) => {
+  try {
+    const { adminPassword, reason = 'Admin mass delete of pending accounts', confirmation } = req.body || {};
+
+    // 1. Require admin password
+    if (!adminPassword) {
+      return res.status(400).json({ success: false, error: 'Admin password is required.' });
+    }
+    const validPass = adminPassword === (process.env.ADMIN_PASSWORD || '');
+    if (!validPass) {
+      return res.status(403).json({ success: false, error: 'Invalid admin password.' });
+    }
+
+    // 2. Require explicit confirmation text
+    if (confirmation !== 'DELETE') {
+      return res.status(400).json({ success: false, error: 'Type DELETE to confirm.' });
+    }
+
+    // 3. Find all Pending users
+    const all = db.getAllUsers();
+    const pending = all.filter((u: any) => u.plan === 'Pending');
+
+    if (pending.length === 0) {
+      return res.json({ success: true, deletedCount: 0, emails: [], message: 'No pending accounts to delete.' });
+    }
+
+    // 4. Delete each
+    const deletedEmails: string[] = [];
+    for (const u of pending) {
+      try {
+        const ok = db.adminDeleteUser(u.id, reason, ADMIN_ALLOWED_USERNAME, 'Super Admin');
+        if (ok) deletedEmails.push(u.email);
+      } catch (e: any) {
+        console.warn(`[Bulk Delete Pending] Failed for ${u.email}:`, e?.message);
+      }
+    }
+
+    // 5. Audit log
+    try {
+      db.createAuditLog({
+        adminEmail: ADMIN_ALLOWED_USERNAME,
+        adminName: 'Super Admin',
+        adminRole: 'SUPER_ADMIN',
+        action: 'BULK_DELETE_PENDING',
+        details: `Mass-deleted ${deletedEmails.length} pending account(s): ${deletedEmails.slice(0, 10).join(', ')}${deletedEmails.length > 10 ? '...' : ''}`,
+        reason,
+      });
+    } catch {}
+
+    console.log(`[Bulk Delete Pending] Deleted ${deletedEmails.length} account(s)`);
+
+    res.json({
+      success: true,
+      deletedCount: deletedEmails.length,
+      emails: deletedEmails,
+      message: `Deleted ${deletedEmails.length} pending account(s).`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Bulk delete failed' });
+  }
+});
+
 // Vite / static file serving
 
 // ==========================================
