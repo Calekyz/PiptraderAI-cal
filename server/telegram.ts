@@ -33,7 +33,7 @@ function resolveChannels(): string[] {
   const raw =
     process.env.TELEGRAM_SIGNAL_GROUPS ||
     process.env.TELEGRAM_CHANNEL_ID ||
-    '@peshfx';
+    '@peshyFx';
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 const CHANNELS = resolveChannels();

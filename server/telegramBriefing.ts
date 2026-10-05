@@ -2,19 +2,90 @@
 // TELEGRAM DAILY BRIEFING
 // ----------------------------------------------------------------------------
 // Sends a market briefing to the briefing channel (default @calekyz) at
-// 6am and 4pm EAT. Each message auto-deletes after 5 hours.
+// 6am, 12pm, and 5pm EAT. Each message auto-deletes after 5 hours.
 // ============================================================================
 
+import fs from 'fs';
+import path from 'path';
 import { fetchRealCandles } from './marketData';
 import { analyzeMarket } from './engine';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const BRIEFING_CHANNEL = process.env.TELEGRAM_BRIEFING_CHANNEL_ID || '@calekyz';
 const DELETE_AFTER_MS = 5 * 60 * 60 * 1000; // 5 hours
+const STATE_FILE = path.join(
+  process.env.PAYMENTS_DATA_DIR || process.cwd(),
+  'briefing-state.json'
+);
+
+interface PendingDeletion { channel: string; messageId: number; deleteAt: number; }
+let pendingDeletions: PendingDeletion[] = [];
+const sentBriefings = new Set<string>();
+
+function loadPendingDeletions(): void {
+  try {
+    if (!fs.existsSync(STATE_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    if (Array.isArray(data?.pendingDeletions)) {
+      pendingDeletions = data.pendingDeletions.filter(
+        (d: any) => d && typeof d.channel === 'string' && typeof d.messageId === 'number' && typeof d.deleteAt === 'number'
+      );
+    }
+    if (Array.isArray(data?.sentBriefings)) {
+      for (const k of data.sentBriefings) {
+        if (typeof k === 'string') sentBriefings.add(k);
+      }
+    }
+    console.log(`[Briefing] Loaded ${pendingDeletions.length} pending deletion(s), ${sentBriefings.size} sent marker(s)`);
+  } catch (e: any) {
+    console.warn('[Briefing] state load failed:', e?.message);
+  }
+}
+
+function savePendingDeletions(): void {
+  try {
+    const dir = path.dirname(STATE_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(STATE_FILE, JSON.stringify({ pendingDeletions, sentBriefings: [...sentBriefings] }, null, 2));
+  } catch (e: any) {
+    console.warn('[Briefing] state save failed:', e?.message);
+  }
+}
+
+function scheduleDeletion(channel: string, messageId: number): void {
+  pendingDeletions.push({ channel, messageId, deleteAt: Date.now() + DELETE_AFTER_MS });
+  savePendingDeletions();
+}
+
+async function sweepDeletions(): Promise<void> {
+  if (pendingDeletions.length === 0) return;
+  const now = Date.now();
+  const remaining: PendingDeletion[] = [];
+  for (const d of pendingDeletions) {
+    if (d.deleteAt > now) { remaining.push(d); continue; }
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: d.channel, message_id: d.messageId }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (data?.ok) console.log(`[Briefing] Deleted msg ${d.messageId} from ${d.channel}`);
+      else console.warn(`[Briefing] delete failed (${d.channel} ${d.messageId}):`, data?.description);
+    } catch (e: any) {
+      console.warn('[Briefing] delete failed:', e?.message);
+      if (now - d.deleteAt < 24 * 3600 * 1000) remaining.push(d);
+    }
+  }
+  pendingDeletions = remaining;
+  savePendingDeletions();
+}
+
+loadPendingDeletions();
 
 // ── Admin contact info ────────────────────────────────────────────────
 const CONTACTS = {
-  telegram: ['@mentor_calekyz', '@peshy'],
+  telegram: ['@mentor_calekyz', '@Peshfx'],
   whatsapp: ['+254726222093', '+254116081230'],
   email: 'piptraderaicustomer@gmail.com',
 };
@@ -77,7 +148,7 @@ async function getEngineBiases(): Promise<Array<{ symbol: string; direction: str
 
 // ── Ask Gemini to write a summary + tip ───────────────────────────────
 async function generateAISummary(
-  session: 'asian' | 'nyc',
+  session: 'asian' | 'noon' | 'nyc',
   events: Array<any>,
   biases: Array<any>
 ): Promise<{ summary: string; tip: string }> {
@@ -96,7 +167,7 @@ async function generateAISummary(
       ? biases.map((b) => `${b.symbol}: ${b.direction} @ ${b.confidence}% · Trend ${b.trend} · RSI ${b.rsi?.toFixed(1)} · Price ${b.price}`).join('\n')
       : '(no live bias available)';
 
-    const sessionLabel = session === 'asian' ? 'Asian session' : 'New York session';
+    const sessionLabel = session === 'asian' ? 'Asian session' : session === 'noon' ? 'Midday session' : 'New York session';
 
     const prompt = `You are Nova, a market briefing writer for PipTraderAI. Write a SHORT ${sessionLabel} briefing.
 
@@ -134,7 +205,7 @@ Keep it concise, professional, no fluff. No emojis in the text body.`;
 }
 
 // ── Compose the full briefing message ─────────────────────────────────
-async function buildBriefingMessage(session: 'asian' | 'nyc'): Promise<string> {
+async function buildBriefingMessage(session: 'asian' | 'noon' | 'nyc'): Promise<string> {
   // 1. Fetch events — try Deno proxy first (bypasses FF IP block on Render),
   //    then fall back to the direct FF URL (same strategy as the main engine)
   let events: Array<any> = [];
@@ -195,7 +266,7 @@ async function buildBriefingMessage(session: 'asian' | 'nyc'): Promise<string> {
   const { summary, tip } = await generateAISummary(session, events, biases);
 
   // 4. Compose
-  const sessionLabel = session === 'asian' ? 'Asian Session · 06:00 EAT' : 'New York Session · 16:00 EAT';
+  const sessionLabel = session === 'asian' ? 'Asian Session · 06:00 EAT' : session === 'noon' ? 'Midday Session · 12:00 EAT' : 'New York Session · 17:00 EAT';
   const lines: string[] = [];
 
   lines.push(`📊 <b>PIPTRADERAI MARKET BRIEFING</b>`);
@@ -284,27 +355,14 @@ async function sendAndScheduleDeletion(text: string): Promise<void> {
     }
 
     console.log(`[Briefing] Sent to ${BRIEFING_CHANNEL} (msg ${messageId}), will delete in 5h`);
-
-    // Schedule deletion
-    setTimeout(async () => {
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: BRIEFING_CHANNEL, message_id: messageId }),
-        });
-        console.log(`[Briefing] Deleted msg ${messageId}`);
-      } catch (err: any) {
-        console.warn('[Briefing] Delete failed:', err?.message);
-      }
-    }, DELETE_AFTER_MS);
+    scheduleDeletion(BRIEFING_CHANNEL, messageId);
   } catch (err: any) {
     console.error('[Briefing] Send failed:', err?.message);
   }
 }
 
 // ── Public API ────────────────────────────────────────────────────────
-export async function sendDailyBriefing(session: 'asian' | 'nyc'): Promise<{ ok: boolean; error?: string }> {
+export async function sendDailyBriefing(session: 'asian' | 'noon' | 'nyc'): Promise<{ ok: boolean; error?: string }> {
   try {
     console.log(`[Briefing] Building ${session} briefing...`);
     const msg = await buildBriefingMessage(session);
@@ -316,15 +374,20 @@ export async function sendDailyBriefing(session: 'asian' | 'nyc'): Promise<{ ok:
   }
 }
 
-// ── Scheduler: fires at 6am + 4pm EAT (UTC+3) ─────────────────────────
-const sentBriefings = new Set<string>();
+// ── Scheduler: fires at 6am + 12pm + 5pm EAT (UTC+3) ───────────────────
 let schedulerInterval: NodeJS.Timeout | null = null;
+
+const SESSIONS: Array<{ id: 'asian' | 'noon' | 'nyc'; startHour: number; endHour: number }> = [
+  { id: 'asian', startHour: 6, endHour: 9 },
+  { id: 'noon', startHour: 12, endHour: 15 },
+  { id: 'nyc', startHour: 17, endHour: 20 },
+];
 
 export function startBriefingScheduler(): void {
   if (schedulerInterval) return;
-  console.log(`[Briefing] Scheduler started (6am + 4pm EAT → ${BRIEFING_CHANNEL})`);
+  console.log(`[Briefing] Scheduler started (6am + 12pm + 5pm EAT → ${BRIEFING_CHANNEL})`);
+  sweepDeletions().catch(() => {});
 
-  // Check every 5 minutes
   schedulerInterval = setInterval(async () => {
     try {
       const now = new Date();
@@ -332,30 +395,25 @@ export function startBriefingScheduler(): void {
       const nairobiHour = (now.getUTCHours() + offsetHours) % 24;
       const nairobiDate = new Date(now.getTime() + offsetHours * 3600 * 1000).toISOString().slice(0, 10);
 
-      // Asian session: 6am–9am EAT
-      if (nairobiHour >= 6 && nairobiHour < 9) {
-        const key = `asian:${nairobiDate}`;
-        if (!sentBriefings.has(key)) {
-          sentBriefings.add(key);
-          await sendDailyBriefing('asian');
+      for (const sess of SESSIONS) {
+        if (nairobiHour >= sess.startHour && nairobiHour < sess.endHour) {
+          const key = `${sess.id}:${nairobiDate}`;
+          if (!sentBriefings.has(key)) {
+            sentBriefings.add(key);
+            savePendingDeletions(); // persist BEFORE send so a crash mid-send doesn't duplicate
+            await sendDailyBriefing(sess.id);
+          }
         }
       }
 
-      // NYC session: 4pm–7pm EAT
-      if (nairobiHour >= 16 && nairobiHour < 19) {
-        const key = `nyc:${nairobiDate}`;
-        if (!sentBriefings.has(key)) {
-          sentBriefings.add(key);
-          await sendDailyBriefing('nyc');
-        }
-      }
+      await sweepDeletions();
 
-      // Prune entries older than 7 days
       if (sentBriefings.size > 30) {
         const cutoff = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0, 10);
         for (const k of sentBriefings) {
           if (k.split(':')[1] < cutoff) sentBriefings.delete(k);
         }
+        savePendingDeletions();
       }
     } catch (err: any) {
       console.warn('[Briefing] Scheduler tick failed:', err?.message);
