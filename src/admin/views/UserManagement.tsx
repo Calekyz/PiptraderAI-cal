@@ -595,6 +595,22 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         </div>
       )}
 
+      {/* ── Danger Zone: always visible ── */}
+      <div className="flex flex-wrap items-center justify-end gap-2 mt-4">
+        <button
+          onClick={() => {
+            setBulkDeletePassword('');
+            setBulkDeleteConfirm('');
+            setIsBulkDeletePendingOpen(true);
+          }}
+          className="px-4 py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-200 text-xs font-bold flex items-center gap-1.5 shadow-lg"
+          title="Permanently delete ALL pending accounts (requires admin password)"
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete All Pending ({pendingCount})
+        </button>
+      </div>
+
       {/* Filters */}
       <div className="bg-[#0f1224] border border-[#1e233d] rounded-2xl p-4 shadow-lg space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
