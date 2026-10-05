@@ -30,6 +30,19 @@ const SITE_UNDER_MAINTENANCE = false;
 
 export default function App() {
   const [isNovaOpen, setIsNovaOpen] = useState(false);
+  const [novaInitialTab, setNovaInitialTab] = useState<'chat' | 'vision'>('chat');
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      if (detail.tab === 'chat' || detail.tab === 'vision') {
+        setNovaInitialTab(detail.tab);
+      }
+      setIsNovaOpen(true);
+    };
+    window.addEventListener('open-nova', handler);
+    return () => window.removeEventListener('open-nova', handler);
+  }, []);
   const [isAdminPanel, setIsAdminPanel] = useState<boolean>(() => {
     try {
       const host = window.location.hostname.toLowerCase();
@@ -420,14 +433,14 @@ export default function App() {
 
       <PWAInstallPrompt />
       {/* ═══════════════════════════════════════════════════
-          FLOATING PIPAI CHAT BUTTON + MODAL
+          FLOATING NOVA AI CHAT BUTTON + MODAL
           Available on every page (hidden in admin panel)
       ═══════════════════════════════════════════════════ */}
       <button
         onClick={() => setIsNovaOpen(true)}
-        title="Ask PipAI"
-        aria-label="Open PipAI Assistant"
-        className="fixed bottom-40 right-6 z-40 w-14 h-14 rounded-full 
+        title="Ask Nova AI"
+        aria-label="Open Nova AI Assistant"
+        className="fixed bottom-28 right-6 z-40 w-14 h-14 rounded-full 
                    bg-gradient-to-br from-[#2962ff] to-[#7c3aed] 
                    text-white shadow-2xl shadow-purple-900/30
                    hover:scale-110 active:scale-95 
@@ -435,13 +448,14 @@ export default function App() {
                    flex items-center justify-center
                    border border-purple-400/40"
       >
-        <Bot className="w-6 h-6" />
+        <Sparkles className="w-6 h-6" />
         <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-[#07080d] animate-pulse" />
       </button>
 
       <NovaAssistantModal
         isOpen={isNovaOpen}
         onClose={() => setIsNovaOpen(false)}
+        initialTab={novaInitialTab}
       />
     </div>
   );
