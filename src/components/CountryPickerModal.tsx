@@ -207,7 +207,8 @@ const ALL_COUNTRIES = [
 interface CountryPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (country: { name: string; code: string; dial: string }) => void;
+  onSelect: (country: { name: string; code: string; dial?: string; dialCode?: string; flag?: string }) => void;
+  selectedCountry?: { name: string; code: string; dial?: string; dialCode?: string; flag?: string };
   initialCountryCode?: string; // ISO code to preselect
 }
 

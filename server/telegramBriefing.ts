@@ -130,7 +130,7 @@ async function getEngineBiases(): Promise<Array<{ symbol: string; direction: str
     try {
       const data = await fetchRealCandles(sym, 'H1');
       if (!data?.candles || data.candles.length < 30) continue;
-      const plan = analyzeMarket({ symbol: sym, timeframe: 'H1', candles: data.candles });
+      const plan = analyzeMarket({ symbol: sym, timeframe: 'H1', candles: data.candles as any });
       if (!plan) continue;
       results.push({
         symbol: sym,

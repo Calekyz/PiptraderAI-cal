@@ -14,6 +14,13 @@ export interface UserProfile {
   plan?: PlanTier;
   mt5Connected?: boolean;
   createdAt?: string;
+  // Extended fields (populated by server session)
+  balance?: number;
+  credits?: number;
+  isEarlyAccessUser?: boolean;
+  trialStartedAt?: string;
+  trialExpiresAt?: string;
+  trialStatus?: string;
 }
 
 // Kept for API compat. Trial semantics removed — isUnlocked simply means

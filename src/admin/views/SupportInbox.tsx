@@ -14,10 +14,12 @@ import {
   Sparkles,
   ChevronRight,
   MoreVertical,
-  Paperclip
+  Paperclip,
+  X
 } from 'lucide-react';
 import { AdminSupportTicket, AdminStats } from '../types';
 import { AdminApi } from '../api';
+import { playNotificationSound } from '../../lib/sounds';
 
 interface SupportInboxProps {
   initialTicketId?: string | null;
@@ -361,7 +363,7 @@ export const SupportInbox: React.FC<SupportInboxProps> = ({
                             e.stopPropagation();
                             try {
                               const res = await AdminApi.setTicketStatus(t.id, 'CLOSED');
-                              if (res?.success) {
+                              if (res) {
                                 setTickets(prev => prev.map(x => x.id === t.id ? { ...x, status: 'CLOSED' } : x));
                               }
                             } catch (err) {

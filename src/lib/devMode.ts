@@ -1,7 +1,8 @@
 export function isDevelopmentMode(): boolean {
   try {
-    if (import.meta.env.DEV) return true;
-    if (import.meta.env.MODE === 'development') return true;
+    const env = (import.meta as any)?.env || {};
+    if (env.DEV) return true;
+    if (env.MODE === 'development') return true;
   } catch {
     // ignore
   }

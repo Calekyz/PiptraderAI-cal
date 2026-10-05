@@ -20,7 +20,7 @@ import { TermsModal } from './TermsModal';
 import { EmailVerificationCard } from './EmailVerificationCard';
 import { triggerGoogleOAuth } from '../lib/googleAuth';
 import { 
-  registerUser, 
+
   registerUserAsync,
   loginUserAsync,
   enterAsDevUser,
@@ -53,7 +53,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
   // Sign Up / In form states
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState<CountryItem>(COUNTRIES[0]); // US +1 default
+  const [selectedCountry, setSelectedCountry] = useState<CountryItem>(COUNTRIES[0] as any); // US +1 default
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState(() => initialEmail);
   const [password, setPassword] = useState('');
@@ -179,8 +179,8 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
           triggerConfetti();
           onSuccessAuth(profile);
         },
-        onError: (err) => {
-          setErrorMessage(err.message || 'Google Sign-In was cancelled or encountered an issue.');
+        onError: (err: any) => {
+          setErrorMessage(typeof err === 'string' ? err : (err?.message || 'Google Sign-In was cancelled or encountered an issue.'));
         }
       });
 
@@ -837,7 +837,7 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
         isOpen={showCountryModal}
         onClose={() => setShowCountryModal(false)}
         selectedCountry={selectedCountry}
-        onSelect={(country) => setSelectedCountry(country)}
+        onSelect={(country) => setSelectedCountry({ ...selectedCountry, ...country, dialCode: (country as any).dialCode || (country as any).dial || selectedCountry.dialCode, flag: (country as any).flag || selectedCountry.flag })}
       />
 
       {/* ─── GOOGLE AUTH MODAL TEMPORARILY HIDDEN ───

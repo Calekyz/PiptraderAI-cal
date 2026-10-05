@@ -92,6 +92,7 @@ export interface AuthRegisterResult {
   email: string;
   message: string;
   user?: UserProfile;
+  autoVerified?: boolean;
 }
 
 export async function registerUserAsync(data: {

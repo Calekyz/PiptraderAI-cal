@@ -184,7 +184,7 @@ const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy
                 {/* Action Buttons: Copy Setup / Execute */}
                 <div className="flex items-center gap-2 pt-1">
                   <button
-                    onClick={() => handleCopy(sig)}
+                    onClick={() => onCopy(sig)}
                     className="flex-1 py-2 px-3 rounded-xl bg-[#121426] hover:bg-[#1a1e38] border border-[#222744] hover:border-purple-500/40 text-gray-300 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                   >
                     {copiedId === sig.id ? (
@@ -205,7 +205,7 @@ const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy
                       if (onExecuteSignal) {
                         onExecuteSignal(sig);
                       } else {
-                        handleCopy(sig);
+                        onCopy(sig);
                       }
                     }}
                     className="py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
