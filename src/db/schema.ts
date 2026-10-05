@@ -447,7 +447,7 @@ export const pipnexBroadcasts = pgTable('pipnex_broadcasts', {
   targetSegment: text('target_segment').notNull().default('ALL'),
   author: text('author').notNull().default('SuperAdmin'),
   isActive: boolean('is_active').default(true).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),,
+  createdAt: timestamp('created_at').defaultNow().notNull(),
   targetEmail: text('target_email'),
   kind: text('kind').default('BROADCAST'),
 });
