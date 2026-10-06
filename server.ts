@@ -5705,56 +5705,41 @@ app.get('/api/user/usage', (req, res) => {
 // ==========================================
 // Zero AI. Zero external APIs. Pure rules.
 
+// ── Cached delegation to canonical FF fetch ─────────────────────
+// news-bias and the calendar route now share the same source of truth.
+// 5-min cache prevents hammering the Deno proxy during rapid UI calls.
+let _ffEventsCache: { events: any[]; at: number } = { events: [], at: 0 };
+const _FF_EVENTS_TTL_MS = 5 * 60 * 1000;
+
 async function fetchFfEventsForEngine() {
-  // Try the Deno proxy first (bypasses FF IP block on Render), then fall back to direct
-  const urls = [
-    'https://ready-chicken-5023.calekyz.deno.net',
-    'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
-  ];
-
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': 'https://www.forexfactory.com/',
-  };
-
-  for (const url of urls) {
-    for (const timeoutMs of [10000, 20000]) {
-      try {
-        const ffRes = await fetch(url, {
-          headers,
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-        if (!ffRes.ok) {
-          console.warn(`[FF] ${url} → HTTP ${ffRes.status} (timeout ${timeoutMs}ms)`);
-          continue;
-        }
-        const raw: any[] = await ffRes.json();
-        if (!Array.isArray(raw) || raw.length === 0) {
-          console.warn(`[FF] ${url} → empty response`);
-          continue;
-        }
-        console.log(`[FF] ✅ Fetched ${raw.length} events from ${url}`);
-        return raw.map((e: any, i: number) => ({
-          id: `ff_${i}`,
-          title: e.title,
-          currency: (e.country || 'USD').toUpperCase(),
-          country: e.country || 'USD',
-          impact: e.impact || 'Low',
-          actual: e.actual,
-          forecast: e.forecast,
-          previous: e.previous,
-          timestamp: e.date ? new Date(e.date).getTime() : undefined,
-        }));
-      } catch (err: any) {
-        console.warn(`[FF] ${url} failed (timeout ${timeoutMs}ms):`, err?.message);
-      }
-    }
+  const now = Date.now();
+  if (_ffEventsCache.events.length > 0 && now - _ffEventsCache.at < _FF_EVENTS_TTL_MS) {
+    return _ffEventsCache.events;
   }
-
-  console.warn('[FF] All sources failed — returning empty list');
-  return [];
+  try {
+    const events = await fetchForexFactoryCalendar('thisweek');
+    const mapped = events.map((e: any, i: number) => ({
+      id: e.id || e.eventId || `ff_${i}`,
+      title: e.title,
+      currency: (e.currency || e.country || 'USD').toUpperCase(),
+      country: e.country || e.currency || 'USD',
+      impact: e.impact || e.impactLevel || 'Low',
+      actual: e.actual,
+      forecast: e.forecast,
+      previous: e.previous,
+      timestamp: typeof e.timestamp === 'number'
+        ? e.timestamp
+        : (e.date ? new Date(e.date).getTime() : undefined),
+    }));
+    if (mapped.length > 0) {
+      _ffEventsCache = { events: mapped, at: now };
+      console.log(`[FF] news-bias cache refreshed: ${mapped.length} events`);
+    }
+    return mapped;
+  } catch (err: any) {
+    console.warn('[FF] fetchFfEventsForEngine failed:', err?.message);
+    return _ffEventsCache.events; // serve stale rather than empty
+  }
 }
 
 app.post('/api/engine/chat', async (req, res) => {
