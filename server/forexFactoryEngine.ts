@@ -746,7 +746,7 @@ AUD/USD proved the most resilient cross, supported by robust Australian employme
 // 3. FOREXFACTORY MARKET OVERVIEW QUOTES
 // ==========================================
 
-export function getForexFactoryMarketOverview(): FFMarketQuote[] {
+function getForexFactoryMarketOverviewFallback(): FFMarketQuote[] {
   return [
     {
       symbol: 'EUR/USD',
@@ -896,6 +896,119 @@ export function getForexFactoryMarketOverview(): FFMarketQuote[] {
 }
 
 // ==========================================
+// 3b. LIVE MARKET OVERVIEW (TwelveData)
+// ==========================================
+// Batch quote fetch + 90s cache + per-symbol fallback.
+// 8 symbols × 1 batch call = 1 request per refresh → well under 8 req/min.
+
+const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY || '';
+
+// Display symbol → TwelveData symbol
+const TWELVE_SYMBOL_MAP: Record<string, string> = {
+  'EUR/USD': 'EUR/USD',
+  'GBP/USD': 'GBP/USD',
+  'USD/JPY': 'USD/JPY',
+  'XAU/USD': 'XAU/USD',
+  'US30':    'DJI',
+  'BTC/USD': 'BTC/USD',
+  'AUD/USD': 'AUD/USD',
+  'USD/CAD': 'USD/CAD',
+};
+
+let _marketCache: { quotes: FFMarketQuote[]; at: number } = { quotes: [], at: 0 };
+const _MARKET_TTL_MS = 90 * 1000; // 90 seconds
+
+function deriveTrend(pct: number): FFMarketQuote['trend'] {
+  if (pct > 1) return 'Strong Buy';
+  if (pct > 0.1) return 'Buy';
+  if (pct > -0.1) return 'Neutral';
+  if (pct > -1) return 'Sell';
+  return 'Strong Sell';
+}
+
+function deriveSentiment(pct: number): { bull: number; bear: number } {
+  const bull = Math.max(20, Math.min(80, Math.round(50 + pct * 5)));
+  return { bull, bear: 100 - bull };
+}
+
+async function fetchTwelveDataQuotes(): Promise<Record<string, any>> {
+  const symbols = Object.values(TWELVE_SYMBOL_MAP).join(',');
+  const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbols)}&apikey=${TWELVE_DATA_API_KEY}`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'PipTraderAI/1.0' } });
+  const data: any = await res.json();
+
+  // Batch returns an error object with .code/.status if rate-limited
+  if (!data || data.status === 'error' || data.code) {
+    throw new Error(data?.message || 'TwelveData error');
+  }
+  return data;
+}
+
+export async function getForexFactoryMarketOverview(): Promise<FFMarketQuote[]> {
+  const now = Date.now();
+  if (_marketCache.quotes.length > 0 && now - _marketCache.at < _MARKET_TTL_MS) {
+    return _marketCache.quotes;
+  }
+
+  const fallback = getForexFactoryMarketOverviewFallback();
+
+  if (!TWELVE_DATA_API_KEY) {
+    console.warn('[Market] TWELVE_DATA_API_KEY not set — serving fallback quotes');
+    return fallback;
+  }
+
+  try {
+    const raw = await fetchTwelveDataQuotes();
+    const quotes: FFMarketQuote[] = [];
+
+    for (const fb of fallback) {
+      const tdSymbol = TWELVE_SYMBOL_MAP[fb.symbol];
+      const q = tdSymbol ? raw[tdSymbol] : null;
+
+      if (!q || !q.close) {
+        quotes.push(fb); // per-symbol fallback
+        continue;
+      }
+
+      const price = parseFloat(q.close);
+      const prevClose = parseFloat(q.previous_close || q.close);
+      const change = parseFloat(q.change ?? (price - prevClose));
+      const changePct = parseFloat(q.percent_change ?? ((change / (prevClose || 1)) * 100));
+      const spread = Math.max(0.1, price * 0.0001);
+      const sent = deriveSentiment(changePct);
+
+      quotes.push({
+        symbol: fb.symbol,
+        name: fb.name,
+        category: fb.category,
+        price,
+        bid: price - spread / 2,
+        ask: price + spread / 2,
+        spread,
+        change,
+        changePercent: changePct,
+        direction: changePct >= 0 ? 'up' : 'down',
+        high24h: parseFloat(q.high || String(price)),
+        low24h:  parseFloat(q.low  || String(price)),
+        bullishSentiment: sent.bull,
+        bearishSentiment: sent.bear,
+        dailyVolume: q.volume && q.volume !== '0' ? `$${q.volume}` : fb.dailyVolume,
+        trend: deriveTrend(changePct),
+      });
+    }
+
+    _marketCache = { quotes, at: now };
+    console.log(`[Market] TwelveData quotes cached: ${quotes.length} symbols`);
+    return quotes;
+  } catch (err: any) {
+    console.warn('[Market] TwelveData fetch failed:', err?.message);
+    // serve stale cache if available, else fallback
+    if (_marketCache.quotes.length > 0) return _marketCache.quotes;
+    return fallback;
+  }
+}
+
+// ==========================================
 // 4. ROUTER ENDPOINTS
 // ==========================================
 
@@ -938,12 +1051,13 @@ forexFactoryRouter.get('/api/forex-factory/news', (req: Request, res: Response) 
 });
 
 // 3. Market Overview & Quotes
-forexFactoryRouter.get('/api/forex-factory/market-overview', (req: Request, res: Response) => {
+forexFactoryRouter.get('/api/forex-factory/market-overview', async (req: Request, res: Response) => {
   try {
-    const quotes = getForexFactoryMarketOverview();
+    const quotes = await getForexFactoryMarketOverview();
     res.json({
       success: true,
-      source: 'ForexFactory Market Overview',
+      source: TWELVE_DATA_API_KEY ? 'TwelveData Live Quotes' : 'ForexFactory Market Overview',
+      live: Boolean(TWELVE_DATA_API_KEY),
       quotes,
       lastUpdated: new Date().toISOString()
     });
