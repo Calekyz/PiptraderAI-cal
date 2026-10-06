@@ -149,7 +149,7 @@ async function getEngineBiases(): Promise<Array<{ symbol: string; direction: str
 
 // ── Ask Gemini to write a summary + tip ───────────────────────────────
 async function generateAISummary(
-  session: 'asian' | 'noon' | 'nyc',
+  session: BriefingSessionId,
   events: Array<any>,
   biases: Array<any>
 ): Promise<{ summary: string; tip: string }> {
@@ -168,7 +168,7 @@ async function generateAISummary(
       ? biases.map((b) => `${b.symbol}: ${b.direction} @ ${b.confidence}% · Trend ${b.trend} · RSI ${b.rsi?.toFixed(1)} · Price ${b.price}`).join('\n')
       : '(no live bias available)';
 
-    const sessionLabel = session === 'asian' ? 'Asian session' : session === 'noon' ? 'Midday session' : 'New York session';
+    const sessionLabel = 'Asian session';
 
     const prompt = `You are Nova, a market briefing writer for PipTraderAI. Write a SHORT ${sessionLabel} briefing.
 
@@ -206,7 +206,7 @@ Keep it concise, professional, no fluff. No emojis in the text body.`;
 }
 
 // ── Compose the full briefing message ─────────────────────────────────
-async function buildBriefingMessage(session: 'asian' | 'noon' | 'nyc'): Promise<string> {
+async function buildBriefingMessage(session: BriefingSessionId): Promise<string> {
   // 1. Fetch events — try Deno proxy first (bypasses FF IP block on Render),
   //    then fall back to the direct FF URL (same strategy as the main engine)
   let events: Array<any> = [];
@@ -267,7 +267,7 @@ async function buildBriefingMessage(session: 'asian' | 'noon' | 'nyc'): Promise<
   const { summary, tip } = await generateAISummary(session, events, biases);
 
   // 4. Compose
-  const sessionLabel = session === 'asian' ? 'Asian Session · 06:00 EAT' : session === 'noon' ? 'Midday Session · 12:00 EAT' : 'New York Session · 17:00 EAT';
+  const sessionLabel = getSessionLabel(session);
   const lines: string[] = [];
 
   lines.push(`📊 <b>PIPTRADERAI MARKET BRIEFING</b>`);
@@ -364,7 +364,7 @@ async function sendAndScheduleDeletion(text: string): Promise<void> {
 }
 
 // ── Public API ────────────────────────────────────────────────────────
-export async function sendDailyBriefing(session: 'asian' | 'noon' | 'nyc'): Promise<{ ok: boolean; error?: string }> {
+export async function sendDailyBriefing(session: BriefingSessionId): Promise<{ ok: boolean; error?: string }> {
   try {
     console.log(`[Briefing] Building ${session} briefing...`);
     const msg = await buildBriefingMessage(session);
@@ -379,18 +379,23 @@ export async function sendDailyBriefing(session: 'asian' | 'noon' | 'nyc'): Prom
 // ── Scheduler: fires at 6am + 12pm + 5pm EAT (UTC+3) ───────────────────
 let schedulerInterval: NodeJS.Timeout | null = null;
 
-// 3-hour windows + persistent state = safe. If server restarts inside window,
-// state prevents duplicate fires. If server was down during entire window, brief
-// is skipped for that day (acceptable trade-off for clean state).
-const SESSIONS: Array<{ id: 'asian' | 'noon' | 'nyc'; startHour: number; endHour: number }> = [
-  { id: 'asian', startHour: 6, endHour: 9 },
-  { id: 'noon', startHour: 12, endHour: 15 },
-  { id: 'nyc', startHour: 17, endHour: 20 },
+// ── Fixed-time briefs in EAT (Kenya, UTC+3). 5-min tick catches the target minute. ──
+const SESSIONS: Array<{ id: 'open' | 'asian' | 'morning' | 'nyc'; hour: number; minute: number; label: string }> = [
+  { id: 'open',    hour: 1,  minute: 10, label: 'Market Open · 01:10 EAT' },
+  { id: 'asian',   hour: 6,  minute: 0,  label: 'Morning Brief · 06:00 EAT' },
+  { id: 'morning', hour: 10, minute: 0,  label: 'Mid-Morning · 10:00 EAT' },
+  { id: 'nyc',     hour: 16, minute: 0,  label: 'New York Open · 16:00 EAT' },
 ];
+
+// Kept in sync with SESSIONS. Used to type-check sendDailyBriefing calls.
+export type BriefingSessionId = 'open' | 'asian' | 'morning' | 'nyc';
+export function getSessionLabel(id: BriefingSessionId): string {
+  return SESSIONS.find((x) => x.id === id)?.label || 'Briefing';
+}
 
 export function startBriefingScheduler(): void {
   if (schedulerInterval) return;
-  console.log(`[Briefing] Scheduler started (6am + 12pm + 5pm EAT → ${BRIEFING_CHANNEL})`);
+  console.log(`[Briefing] Scheduler started (01:10, 06:00, 10:00, 16:00 EAT → ${BRIEFING_CHANNEL})`);
   sweepDeletions().catch(() => {});
 
   schedulerInterval = setInterval(async () => {
@@ -400,12 +405,18 @@ export function startBriefingScheduler(): void {
       const nairobiHour = (now.getUTCHours() + offsetHours) % 24;
       const nairobiDate = new Date(now.getTime() + offsetHours * 3600 * 1000).toISOString().slice(0, 10);
 
+      const nairobiMinute = now.getUTCMinutes();
+      const nowMinutes = nairobiHour * 60 + nairobiMinute;
+
       for (const sess of SESSIONS) {
-        if (nairobiHour >= sess.startHour && nairobiHour < sess.endHour) {
+        const targetMinutes = sess.hour * 60 + sess.minute;
+        // Fire if within [target, target+5min) — matches the 5-min tick
+        if (nowMinutes >= targetMinutes && nowMinutes < targetMinutes + 5) {
           const key = `${sess.id}:${nairobiDate}`;
           if (!sentBriefings.has(key)) {
             sentBriefings.add(key);
             await saveState();
+            console.log(`[Briefing] Firing ${sess.id} (${sess.label}) — EAT ${nairobiHour}:${String(now.getUTCMinutes()).padStart(2,'0')}`);
             await sendDailyBriefing(sess.id);
           }
         }

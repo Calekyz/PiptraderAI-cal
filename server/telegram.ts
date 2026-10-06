@@ -40,12 +40,16 @@ const CHANNELS = resolveChannels();
 const ENABLED = process.env.TELEGRAM_SIGNALS_ENABLED !== 'false';
 const DEDUPE_WINDOW_MS =
   Number(process.env.TELEGRAM_DEDUPE_MINUTES || 240) * 60 * 1000;
-const DELETE_PREVIOUS = process.env.TELEGRAM_DELETE_PREVIOUS !== 'false';
+// Each signal lives for this long, then auto-deletes. 0 = never delete.
+const SIGNAL_TTL_MS = Number(process.env.TELEGRAM_SIGNAL_TTL_MINUTES || 60) * 60 * 1000;
 
 const STATE_KEY = 'telegram:signal-state';
 
 const dedupeCache: Map<string, number> = new Map();
 const lastMessageId: Map<string, number> = new Map();
+
+interface PendingDeletion { channel: string; messageId: number; deleteAt: number; }
+let pendingDeletions: PendingDeletion[] = [];
 
 // ── DB-backed state ───────────────────────────────────────────────
 export async function initTelegramSignalState(): Promise<void> {
@@ -69,8 +73,13 @@ export async function initTelegramSignalState(): Promise<void> {
         if (typeof v === 'number') lastMessageId.set(k, v);
       }
     }
+    if (Array.isArray((data as any).pendingDeletions)) {
+      pendingDeletions = ((data as any).pendingDeletions as any[]).filter(
+        (d) => d && typeof d.channel === 'string' && typeof d.messageId === 'number' && typeof d.deleteAt === 'number'
+      );
+    }
     console.log(
-      `[Telegram] Loaded state from DB: ${dedupeCache.size} dedupe, ${lastMessageId.size} msgIds`
+      `[Telegram] Loaded state from DB: ${dedupeCache.size} dedupe, ${lastMessageId.size} msgIds, ${pendingDeletions.length} pending deletes`
     );
   } catch (e: any) {
     console.warn('[Telegram] state load failed:', e?.message);
@@ -82,6 +91,7 @@ async function persistState(): Promise<void> {
     await kvSet(STATE_KEY, {
       dedupe: Object.fromEntries(dedupeCache),
       lastMessageId: Object.fromEntries(lastMessageId),
+      pendingDeletions,
     });
   } catch (e: any) {
     console.warn('[Telegram] state save failed:', e?.message);
@@ -177,9 +187,6 @@ async function tgApi(method: string, body: object): Promise<any> {
 }
 
 async function sendToChannel(channel: string, text: string): Promise<void> {
-  const prevId = lastMessageId.get(channel);
-
-  // 1. Send new message FIRST so a failure doesn't lose the old one
   const data = await tgApi('sendMessage', {
     chat_id: channel,
     text,
@@ -190,18 +197,47 @@ async function sendToChannel(channel: string, text: string): Promise<void> {
   const newId = data?.result?.message_id;
   if (newId) {
     lastMessageId.set(channel, newId);
+    if (SIGNAL_TTL_MS > 0) {
+      pendingDeletions.push({
+        channel,
+        messageId: newId,
+        deleteAt: Date.now() + SIGNAL_TTL_MS,
+      });
+      console.log(`[Telegram] Scheduled delete of msg ${newId} in ${channel} (TTL ${SIGNAL_TTL_MS / 60000}min)`);
+    }
     await persistState();
   }
+}
 
-  // 2. Delete the previous signal message
-  if (DELETE_PREVIOUS && prevId && prevId !== newId) {
+// ── Sweeper: delete expired signals ────────────────────────────
+export async function sweepTelegramSignalDeletions(): Promise<void> {
+  if (pendingDeletions.length === 0) return;
+  const now = Date.now();
+  const remaining: PendingDeletion[] = [];
+  for (const d of pendingDeletions) {
+    if (d.deleteAt > now) { remaining.push(d); continue; }
     try {
-      await tgApi('deleteMessage', { chat_id: channel, message_id: prevId });
-      console.log(`[Telegram] Deleted previous msg ${prevId} in ${channel}`);
+      await tgApi('deleteMessage', { chat_id: d.channel, message_id: d.messageId });
+      console.log(`[Telegram] TTL delete: msg ${d.messageId} from ${d.channel}`);
     } catch (e: any) {
-      console.warn(`[Telegram] delete failed (${channel}):`, e?.message);
+      console.warn(`[Telegram] TTL delete failed (${d.channel} ${d.messageId}):`, e?.message);
+      if (now - d.deleteAt < 24 * 3600 * 1000) remaining.push(d);
     }
   }
+  if (remaining.length !== pendingDeletions.length) {
+    pendingDeletions = remaining;
+    await persistState();
+  }
+}
+
+// ── Start a 5-min sweeper for signal TTL deletions ─────────────
+let signalSweeper: NodeJS.Timeout | null = null;
+export function startSignalDeletionSweeper(): void {
+  if (signalSweeper) return;
+  console.log(`[Telegram] Signal deletion sweeper started (every 5 min)`);
+  signalSweeper = setInterval(() => {
+    sweepTelegramSignalDeletions().catch((e) => console.warn('[Telegram] sweep failed:', e?.message));
+  }, 5 * 60 * 1000);
 }
 
 // ── Public API ────────────────────────────────────────────────────

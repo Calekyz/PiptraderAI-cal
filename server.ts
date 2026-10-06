@@ -39,7 +39,7 @@ import {
 import { db, hashPassword, verifyPassword, UserEntity, initializeDatabase } from './server/db';
 import { sendVerificationEmail } from './server/emailService';
 import { verifySignal } from './server/engine/geminiVerifier';
-import { sendSignalToTelegram, initTelegramSignalState } from './server/telegram';
+import { sendSignalToTelegram, initTelegramSignalState, startSignalDeletionSweeper } from './server/telegram';
 import { geminiChatReply } from './server/engine/geminiChat';
 import { startBriefingScheduler, initBriefingState } from './server/telegramBriefing';
 import { getLimits, type PlanTier } from './src/lib/planLimits';
@@ -6261,6 +6261,7 @@ app.get('/api/engine/scan', async (req, res) => {
       } catch { /* skip */ }
     }));
     const results = scanSymbols({ symbols, timeframe, candlesBySymbol, minConfidence: 75 });
+    console.log(`[Scan] Scanned ${Object.keys(candlesBySymbol).length}/${symbols.length} symbols, found ${results.length} signals`);
 
     // ── Fire-and-forget: verify + broadcast each qualifying signal to Telegram ──
     // Dedupe (4h) prevents repeats across scans
@@ -6355,7 +6356,26 @@ async function runAutoSignalScan(): Promise<void> {
     }));
 
     const results = scanSymbols({ symbols: AUTO_SCAN_SYMBOLS, timeframe, candlesBySymbol, minConfidence: 75 });
-    console.log(`[AutoScan] Scanned ${Object.keys(candlesBySymbol).length} symbols, found ${results.length} signals`);
+    console.log(`[AutoScan] Scanned ${Object.keys(candlesBySymbol).length}/${AUTO_SCAN_SYMBOLS.length} symbols, found ${results.length} signals`);
+
+    // ── Verbose: log what happened to each symbol ──
+    const foundSymbols = new Set(results.map((r: any) => r.symbol));
+    for (const sym of AUTO_SCAN_SYMBOLS) {
+      if (!candlesBySymbol[sym]) {
+        console.log(`[AutoScan] ${sym}: NO CANDLES (fetch failed or <30 bars)`);
+        continue;
+      }
+      if (!foundSymbols.has(sym)) {
+        // Symbol scanned but no qualifying plan returned — the engine rejected it
+        console.log(`[AutoScan] ${sym}: no plan (confidence <75 or direction WAIT)`);
+        continue;
+      }
+      const r = results.find((x: any) => x.symbol === sym);
+      const plan = (r as any)?.plan;
+      if (plan) {
+        console.log(`[AutoScan] ${sym}: ✅ signal ${plan.direction} @ ${plan.confidence}% (${plan.setupType || 'Setup'})`);
+      }
+    }
 
     for (const r of results) {
       try {
@@ -6438,6 +6458,13 @@ async function setupVite() {
     startAutoSignalScheduler();
   } catch (err: any) {
     console.warn('[Boot] AutoScan scheduler failed to start:', err?.message);
+  }
+
+  // Start signal TTL deletion sweeper
+  try {
+    startSignalDeletionSweeper();
+  } catch (err: any) {
+    console.warn('[Boot] Signal deletion sweeper failed:', err?.message);
   }
 
   if (process.env.NODE_ENV !== 'production') {
