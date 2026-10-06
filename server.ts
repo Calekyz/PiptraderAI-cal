@@ -6261,6 +6261,69 @@ app.get('/api/engine/scan', async (req, res) => {
       } catch { /* skip */ }
     }));
     const results = scanSymbols({ symbols, timeframe, candlesBySymbol, minConfidence: 75 });
+
+    // ── Fire-and-forget: verify + broadcast each qualifying signal to Telegram ──
+    // Dedupe (4h) prevents repeats across scans
+    if (results.length > 0) {
+      (async () => {
+        for (const r of results) {
+          try {
+            const plan = r.plan;
+            if (!plan || (plan.direction !== 'BUY' && plan.direction !== 'SELL')) continue;
+            if (Number(plan.confidence) < 75) continue;
+
+            let verdict: 'AGREE' | 'CAUTION' | 'DISAGREE' | 'SKIPPED' = 'SKIPPED';
+            let aiConfidence = 0;
+            let aiSummary = '';
+            try {
+              const v = await verifySignal({
+                symbol: r.symbol,
+                timeframe,
+                direction: plan.direction as 'BUY' | 'SELL',
+                confidence: plan.confidence,
+                setupType: plan.setupType || 'Setup',
+                entry: plan.entry,
+                stopLoss: plan.stopLoss,
+                takeProfit1: plan.takeProfit1,
+                takeProfit2: plan.takeProfit2,
+                riskReward: plan.riskReward,
+                reasons: Array.isArray(plan.reasons) ? plan.reasons : [],
+              });
+              verdict = v.verdict as any;
+              aiConfidence = v.aiConfidence;
+              aiSummary = v.summary;
+            } catch (e) {
+              console.warn('[Scan hook] verifier failed:', (e as any)?.message);
+            }
+
+            const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
+            if (shouldSend) {
+              await sendSignalToTelegram({
+                symbol: r.symbol,
+                timeframe,
+                direction: plan.direction as 'BUY' | 'SELL',
+                confidence: plan.confidence,
+                setupType: plan.setupType || 'Setup',
+                entry: plan.entry,
+                stopLoss: plan.stopLoss,
+                takeProfit1: plan.takeProfit1,
+                takeProfit2: plan.takeProfit2,
+                riskReward: plan.riskReward,
+                reasons: plan.reasons,
+                aiVerdict: verdict === 'AGREE' ? 'AGREE' : undefined,
+                aiConfidence,
+                aiSummary,
+              });
+            } else {
+              console.log(`[Scan hook] Skipped ${plan.direction} ${r.symbol} — verdict: ${verdict}`);
+            }
+          } catch (err: any) {
+            console.warn('[Scan hook] error:', err?.message);
+          }
+        }
+      })();
+    }
+
     res.json({
       success: true, timeframe,
       scanned: Object.keys(candlesBySymbol).length,
@@ -6272,6 +6335,92 @@ app.get('/api/engine/scan', async (req, res) => {
     res.status(500).json({ success: false, error: err?.message || 'Scan failed' });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO-SIGNAL SCHEDULER — scans + broadcasts every 30 min
+// Runs independently of user activity so signals always flow
+// ═══════════════════════════════════════════════════════════════
+const AUTO_SCAN_SYMBOLS = ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'BTCUSD'];
+const AUTO_SCAN_INTERVAL_MS = 30 * 60 * 1000;
+
+async function runAutoSignalScan(): Promise<void> {
+  try {
+    const timeframe = 'M15';
+    const candlesBySymbol: Record<string, any[]> = {};
+    await Promise.all(AUTO_SCAN_SYMBOLS.map(async (sym) => {
+      try {
+        const d = await fetchRealCandles(sym, timeframe);
+        if (d && d.candles && d.candles.length >= 30) candlesBySymbol[sym] = d.candles;
+      } catch { /* skip */ }
+    }));
+
+    const results = scanSymbols({ symbols: AUTO_SCAN_SYMBOLS, timeframe, candlesBySymbol, minConfidence: 75 });
+    console.log(`[AutoScan] Scanned ${Object.keys(candlesBySymbol).length} symbols, found ${results.length} signals`);
+
+    for (const r of results) {
+      try {
+        const plan = r.plan;
+        if (!plan || (plan.direction !== 'BUY' && plan.direction !== 'SELL')) continue;
+        if (Number(plan.confidence) < 75) continue;
+
+        let verdict: 'AGREE' | 'CAUTION' | 'DISAGREE' | 'SKIPPED' = 'SKIPPED';
+        let aiConfidence = 0;
+        let aiSummary = '';
+        try {
+          const v = await verifySignal({
+            symbol: r.symbol,
+            timeframe,
+            direction: plan.direction as 'BUY' | 'SELL',
+            confidence: plan.confidence,
+            setupType: plan.setupType || 'Setup',
+            entry: plan.entry,
+            stopLoss: plan.stopLoss,
+            takeProfit1: plan.takeProfit1,
+            takeProfit2: plan.takeProfit2,
+            riskReward: plan.riskReward,
+            reasons: Array.isArray(plan.reasons) ? plan.reasons : [],
+          });
+          verdict = v.verdict as any;
+          aiConfidence = v.aiConfidence;
+          aiSummary = v.summary;
+        } catch (e) {
+          console.warn('[AutoScan hook] verifier failed:', (e as any)?.message);
+        }
+
+        const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
+        if (shouldSend) {
+          await sendSignalToTelegram({
+            symbol: r.symbol,
+            timeframe,
+            direction: plan.direction as 'BUY' | 'SELL',
+            confidence: plan.confidence,
+            setupType: plan.setupType || 'Setup',
+            entry: plan.entry,
+            stopLoss: plan.stopLoss,
+            takeProfit1: plan.takeProfit1,
+            takeProfit2: plan.takeProfit2,
+            riskReward: plan.riskReward,
+            reasons: plan.reasons,
+            aiVerdict: verdict === 'AGREE' ? 'AGREE' : undefined,
+            aiConfidence,
+            aiSummary,
+          });
+        }
+      } catch (err: any) {
+        console.warn('[AutoScan hook] error:', err?.message);
+      }
+    }
+  } catch (err: any) {
+    console.warn('[AutoScan] failed:', err?.message);
+  }
+}
+
+function startAutoSignalScheduler(): void {
+  console.log(`[AutoScan] Scheduler started — every ${AUTO_SCAN_INTERVAL_MS / 60000} min`);
+  // First run after 2 min (let server boot finish)
+  setTimeout(() => { runAutoSignalScan().catch(() => {}); }, 2 * 60 * 1000);
+  setInterval(() => { runAutoSignalScan().catch(() => {}); }, AUTO_SCAN_INTERVAL_MS);
+}
 async function setupVite() {
   // Load all user data from Postgres into memory before accepting traffic
   await initializeDatabase();
@@ -6282,6 +6431,13 @@ async function setupVite() {
     await initBriefingState();
   } catch (err: any) {
     console.warn('[Boot] Telegram state init failed:', err?.message);
+  }
+
+  // Start auto-signal scanner (independent of user activity)
+  try {
+    startAutoSignalScheduler();
+  } catch (err: any) {
+    console.warn('[Boot] AutoScan scheduler failed to start:', err?.message);
   }
 
   if (process.env.NODE_ENV !== 'production') {
