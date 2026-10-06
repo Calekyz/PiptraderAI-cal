@@ -151,7 +151,22 @@ async function fetchFFRawFromSources(period: 'thisweek' | 'nextweek'): Promise<a
   return [];
 }
 
+// ── Module-level cache of real FF events (avoids hammering proxy) ──
+let _ffCache: { thisweek: any[]; nextweek: any[]; at: number } = { thisweek: [], nextweek: [], at: 0 };
+const _FF_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+// Track whether we last returned real data or the fallback seed
+let _ffLastWasReal = false;
+export function isFFCalendarLive(): boolean { return _ffLastWasReal; }
+
 export async function fetchForexFactoryCalendar(period: 'thisweek' | 'nextweek' = 'thisweek'): Promise<FFCalendarEvent[]> {
+  // 1. Serve from cache if fresh
+  const cacheNow = Date.now();
+  const cached = period === 'nextweek' ? _ffCache.nextweek : _ffCache.thisweek;
+  if (cached.length > 0 && cacheNow - _ffCache.at < _FF_CACHE_TTL_MS) {
+    return cached;
+  }
+
   const now = Date.now();
   let events: FFCalendarEvent[] = [];
 
@@ -308,11 +323,25 @@ export async function fetchForexFactoryCalendar(period: 'thisweek' | 'nextweek' 
     console.warn('[ForexFactory Engine] Using comprehensive economic calendar fallback:', err);
   }
 
-  // Fallback economic data if network drops
+  // Fallback if network dropped
   if (!events || events.length === 0) {
+    // Prefer stale cache over fake seed
+    if (cached.length > 0) {
+      console.warn(`[FF] All sources failed — serving stale cache (${cached.length} events from ${Math.round((cacheNow - _ffCache.at) / 60000)}min ago)`);
+      return cached;
+    }
+    console.warn('[FF] All sources failed AND no cache — serving fallback seed');
+    _ffLastWasReal = false;
     events = generateFallbackFFCalendar();
+    return events;
   }
 
+  // Success — cache and mark as real
+  _ffLastWasReal = true;
+  if (period === 'nextweek') _ffCache.nextweek = events;
+  else _ffCache.thisweek = events;
+  _ffCache.at = Date.now();
+  console.log(`[FF] Cached ${events.length} real events for ${period}`);
   return events;
 }
 
