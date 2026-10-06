@@ -118,11 +118,11 @@ const COUNTRY_METAS: Record<string, { flag: string; name: string; pairs: string[
 async function fetchFFRawFromSources(period: 'thisweek' | 'nextweek'): Promise<any[]> {
   const sources = period === 'nextweek'
     ? [
-        'https://ready-chicken-5023.calekyz.deno.net',
+        'https://salty-caracal-1472.caleborenge8.deno.net',
         'https://nfs.faireconomy.media/ff_calendar_nextweek.json',
       ]
     : [
-        'https://ready-chicken-5023.calekyz.deno.net',
+        'https://salty-caracal-1472.caleborenge8.deno.net',
         'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
       ];
 
