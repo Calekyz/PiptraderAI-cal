@@ -379,6 +379,9 @@ export async function sendDailyBriefing(session: 'asian' | 'noon' | 'nyc'): Prom
 // ── Scheduler: fires at 6am + 12pm + 5pm EAT (UTC+3) ───────────────────
 let schedulerInterval: NodeJS.Timeout | null = null;
 
+// 3-hour windows + persistent state = safe. If server restarts inside window,
+// state prevents duplicate fires. If server was down during entire window, brief
+// is skipped for that day (acceptable trade-off for clean state).
 const SESSIONS: Array<{ id: 'asian' | 'noon' | 'nyc'; startHour: number; endHour: number }> = [
   { id: 'asian', startHour: 6, endHour: 9 },
   { id: 'noon', startHour: 12, endHour: 15 },
