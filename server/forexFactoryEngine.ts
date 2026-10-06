@@ -904,19 +904,18 @@ function getForexFactoryMarketOverviewFallback(): FFMarketQuote[] {
 const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY || '';
 
 // Display symbol → TwelveData symbol
+// 5 symbols only — free tier is 800 credits/day, each symbol costs 1 credit per call.
+// US30, BTC/USD, AUD/USD fall back to hardcoded values in getForexFactoryMarketOverviewFallback.
 const TWELVE_SYMBOL_MAP: Record<string, string> = {
   'EUR/USD': 'EUR/USD',
   'GBP/USD': 'GBP/USD',
   'USD/JPY': 'USD/JPY',
   'XAU/USD': 'XAU/USD',
-  'US30':    'DJI',
-  'BTC/USD': 'BTC/USD',
-  'AUD/USD': 'AUD/USD',
   'USD/CAD': 'USD/CAD',
 };
 
 let _marketCache: { quotes: FFMarketQuote[]; at: number } = { quotes: [], at: 0 };
-const _MARKET_TTL_MS = 90 * 1000; // 90 seconds
+const _MARKET_TTL_MS = 15 * 60 * 1000; // 15 min — free tier is tight
 
 function deriveTrend(pct: number): FFMarketQuote['trend'] {
   if (pct > 1) return 'Strong Buy';

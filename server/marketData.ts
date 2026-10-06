@@ -315,7 +315,8 @@ export async function fetchRealCandles(symbol: string, timeframe: string): Promi
 
   // 1. Try Twelve Data if API Key is configured
   const twelveDataKey = process.env.TWELVE_DATA_API_KEY;
-  if (twelveDataKey) {
+  const useTwelveForCandles = process.env.USE_TWELVE_FOR_CANDLES === 'true';
+  if (twelveDataKey && useTwelveForCandles) {
     try {
       const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(mapping.twelveData)}&interval=${tfConfig.twelveData}&outputsize=60&apikey=${twelveDataKey}`;
       const res = await fetch(url, { headers: { 'User-Agent': 'PipTraderAI/1.0' } });
