@@ -81,7 +81,7 @@ export const ForexFactoryCalendar: React.FC<ForexFactoryCalendarProps> = ({
   const fetchCalendarData = async (targetPeriod: 'thisweek' | 'nextweek') => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/forex-factory-calendar?period=${targetPeriod}`);
+      const res = await fetch(`/api/forex-factory/calendar?period=${targetPeriod}`);
       const data = await res.json();
       if (data.success && Array.isArray(data.events)) {
         setEvents(data.events);

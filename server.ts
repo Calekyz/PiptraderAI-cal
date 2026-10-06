@@ -44,7 +44,7 @@ import { geminiChatReply } from './server/engine/geminiChat';
 import { startBriefingScheduler, initBriefingState } from './server/telegramBriefing';
 import { getLimits, type PlanTier } from './src/lib/planLimits';
 import { sqlRouter } from './server/sqlRouter';
-import { forexFactoryRouter } from './server/forexFactoryEngine';
+import { forexFactoryRouter, fetchForexFactoryCalendar } from './server/forexFactoryEngine';
 import PDFDocument from 'pdfkit';
 import {
   analyzeMarket,
@@ -3660,243 +3660,22 @@ app.delete('/api/journal/:id', (req, res) => {
 });
 
 app.get(['/api/forex-factory-calendar', '/api/macro-news', '/api/forex-factory-news'], async (req, res) => {
+  // ── Delegate to canonical FF fetch (single source of truth) ──
   try {
-    const period = (req.query.period as string) || 'thisweek';
-    const targetUrl = 'https://ready-chicken-5023.calekyz.deno.net';
-
-    const countryFlags: Record<string, { flag: string; name: string; pairs: string[] }> = {
-      USD: { flag: '🇺🇸', name: 'United States', pairs: ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'US30', 'NAS100'] },
-      EUR: { flag: '🇪🇺', name: 'Euro Area', pairs: ['EURUSD', 'EURGBP', 'EURJPY', 'EURCHF', 'EURAUD'] },
-      GBP: { flag: '🇬🇧', name: 'United Kingdom', pairs: ['GBPUSD', 'EURGBP', 'GBPJPY', 'GBPAUD'] },
-      JPY: { flag: '🇯🇵', name: 'Japan', pairs: ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY'] },
-      CAD: { flag: '🇨🇦', name: 'Canada', pairs: ['USDCAD', 'EURCAD', 'CADJPY'] },
-      AUD: { flag: '🇦🇺', name: 'Australia', pairs: ['AUDUSD', 'AUDJPY', 'EURAUD', 'AUDNZD'] },
-      NZD: { flag: '🇳🇿', name: 'New Zealand', pairs: ['NZDUSD', 'AUDNZD', 'NZDJPY'] },
-      CHF: { flag: '🇨🇭', name: 'Switzerland', pairs: ['USDCHF', 'EURCHF', 'GBPCHF'] },
-      CNY: { flag: '🇨🇳', name: 'China', pairs: ['USDCNH', 'AUDUSD', 'XAUUSD'] },
-      ALL: { flag: '🌐', name: 'Global', pairs: ['XAUUSD', 'EURUSD', 'USDJPY'] }
-    };
-
-    let events: any[] = [];
-    let isLiveFromFF = false;
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4500);
-      const ffRes = await fetch(targetUrl, {
-        signal: controller.signal,
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*'
-        }
-      });
-      clearTimeout(timeoutId);
-
-      if (ffRes.ok) {
-        const rawEvents = (await ffRes.json()) as any[];
-        if (Array.isArray(rawEvents) && rawEvents.length > 0) {
-          isLiveFromFF = true;
-          const now = Date.now();
-
-          events = rawEvents.map((item: any, idx: number) => {
-            const currCode = (item.country || 'USD').toUpperCase();
-            const meta = countryFlags[currCode] || { flag: '🌐', name: currCode, pairs: ['XAUUSD', 'EURUSD'] };
-            
-            const eventDate = new Date(item.date);
-            const validDate = !isNaN(eventDate.getTime());
-            const timestamp = validDate ? eventDate.getTime() : now + (idx * 3600000);
-            
-            const diffMs = timestamp - now;
-            let countdown = 'Upcoming';
-            if (diffMs > 0) {
-              const hours = Math.floor(diffMs / (1000 * 60 * 60));
-              const days = Math.floor(hours / 24);
-              const remHours = hours % 24;
-              const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-              countdown = days > 0 ? `${days}d ${remHours}h` : `${hours}h ${minutes}m`;
-            } else {
-              countdown = 'Released';
-            }
-
-            const rawImpact = (item.impact || 'Low').trim();
-            let normalizedImpact: 'High' | 'Medium' | 'Low' | 'Holiday' | 'Non-Economic' = 'Low';
-            if (/high/i.test(rawImpact) || /red/i.test(rawImpact)) {
-              normalizedImpact = 'High';
-            } else if (/med/i.test(rawImpact) || /orange/i.test(rawImpact)) {
-              normalizedImpact = 'Medium';
-            } else if (/holiday/i.test(rawImpact) || /bank holiday/i.test(item.title || '')) {
-              normalizedImpact = 'Holiday';
-            } else if (/non/i.test(rawImpact) || /white|grey|gray/i.test(rawImpact)) {
-              normalizedImpact = 'Non-Economic';
-            }
-
-            let timeStr = 'All Day';
-            let dayDateStr = 'Unknown';
-            let dayName = 'Unknown';
-            let formattedDate = 'Unknown';
-
-            if (validDate) {
-              dayName = eventDate.toLocaleDateString('en-US', { weekday: 'short' });
-              const monthStr = eventDate.toLocaleDateString('en-US', { month: 'short' });
-              const dateNum = eventDate.getDate();
-              dayDateStr = `${dayName} ${monthStr} ${dateNum}`;
-              formattedDate = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-              
-              const hoursNum = eventDate.getHours();
-              const minsNum = eventDate.getMinutes();
-              if (hoursNum === 0 && minsNum === 0 && !item.date.includes('T00:00:00Z')) {
-                timeStr = 'All Day';
-              } else {
-                timeStr = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
-              }
-            }
-
-            const forecastVal = item.forecast ? String(item.forecast).trim() : '';
-            const previousVal = item.previous ? String(item.previous).trim() : '';
-            const actualVal = item.actual ? String(item.actual).trim() : '';
-
-            let betterThanForecast: 'better' | 'worse' | 'neutral' | 'pending' = 'pending';
-            if (actualVal && forecastVal) {
-              const numActual = parseFloat(actualVal.replace(/[^0-9.-]/g, ''));
-              const numForecast = parseFloat(forecastVal.replace(/[^0-9.-]/g, ''));
-              if (!isNaN(numActual) && !isNaN(numForecast)) {
-                if (numActual > numForecast) {
-                  betterThanForecast = 'better';
-                } else if (numActual < numForecast) {
-                  betterThanForecast = 'worse';
-                } else {
-                  betterThanForecast = 'neutral';
-                }
-              }
-            }
-
-            return {
-              id: `ff_${idx}_${currCode}_${String(item.title).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`,
-              title: item.title,
-              country: meta.name,
-              countryFlag: meta.flag,
-              currency: currCode,
-              impact: normalizedImpact,
-              category: normalizedImpact === 'High' ? 'High Impact Event' : 'Economic Indicator',
-              date: item.date,
-              time: timeStr,
-              dayDate: dayDateStr,
-              dayName,
-              formattedDate,
-              timestamp,
-              countdown,
-              consensus: forecastVal || 'N/A',
-              forecast: forecastVal || 'N/A',
-              previous: previousVal || 'N/A',
-              actual: actualVal || undefined,
-              betterThanForecast,
-              detail: `ForexFactory release: ${item.title} (${currCode}). Measures economic health, sentiment and inflation drivers. Usual Effect: Actual > Forecast is good for ${currCode}.`,
-              sourceUrl: 'https://www.forexfactory.com/calendar',
-              sourceName: 'ForexFactory.com',
-              affectedPairs: meta.pairs,
-              bias: normalizedImpact === 'High' ? `Primary volatility catalyst for ${currCode} pairs` : `Standard ${currCode} economic release`,
-              analysisSummary: `Live ForexFactory release: ${item.title} (${currCode}). Forecast: ${forecastVal || 'N/A'}, Previous: ${previousVal || 'N/A'}.`
-            };
-          });
-        }
-      }
-    } catch {
-      // Live fetch error or timeout, will use fallback
-    }
-
-    if (!events || events.length === 0) {
-      const now = Date.now();
-      // Generate fallback data relative to today so it's never stale
-      const nowDate = new Date();
-      const dayOffset = (days: number, hourUtc: number) => {
-        const d = new Date(Date.UTC(nowDate.getUTCFullYear(), nowDate.getUTCMonth(), nowDate.getUTCDate() + days, hourUtc, 30, 0));
-        return d;
-      };
-      const fmt = (d: Date) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
-      const dayStr = (d: Date) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-
-      const fallbackList = [
-        { title: 'German ifo Business Climate', currency: 'EUR', impact: 'Medium' as const, time: fmt(dayOffset(1, 9)), dayDate: dayStr(dayOffset(1, 9)), forecast: '86.0', previous: '87.0', actual: undefined, timestamp: dayOffset(1, 9).getTime() },
-        { title: 'Core Durable Goods Orders m/m', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(1, 13)), dayDate: dayStr(dayOffset(1, 13)), forecast: '0.2%', previous: '0.1%', actual: undefined, timestamp: dayOffset(1, 13).getTime() },
-        { title: 'CB Consumer Confidence', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(2, 15)), dayDate: dayStr(dayOffset(2, 15)), forecast: '100.9', previous: '100.3', actual: undefined, timestamp: dayOffset(2, 15).getTime() },
-        { title: 'CPI m/m & Core CPI y/y', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(2, 13)), dayDate: dayStr(dayOffset(2, 13)), forecast: '0.2%', previous: '0.3%', actual: undefined, timestamp: dayOffset(2, 13).getTime() },
-        { title: 'FOMC Statement', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(3, 18)), dayDate: dayStr(dayOffset(3, 18)), forecast: 'Hawkish', previous: '5.25% - 5.50%', actual: undefined, timestamp: dayOffset(3, 18).getTime() },
-        { title: 'Main Refinancing Rate & Policy Statement', currency: 'EUR', impact: 'High' as const, time: fmt(dayOffset(3, 13)), dayDate: dayStr(dayOffset(3, 13)), forecast: '3.65%', previous: '3.75%', actual: undefined, timestamp: dayOffset(3, 13).getTime() },
-        { title: 'Official Bank Rate & MPC Votes', currency: 'GBP', impact: 'High' as const, time: fmt(dayOffset(4, 12)), dayDate: dayStr(dayOffset(4, 12)), forecast: '5.00%', previous: '5.25%', actual: undefined, timestamp: dayOffset(4, 12).getTime() },
-        { title: 'US Preliminary GDP q/q', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(4, 13)), dayDate: dayStr(dayOffset(4, 13)), forecast: '2.8%', previous: '2.8%', actual: undefined, timestamp: dayOffset(4, 13).getTime() },
-        { title: 'Non-Farm Employment Change (NFP)', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(5, 13)), dayDate: dayStr(dayOffset(5, 13)), forecast: '185K', previous: '223K', actual: undefined, timestamp: dayOffset(5, 13).getTime() },
-        { title: 'Unemployment Rate', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(5, 13)), dayDate: dayStr(dayOffset(5, 13)), forecast: '4.3%', previous: '4.3%', actual: undefined, timestamp: dayOffset(5, 13).getTime() },
-        { title: 'ISM Manufacturing PMI', currency: 'USD', impact: 'High' as const, time: fmt(dayOffset(5, 15)), dayDate: dayStr(dayOffset(5, 15)), forecast: '49.8', previous: '48.5', actual: undefined, timestamp: dayOffset(5, 15).getTime() }
-      ];
-
-      events = fallbackList.map((item, idx) => {
-        const meta = countryFlags[item.currency] || { flag: '🌐', name: item.currency, pairs: ['XAUUSD', 'EURUSD'] };
-        return {
-          id: `ff_fb_${idx}_${item.currency}_${item.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`,
-          title: item.title,
-          country: meta.name,
-          countryFlag: meta.flag,
-          currency: item.currency,
-          impact: item.impact,
-          category: item.impact === 'High' ? 'High Impact Event' : 'Economic Indicator',
-          date: new Date().toISOString(),
-          time: item.time,
-          dayDate: item.dayDate,
-          dayName: item.dayDate.split(' ')[0],
-          formattedDate: `${item.dayDate}, 2026`,
-          timestamp: item.timestamp || (now + (idx * 14400000)),
-          countdown: (() => {
-            const ts = item.timestamp || (now + (idx * 14400000));
-            const diff = ts - now;
-            if (diff <= 0) return 'Released';
-            const hours = Math.floor(diff / 3600000);
-            const days = Math.floor(hours / 24);
-            const remHrs = hours % 24;
-            const mins = Math.floor((diff % 3600000) / 60000);
-            return days > 0 ? `${days}d ${remHrs}h` : `${hours}h ${mins}m`;
-          })(),
-          consensus: item.forecast,
-          forecast: item.forecast,
-          previous: item.previous,
-          actual: item.actual,
-          betterThanForecast: item.actual ? 'better' : 'pending',
-          detail: `ForexFactory release: ${item.title} (${item.currency}). Measures economic health, sentiment and inflation drivers. Usual Effect: Actual > Forecast is good for ${item.currency}.`,
-          sourceUrl: 'https://www.forexfactory.com/calendar',
-          sourceName: 'ForexFactory.com',
-          affectedPairs: meta.pairs,
-          bias: item.impact === 'High' ? `Primary volatility catalyst for ${item.currency} pairs` : `Standard ${item.currency} economic release`,
-          analysisSummary: `Live ForexFactory release: ${item.title} (${item.currency}). Forecast: ${item.forecast}, Previous: ${item.previous}.`
-        };
-      });
-    }
-
-    const uniqueDays = Array.from(new Set(events.map(e => e.dayDate).filter(Boolean)));
-    const firstDay = uniqueDays[0] || 'Start of Week';
-    const lastDay = uniqueDays[uniqueDays.length - 1] || 'End of Week';
-    const periodLabel = period === 'nextweek' 
-      ? `Next Week: ${firstDay} - ${lastDay}`
-      : `This Week: ${firstDay} - ${lastDay}`;
-
-    const highCount = events.filter(e => e.impact === 'High').length;
-    const mediumCount = events.filter(e => e.impact === 'Medium').length;
-    const lowCount = events.filter(e => e.impact === 'Low').length;
-
+    const period: 'thisweek' | 'nextweek' =
+      req.query.period === 'nextweek' ? 'nextweek' : 'thisweek';
+    const events = await fetchForexFactoryCalendar(period);
     res.json({
       success: true,
-      source: 'https://www.forexfactory.com/calendar',
-      sourceName: 'ForexFactory.com',
-      isLive: isLiveFromFF,
+      source: 'ForexFactory.com Official Live Feed',
       period,
-      periodLabel,
-      totalEvents: events.length,
-      highImpactCount: highCount,
-      mediumImpactCount: mediumCount,
-      lowImpactCount: lowCount,
-      updatedAt: new Date().toISOString(),
-      events
+      count: events.length,
+      lastUpdated: new Date().toISOString(),
+      events,
     });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    console.error('[FF Legacy Route] failed:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Feed unavailable' });
   }
 });
 
