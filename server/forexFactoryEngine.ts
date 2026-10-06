@@ -934,12 +934,25 @@ function deriveSentiment(pct: number): { bull: number; bear: number } {
 async function fetchTwelveDataQuotes(): Promise<Record<string, any>> {
   const symbols = Object.values(TWELVE_SYMBOL_MAP).join(',');
   const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbols)}&apikey=${TWELVE_DATA_API_KEY}`;
+  console.log(`[Market] Fetching TwelveData batch: ${symbols}`);
   const res = await fetch(url, { headers: { 'User-Agent': 'PipTraderAI/1.0' } });
   const data: any = await res.json();
 
-  // Batch returns an error object with .code/.status if rate-limited
+  // Log the raw shape so we can see what's wrong
+  const keys = Object.keys(data || {});
+  console.log(`[Market] TwelveData response keys:`, keys.slice(0, 12).join(', '));
+  console.log(`[Market] TwelveData code/status/message:`, data?.code, data?.status, data?.message);
+
   if (!data || data.status === 'error' || data.code) {
-    throw new Error(data?.message || 'TwelveData error');
+    throw new Error(`${data?.code || ''} ${data?.message || 'TwelveData error'}`.trim());
+  }
+
+  // Per-symbol detail: log what we got for EUR/USD as a probe
+  const probe = data['EUR/USD'];
+  if (probe) {
+    console.log(`[Market] Probe EUR/USD: close=${probe.close} prev=${probe.previous_close} change=${probe.change} pct=${probe.percent_change}`);
+  } else {
+    console.warn(`[Market] Probe: no "EUR/USD" key. Top keys: ${keys.slice(0, 8).join(', ')}`);
   }
   return data;
 }
@@ -966,7 +979,8 @@ export async function getForexFactoryMarketOverview(): Promise<FFMarketQuote[]> 
       const q = tdSymbol ? raw[tdSymbol] : null;
 
       if (!q || !q.close) {
-        quotes.push(fb); // per-symbol fallback
+        console.warn(`[Market] Fallback for ${fb.symbol} (td=${tdSymbol}, has=${q ? Object.keys(q).slice(0,5).join(',') : 'null'})`);
+        quotes.push(fb);
         continue;
       }
 
