@@ -1,3 +1,4 @@
+import { fetchLiveNews } from './newsFeed';
 import { Router, Request, Response } from 'express';
 
 export const forexFactoryRouter = Router();
@@ -518,7 +519,14 @@ function generateFallbackFFCalendar(): FFCalendarEvent[] {
 // 2. FOREXFACTORY NEWS ARTICLES FEED
 // ==========================================
 
-export function getForexFactoryNewsArticles(categoryFilter = 'All News'): FFNewsArticle[] {
+export async function getForexFactoryNewsArticles(categoryFilter = 'All News'): Promise<FFNewsArticle[]> {
+  const live = await fetchLiveNews();
+  const articles = live.length > 0 ? live : getForexFactoryNewsArticlesFallback('All News');
+  if (categoryFilter === 'All News' || !categoryFilter) return articles;
+  return articles.filter(a => a.category.toLowerCase() === categoryFilter.toLowerCase());
+}
+
+function getForexFactoryNewsArticlesFallback(categoryFilter = 'All News'): FFNewsArticle[] {
   const articles: FFNewsArticle[] = [
     {
       id: 'ff-art-001',
@@ -1046,10 +1054,10 @@ forexFactoryRouter.get('/api/forex-factory/calendar', async (req: Request, res: 
 });
 
 // 2. News Articles Feed with Category Filtering
-forexFactoryRouter.get('/api/forex-factory/news', (req: Request, res: Response) => {
+forexFactoryRouter.get('/api/forex-factory/news', async (req: Request, res: Response) => {
   try {
     const category = (req.query.category as string) || 'All News';
-    const articles = getForexFactoryNewsArticles(category);
+    const articles = await getForexFactoryNewsArticles(category);
     res.json({
       success: true,
       source: 'ForexFactory.com News Portal',
