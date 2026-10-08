@@ -12,6 +12,7 @@ import { AuditLogsView } from './views/AuditLogsView';
 import { BroadcastsView } from './views/BroadcastsView';
 import { TutorialVideosView } from './views/TutorialVideosView';
 import { AdminSettingsView } from './views/AdminSettingsView';
+import { DataRetentionView } from './views/DataRetentionView';
 import {
   AdminViewType,
   AdminStats,
@@ -191,6 +192,8 @@ export const AdminApp: React.FC = () => {
               {currentView === 'tutorial-videos' && <TutorialVideosView api={AdminApi} />}
 
               {currentView === 'audit-logs' && <AuditLogsView />}
+
+              {currentView === 'retention' && <DataRetentionView />}
 
               {currentView === 'settings' && <AdminSettingsView />}
             </div>

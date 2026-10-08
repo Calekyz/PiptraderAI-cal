@@ -1,20 +1,5 @@
 import React from 'react';
-import { Youtube,
-  LayoutDashboard,
-  Users,
-  CreditCard,
-  Coins,
-  LifeBuoy,
-  Radio,
-  FileText,
-  Settings,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck,
-  DollarSign,
-  X
-} from 'lucide-react';
+import { ChevronRight, Coins, CreditCard, DollarSign, ExternalLink, FileText, LayoutDashboard, LifeBuoy, Radio, Settings, ShieldCheck, Sparkles, Trash2, Users, X, Youtube } from 'lucide-react';
 import { AdminViewType } from './types';
 
 interface AdminSidebarProps {
@@ -86,6 +71,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       id: 'audit-logs',
       label: 'Security & Audits',
       icon: FileText
+    },
+    {
+      id: 'retention',
+      label: 'Data Retention',
+      icon: Trash2
     },
     {
       id: 'tutorial-videos',

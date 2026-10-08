@@ -224,4 +224,4 @@ export type AdminViewType =
   | 'broadcasts' 
   | 'tutorial-videos'
   | 'audit-logs' 
-  | 'settings';
+  | 'settings' | 'retention';

@@ -321,6 +321,38 @@ export const AdminApi = {
     return res.ticket;
   },
 
+  // ── Data Retention ─────────────────────────────────────────────
+  async getDataStats(): Promise<Array<{
+    key: string;
+    label: string;
+    rows: number;
+    oldest: string | null;
+    newest: string | null;
+    bytes: number;
+    bytesFormatted: string;
+    notes?: string | null;
+    error?: string;
+  }>> {
+    const res = await request<{ success: boolean; stats: any[] }>('/api/admin/data-stats');
+    return res.stats || [];
+  },
+
+  async clearRetention(
+    category: string,
+    retentionDays: number,
+    adminPassword: string,
+    confirmation: string
+  ): Promise<{ deletedCount: number; category: string; message: string }> {
+    const res = await request<{ success: boolean; deletedCount: number; category: string; message: string }>(
+      '/api/admin/data-retention/clear',
+      {
+        method: 'POST',
+        body: JSON.stringify({ category, retentionDays, adminPassword, confirmation }),
+      }
+    );
+    return res;
+  },
+
   async deleteTicket(id: string): Promise<{ success: boolean; message: string }> {
     const res = await request<{ success: boolean; message: string }>(`/api/admin/support/tickets/${id}`, {
       method: 'DELETE',

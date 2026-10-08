@@ -53,6 +53,7 @@ import {
   isNewsLockoutActive,
   respondToUser,
 } from './server/engine';
+import { pool } from './src/db/index';
 
 // __filename / __dirname provided by Node's CJS runtime (esbuild bundles server to cjs)
 const __dirname = path.dirname(__filename);
@@ -4990,6 +4991,176 @@ app.post('/api/user/heartbeat', (req, res) => {
 // ==========================================
 // ADMIN: BULK DELETE PENDING ACCOUNTS
 // ==========================================
+// ============================================================================
+// ADMIN: DATA RETENTION & CLEANUP
+// ============================================================================
+
+/** GET /api/admin/data-stats — row counts + date ranges for cleanup candidates */
+app.get('/api/admin/data-stats', async (req, res) => {
+  try {
+    const tables: Array<{
+      key: string;
+      label: string;
+      table: string;
+      dateField: string;
+      notes?: string;
+    }> = [
+      { key: 'admin_logs',          label: 'Admin Audit Logs',        table: 'pipnex_admin_logs',          dateField: 'timestamp' },
+      { key: 'credit_transactions', label: 'Credit Ledger',           table: 'pipnex_credit_transactions', dateField: 'created_at' },
+      { key: 'chart_analyses',      label: 'Chart Analyses',          table: 'pipnex_chart_analyses',      dateField: 'created_at' },
+      { key: 'admin_notifications', label: 'Admin Notifications',     table: 'pipnex_admin_notifications', dateField: 'created_at' },
+      { key: 'closed_tickets',      label: 'Closed/Resolved Tickets', table: 'pipnex_support_tickets',     dateField: 'created_at', notes: "Only CLOSED/RESOLVED status" },
+    ];
+
+    const stats: any[] = [];
+    for (const t of tables) {
+      try {
+        const whereExtra = t.key === 'closed_tickets'
+          ? `WHERE status IN ('CLOSED','RESOLVED')`
+          : '';
+
+        const countQ = await pool.query(
+          `SELECT COUNT(*)::int AS count FROM ${t.table} ${whereExtra}`
+        );
+        const rangeQ = await pool.query(
+          `SELECT MIN(${t.dateField}) AS oldest, MAX(${t.dateField}) AS newest FROM ${t.table} ${whereExtra}`
+        );
+        const sizeQ = await pool.query(
+          `SELECT pg_total_relation_size('${t.table}')::bigint AS bytes`
+        );
+
+        const c = (countQ.rows as any[])[0]?.count ?? 0;
+        const r = (rangeQ.rows as any[])[0] || {};
+        const sz = (sizeQ.rows as any[])[0]?.bytes ?? 0;
+
+        stats.push({
+          key: t.key,
+          label: t.label,
+          rows: Number(c),
+          oldest: r.oldest || null,
+          newest: r.newest || null,
+          bytes: Number(sz),
+          bytesFormatted: formatBytes(Number(sz)),
+          notes: t.notes || null,
+        });
+      } catch (err: any) {
+        stats.push({
+          key: t.key,
+          label: t.label,
+          rows: 0,
+          oldest: null,
+          newest: null,
+          bytes: 0,
+          bytesFormatted: '0 B',
+          error: err?.message || 'failed',
+        });
+      }
+    }
+
+    res.json({ success: true, stats, serverTime: new Date().toISOString() });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Stats failed' });
+  }
+});
+
+function formatBytes(b: number): string {
+  if (!b || b < 1024) return `${b || 0} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  if (b < 1024 * 1024 * 1024) return `${(b / 1024 / 1024).toFixed(1)} MB`;
+  return `${(b / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+/** POST /api/admin/data-retention/clear — delete old records from a category */
+app.post('/api/admin/data-retention/clear', async (req, res) => {
+  try {
+    const {
+      category,
+      retentionDays,
+      adminPassword,
+      confirmation,
+    } = req.body || {};
+
+    if (!adminPassword) {
+      return res.status(400).json({ success: false, error: 'Admin password is required.' });
+    }
+    const validPass = adminPassword === (process.env.ADMIN_PASSWORD || '');
+    if (!validPass) {
+      return res.status(403).json({ success: false, error: 'Invalid admin password.' });
+    }
+    if (confirmation !== 'DELETE') {
+      return res.status(400).json({ success: false, error: 'Type DELETE to confirm.' });
+    }
+
+    const days = Math.max(1, Math.min(3650, Number(retentionDays) || 30));
+
+    // Whitelist categories → table + date field + extra WHERE
+    const CATEGORIES: Record<string, { table: string; dateField: string; where?: string; label: string }> = {
+      admin_logs:          { table: 'pipnex_admin_logs',          dateField: 'timestamp',  label: 'Admin Audit Logs' },
+      credit_transactions: { table: 'pipnex_credit_transactions', dateField: 'created_at', label: 'Credit Ledger' },
+      chart_analyses:      { table: 'pipnex_chart_analyses',      dateField: 'created_at', label: 'Chart Analyses' },
+      admin_notifications: { table: 'pipnex_admin_notifications', dateField: 'created_at', label: 'Admin Notifications' },
+      closed_tickets:      { table: 'pipnex_support_tickets',     dateField: 'created_at', label: 'Closed Tickets', where: "status IN ('CLOSED','RESOLVED')" },
+    };
+
+    const cat = CATEGORIES[category];
+    if (!cat) {
+      return res.status(400).json({ success: false, error: `Unknown category: ${category}` });
+    }
+
+    // Count what would be deleted first (for reporting)
+    const countBeforeQ = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM ${cat.table}
+       WHERE ${cat.dateField} < NOW() - INTERVAL '${days} days'
+       ${cat.where ? `AND ${cat.where}` : ''}`
+    );
+    const toDelete = Number((countBeforeQ.rows as any[])[0]?.count ?? 0);
+
+    if (toDelete === 0) {
+      return res.json({
+        success: true,
+        deletedCount: 0,
+        category: cat.label,
+        retentionDays: days,
+        message: 'Nothing to delete.',
+      });
+    }
+
+    // Delete
+    const delQ = await pool.query(
+      `DELETE FROM ${cat.table}
+       WHERE ${cat.dateField} < NOW() - INTERVAL '${days} days'
+       ${cat.where ? `AND ${cat.where}` : ''}`
+    );
+
+    const deleted = Number((delQ as any)?.rowCount ?? toDelete);
+
+    // Audit the cleanup itself
+    try {
+      db.createAuditLog({
+        adminEmail: ADMIN_ALLOWED_USERNAME,
+        adminName: 'Super Admin',
+        adminRole: 'SUPER_ADMIN',
+        action: 'DATA_RETENTION_CLEAR',
+        details: `Cleared ${deleted} ${cat.label} rows older than ${days} days`,
+        reason: `Retention sweep: ${cat.label}`,
+      });
+    } catch {}
+
+    console.log(`[Retention] Cleared ${deleted} rows from ${cat.table} (older than ${days}d)`);
+
+    res.json({
+      success: true,
+      deletedCount: deleted,
+      category: cat.label,
+      retentionDays: days,
+      message: `Deleted ${deleted} ${cat.label} row(s) older than ${days} days.`,
+    });
+  } catch (err: any) {
+    console.error('[Retention] Failed:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Retention clear failed' });
+  }
+});
+
 app.post('/api/admin/users/bulk/delete-pending', (req, res) => {
   try {
     const { adminPassword, reason = 'Admin mass delete of pending accounts', confirmation } = req.body || {};
