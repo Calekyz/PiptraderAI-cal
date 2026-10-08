@@ -220,8 +220,22 @@ export async function sweepTelegramSignalDeletions(): Promise<void> {
       await tgApi('deleteMessage', { chat_id: d.channel, message_id: d.messageId });
       console.log(`[Telegram] TTL delete: msg ${d.messageId} from ${d.channel}`);
     } catch (e: any) {
-      console.warn(`[Telegram] TTL delete failed (${d.channel} ${d.messageId}):`, e?.message);
-      if (now - d.deleteAt < 24 * 3600 * 1000) remaining.push(d);
+      const msg = String(e?.message || '');
+      // Permanent errors — don't retry. Message is already gone or unreachable.
+      const isPermanent =
+        /message to delete not found/i.test(msg) ||
+        /message can't be deleted/i.test(msg) ||
+        /message_id_invalid/i.test(msg) ||
+        /chat not found/i.test(msg);
+
+      if (isPermanent) {
+        console.log(`[Telegram] TTL drop (permanent error): msg ${d.messageId} from ${d.channel} — ${msg}`);
+        // don't push to remaining → it gets removed
+      } else {
+        console.warn(`[Telegram] TTL delete failed (${d.channel} ${d.messageId}):`, msg);
+        // Retry only if less than 24h old
+        if (now - d.deleteAt < 24 * 3600 * 1000) remaining.push(d);
+      }
     }
   }
   if (remaining.length !== pendingDeletions.length) {
