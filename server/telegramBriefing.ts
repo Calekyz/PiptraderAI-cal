@@ -1,7 +1,7 @@
 // ============================================================================
 // TELEGRAM DAILY BRIEFING
 // ----------------------------------------------------------------------------
-// Sends a market briefing to the briefing channel (default @calekyz) at
+// Sends a market briefing to the briefing channel (default @piptraderai) at
 // 6am, 12pm, and 5pm EAT. Each message auto-deletes after 5 hours.
 // ============================================================================
 
@@ -10,7 +10,7 @@ import { kvGet, kvSet } from './db';
 import { analyzeMarket } from './engine';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const BRIEFING_CHANNEL = process.env.TELEGRAM_BRIEFING_CHANNEL_ID || '@calekyz';
+const BRIEFING_CHANNEL = process.env.TELEGRAM_BRIEFING_CHANNEL_ID || '@piptraderai';
 const DELETE_AFTER_MS = 5 * 60 * 60 * 1000; // 5 hours
 const STATE_KEY = 'briefing:state';
 
@@ -327,8 +327,7 @@ async function buildBriefingMessage(session: BriefingSessionId): Promise<string>
 // ── Send + schedule deletion ──────────────────────────────────────────
 async function sendAndScheduleDeletion(text: string): Promise<void> {
   if (!BOT_TOKEN) {
-    console.warn('[Briefing] TELEGRAM_BOT_TOKEN not set');
-    return;
+    throw new Error('TELEGRAM_BOT_TOKEN not set');
   }
 
   try {
@@ -352,14 +351,14 @@ async function sendAndScheduleDeletion(text: string): Promise<void> {
 
     const messageId = data?.result?.message_id;
     if (!messageId) {
-      console.warn('[Briefing] No message_id returned');
-      return;
+      throw new Error('Telegram returned no message_id');
     }
 
     console.log(`[Briefing] Sent to ${BRIEFING_CHANNEL} (msg ${messageId}), will delete in 5h`);
     await scheduleDeletion(BRIEFING_CHANNEL, messageId);
   } catch (err: any) {
     console.error('[Briefing] Send failed:', err?.message);
+    throw err;
   }
 }
 
