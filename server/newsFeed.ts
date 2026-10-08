@@ -1,3 +1,5 @@
+import type { FFNewsArticle } from './forexFactoryEngine';
+
 // ============================================================================
 // LIVE NEWS FEED (newsdata.io)
 // ----------------------------------------------------------------------------
@@ -45,28 +47,6 @@ interface RawArticle {
   country: string[];
 }
 
-interface FFNewsArticle {
-  id: string;
-  title: string;
-  headline: string;
-  source: string;
-  author: string;
-  authorAvatar: string;
-  publishedAt: string;
-  category: string;
-  impactLevel: 'High' | 'Medium' | 'Low';
-  colorCode: 'red' | 'yellow' | 'blue';
-  summary: string;
-  content: string;
-  affectedPairs: string[];
-  tags: string[];
-  url: string;
-  readTime: string;
-  sentiment: 'Bullish' | 'Bearish' | 'Neutral';
-  commentsCount: number;
-  viewsCount: number;
-}
-
 function inferImpact(text: string): { level: 'High' | 'Medium' | 'Low'; color: 'red' | 'yellow' | 'blue' } {
   if (HIGH_IMPACT.test(text)) return { level: 'High', color: 'red' };
   if (MEDIUM_IMPACT.test(text)) return { level: 'Medium', color: 'yellow' };
@@ -89,7 +69,7 @@ function extractPairs(text: string): string[] {
   return Array.from(found).slice(0, 5);
 }
 
-function categorize(a: RawArticle): string {
+function categorize(a: RawArticle): FFNewsArticle['category'] {
   const text = `${a.title} ${a.description || ''} ${(a.keywords || []).join(' ')}`.toLowerCase();
   if (/\b(fed|fomc|ecb|boe|boj|central bank|interest rate|monetary)\b/.test(text)) return 'Central Bank News';
   if (/\b(gold|silver|oil|crude|commodit|wti|brent)\b/.test(text)) return 'Commodities';
@@ -165,7 +145,7 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
     const q = encodeURIComponent(
       'forex OR "central bank" OR inflation OR FOMC OR "interest rate" OR currency OR gold OR bitcoin'
     );
-    const url = `${NEWS_API_URL}?apikey=${NEWS_API_KEY}&language=en&category=business&size=15&q=${q}`;
+    const url = `${NEWS_API_URL}?apikey=${NEWS_API_KEY}&language=en&category=business&size=10&q=${q}`;
     console.log(`[News] Fetching from newsdata.io`);
     const res = await fetch(url, { headers: { 'User-Agent': 'PipTraderAI/1.0' } });
     const data: any = await res.json();
