@@ -532,7 +532,7 @@ export async function fetchRealCandles(symbol: string, timeframe: string): Promi
       }
     }
   } catch (err) {
-    console.error('Yahoo Finance real market data fetch error:', err);
+    console.warn('[Yahoo] fetch failed:', err?.cause?.code || err?.code || err?.message || 'timeout');
   }
 
   // 4. Reliable High-Fidelity Fallback Generator if external APIs are unreachable

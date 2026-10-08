@@ -1060,14 +1060,33 @@ forexFactoryRouter.get('/api/forex-factory/news', async (req: Request, res: Resp
   try {
     const category = (req.query.category as string) || 'All News';
     const articles = await getForexFactoryNewsArticles(category);
-    const usingLive = articles.length > 0 && process.env.NEWSDATA_API_KEY;
+    // Truly live only when the first article ISN'T one of the hardcoded fallbacks
+    const FALLBACK_SOURCES = new Set([
+      'ForexFactory News',
+      'ForexFactory Technical Analysis',
+      'ForexFactory Commodities',
+      'ForexFactory Crypto',
+      'ForexFactory Fundamental Analysis',
+      'ForexFactory Market Sentiment',
+      'ForexFactory Forex News',
+    ]);
+    const firstSource = String(articles[0]?.source || '');
+    const usingLive = articles.length > 0
+      && Boolean(process.env.NEWSDATA_API_KEY)
+      && !FALLBACK_SOURCES.has(firstSource)
+      && !firstSource.startsWith('ForexFactory');
     res.json({
       success: true,
-      source: usingLive ? 'Newsdata.io Live Feed' : 'ForexFactory.com News Portal',
+      source: usingLive ? 'Newsdata.io Live Feed' : 'Fallback (hardcoded articles)',
       live: Boolean(usingLive),
       category,
       count: articles.length,
       lastUpdated: new Date().toISOString(),
+      debug: {
+        hasKey: Boolean(process.env.NEWSDATA_API_KEY),
+        keyPrefix: (process.env.NEWSDATA_API_KEY || '').slice(0, 8) || 'none',
+        firstSource,
+      },
       articles
     });
   } catch (error: any) {
