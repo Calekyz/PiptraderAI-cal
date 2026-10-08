@@ -59,14 +59,18 @@ export const DataRetentionView: React.FC = () => {
     loadStats();
   }, []);
 
+  const expectedConfirm = retention === 0 ? 'DELETE ALL' : 'DELETE';
+  const [modalError, setModalError] = useState<string | null>(null);
+
   const handleClear = async () => {
     if (!openCategory) return;
-    if (confirmText !== 'DELETE') {
-      setMessage('Type DELETE to confirm.');
+    setModalError(null);
+    if (confirmText !== expectedConfirm) {
+      setModalError(`Type ${expectedConfirm} to confirm.`);
       return;
     }
     if (!adminPassword) {
-      setMessage('Admin password required.');
+      setModalError('Admin password required.');
       return;
     }
     try {
@@ -79,7 +83,7 @@ export const DataRetentionView: React.FC = () => {
       setConfirmText('');
       await loadStats();
     } catch (err: any) {
-      setMessage(`❌ ${err?.message || 'Clear failed'}`);
+      setModalError(err?.message || 'Clear failed');
     } finally {
       setClearing(false);
     }
@@ -191,6 +195,7 @@ export const DataRetentionView: React.FC = () => {
                 setOpenCategory(s);
                 setAdminPassword('');
                 setConfirmText('');
+                setModalError(null);
                 setMessage(null);
               }}
               disabled={s.rows === 0}
