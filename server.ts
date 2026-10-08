@@ -4991,6 +4991,29 @@ app.post('/api/user/heartbeat', (req, res) => {
 // ==========================================
 // ADMIN: BULK DELETE PENDING ACCOUNTS
 // ==========================================
+// ── TEMP: news debug (remove once diagnosed) ──
+app.get('/api/debug/news', async (req, res) => {
+  try {
+    const key = process.env.NEWSDATA_API_KEY || '';
+    const url = `https://newsdata.io/api/1/latest?apikey=${key}&language=en&category=business&size=10&q=forex`;
+    const r = await fetch(url);
+    const d: any = await r.json();
+    res.json({
+      keyPrefix: key.slice(0, 8),
+      httpStatus: r.status,
+      apiStatus: d.status,
+      totalResults: d.totalResults,
+      resultsIsArray: Array.isArray(d.results),
+      resultsLength: Array.isArray(d.results) ? d.results.length : null,
+      errorBody: !Array.isArray(d.results) ? d.results : null,
+      firstTitle: Array.isArray(d.results) && d.results[0] ? d.results[0].title : null,
+      firstSource: Array.isArray(d.results) && d.results[0] ? d.results[0].source_name : null,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'fetch failed' });
+  }
+});
+
 // ============================================================================
 // ADMIN: DATA RETENTION & CLEANUP
 // ============================================================================
