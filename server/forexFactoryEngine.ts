@@ -521,7 +521,9 @@ function generateFallbackFFCalendar(): FFCalendarEvent[] {
 
 export async function getForexFactoryNewsArticles(categoryFilter = 'All News'): Promise<FFNewsArticle[]> {
   const live = await fetchLiveNews();
-  const articles = live.length > 0 ? live : getForexFactoryNewsArticlesFallback('All News');
+  const articles: FFNewsArticle[] = live.length > 0
+    ? [...live]
+    : [...getForexFactoryNewsArticlesFallback('All News')];
   if (categoryFilter === 'All News' || !categoryFilter) return articles;
   return articles.filter(a => a.category.toLowerCase() === categoryFilter.toLowerCase());
 }
@@ -1058,9 +1060,11 @@ forexFactoryRouter.get('/api/forex-factory/news', async (req: Request, res: Resp
   try {
     const category = (req.query.category as string) || 'All News';
     const articles = await getForexFactoryNewsArticles(category);
+    const usingLive = articles.length > 0 && process.env.NEWSDATA_API_KEY;
     res.json({
       success: true,
-      source: 'ForexFactory.com News Portal',
+      source: usingLive ? 'Newsdata.io Live Feed' : 'ForexFactory.com News Portal',
+      live: Boolean(usingLive),
       category,
       count: articles.length,
       lastUpdated: new Date().toISOString(),

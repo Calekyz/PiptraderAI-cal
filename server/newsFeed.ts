@@ -165,7 +165,7 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
     const q = encodeURIComponent(
       'forex OR "central bank" OR inflation OR FOMC OR "interest rate" OR currency OR gold OR bitcoin'
     );
-    const url = `${NEWS_API_URL}?apikey=${NEWS_API_KEY}&language=en&category=business&size=10&q=${q}`;
+    const url = `${NEWS_API_URL}?apikey=${NEWS_API_KEY}&language=en&category=business&size=15&q=${q}`;
     console.log(`[News] Fetching from newsdata.io`);
     const res = await fetch(url, { headers: { 'User-Agent': 'PipTraderAI/1.0' } });
     const data: any = await res.json();
