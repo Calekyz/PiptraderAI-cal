@@ -173,7 +173,7 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
     const TRADING_RELEVANT = /\b(forex|currency|dollar|euro|yen|pound|sterling|franc|gold|silver|oil|crude|bitcoin|ethereum|crypto|fed|fomc|ecb|boe|boj|central bank|monetary|inflation|interest rate|treasury|bond|yield|nasdaq|s&p|dow|stocks?|equit|recession|gdp|cpi|ppi|nfp|unemployment|payroll|market|trad(e|ing|er))/i;
 
     const rawResults = data.results as RawArticle[];
-    console.log(`[News] Raw results from API: ${rawResults.length}`);
+    if (rawResults.length === 0) console.warn('[News] API returned 0 results');
 
     // Per-article map with try/catch so one bad row doesn't kill the batch
     const mapped: FFNewsArticle[] = [];
@@ -189,7 +189,7 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
         }
       }
     }
-    console.log(`[News] Mapped ${mapped.length}/${rawResults.length} (errors: ${mapErrors})`);
+    if (mapErrors > 0) console.warn(`[News] Mapped ${mapped.length}/${rawResults.length} (errors: ${mapErrors})`);
 
     // Relevance filter with logging
     const beforeFilter = mapped.length;
@@ -197,7 +197,7 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
       const text = `${a.title} ${a.summary} ${a.tags.join(' ')}`;
       return TRADING_RELEVANT.test(text);
     });
-    console.log(`[News] Relevance filter: ${articles.length}/${beforeFilter} kept`);
+    // filter log removed — was noisy
 
     if (articles.length === 0 && beforeFilter > 0) {
       console.warn(`[News] Filter dropped ALL ${beforeFilter} articles. Sample titles:`);
@@ -210,7 +210,7 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
     }
 
     _newsCache = { articles, at: now };
-    console.log(`[News] Cached ${articles.length} live articles from newsdata.io`);
+    console.log(`[News] Cached ${articles.length} live articles`);
     return articles;
   } catch (err: any) {
     console.warn('[News] Fetch failed:', err?.message);

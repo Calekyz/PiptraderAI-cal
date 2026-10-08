@@ -4991,65 +4991,6 @@ app.post('/api/user/heartbeat', (req, res) => {
 // ==========================================
 // ADMIN: BULK DELETE PENDING ACCOUNTS
 // ==========================================
-// ── TEMP: news debug (remove once diagnosed) ──
-app.get('/api/debug/news', async (req, res) => {
-  try {
-    const key = process.env.NEWSDATA_API_KEY || '';
-    const results: any = { keyPrefix: key.slice(0, 8) };
-
-    // Test 1: Simple query
-    const url1 = `https://newsdata.io/api/1/latest?apikey=${key}&language=en&category=business&size=10&q=forex`;
-    try {
-      const r1 = await fetch(url1);
-      const d1: any = await r1.json();
-      results.simpleQuery = {
-        httpStatus: r1.status,
-        apiStatus: d1.status,
-        count: Array.isArray(d1.results) ? d1.results.length : 0,
-        errorBody: !Array.isArray(d1.results) ? d1.results : null,
-      };
-    } catch (e: any) {
-      results.simpleQuery = { error: e.message };
-    }
-
-    // Test 2: The exact query newsFeed.ts uses
-    const q2 = encodeURIComponent(
-      'forex OR FOMC OR Fed OR ECB OR inflation OR currency OR "gold price" OR "US dollar"'
-    );
-    const url2 = `https://newsdata.io/api/1/latest?apikey=${key}&language=en&category=business&size=10&q=${q2}`;
-    try {
-      const r2 = await fetch(url2);
-      const d2: any = await r2.json();
-      results.fullQuery = {
-        httpStatus: r2.status,
-        apiStatus: d2.status,
-        count: Array.isArray(d2.results) ? d2.results.length : 0,
-        errorBody: !Array.isArray(d2.results) ? d2.results : null,
-        firstTitle: Array.isArray(d2.results) && d2.results[0] ? d2.results[0].title : null,
-      };
-    } catch (e: any) {
-      results.fullQuery = { error: e.message };
-    }
-
-    // Test 3: What does fetchLiveNews actually return?
-    try {
-      const { fetchLiveNews } = await import('./server/newsFeed');
-      const articles = await fetchLiveNews();
-      results.fetchLiveNews = {
-        returnedCount: articles.length,
-        firstSource: articles[0]?.source || 'none',
-        firstTitle: articles[0]?.title?.slice(0, 60) || 'none',
-      };
-    } catch (e: any) {
-      results.fetchLiveNews = { error: e.message };
-    }
-
-    res.json(results);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'debug failed' });
-  }
-});
-
 // ============================================================================
 // ADMIN: DATA RETENTION & CLEANUP
 // ============================================================================

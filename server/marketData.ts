@@ -51,7 +51,7 @@ export interface TechnicalIndicators {
 
 // In-memory cache for market candles and quotes
 const cache = new Map<string, { data: { candles: RealCandle[]; quote: MarketQuote }; expiresAt: number }>();
-const CACHE_TTL_MS = 2500; // 2.5 seconds cache to serve real-time high-throughput feeds cleanly
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min — Yahoo blocked from Render IP, longer cache avoids timeouts
 
 // Convert internal symbol representation to external providers
 export function getSymbolMapping(symbol: string): {
