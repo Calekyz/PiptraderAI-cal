@@ -5087,13 +5087,21 @@ app.post('/api/admin/data-retention/clear', async (req, res) => {
     if (!validPass) {
       return res.status(403).json({ success: false, error: 'Invalid admin password.' });
     }
-    if (confirmation !== 'DELETE') {
-      return res.status(400).json({ success: false, error: 'Type DELETE to confirm.' });
+
+    // "all" mode requires DELETE ALL confirmation; retention mode requires DELETE
+    const isAll = retentionDays === 'all' || retentionDays === 0 || retentionDays === 'ALL';
+    if (isAll) {
+      if (confirmation !== 'DELETE ALL') {
+        return res.status(400).json({ success: false, error: 'Type DELETE ALL to confirm complete wipe.' });
+      }
+    } else {
+      if (confirmation !== 'DELETE') {
+        return res.status(400).json({ success: false, error: 'Type DELETE to confirm.' });
+      }
     }
 
-    const days = Math.max(1, Math.min(3650, Number(retentionDays) || 30));
+    const days = isAll ? null : Math.max(1, Math.min(3650, Number(retentionDays) || 30));
 
-    // Whitelist categories → table + date field + extra WHERE
     const CATEGORIES: Record<string, { table: string; dateField: string; where?: string; label: string }> = {
       admin_logs:          { table: 'pipnex_admin_logs',          dateField: 'timestamp',  label: 'Admin Audit Logs' },
       credit_transactions: { table: 'pipnex_credit_transactions', dateField: 'created_at', label: 'Credit Ledger' },
@@ -5107,11 +5115,19 @@ app.post('/api/admin/data-retention/clear', async (req, res) => {
       return res.status(400).json({ success: false, error: `Unknown category: ${category}` });
     }
 
-    // Count what would be deleted first (for reporting)
+    // Build WHERE clause
+    const conditions: string[] = [];
+    if (!isAll) {
+      conditions.push(`${cat.dateField} < NOW() - INTERVAL '${days} days'`);
+    }
+    if (cat.where) {
+      conditions.push(cat.where);
+    }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Count what would be deleted
     const countBeforeQ = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM ${cat.table}
-       WHERE ${cat.dateField} < NOW() - INTERVAL '${days} days'
-       ${cat.where ? `AND ${cat.where}` : ''}`
+      `SELECT COUNT(*)::int AS count FROM ${cat.table} ${whereClause}`
     );
     const toDelete = Number((countBeforeQ.rows as any[])[0]?.count ?? 0);
 
@@ -5120,40 +5136,43 @@ app.post('/api/admin/data-retention/clear', async (req, res) => {
         success: true,
         deletedCount: 0,
         category: cat.label,
-        retentionDays: days,
+        retentionDays: isAll ? 'all' : days,
         message: 'Nothing to delete.',
       });
     }
 
     // Delete
     const delQ = await pool.query(
-      `DELETE FROM ${cat.table}
-       WHERE ${cat.dateField} < NOW() - INTERVAL '${days} days'
-       ${cat.where ? `AND ${cat.where}` : ''}`
+      `DELETE FROM ${cat.table} ${whereClause}`
     );
-
     const deleted = Number((delQ as any)?.rowCount ?? toDelete);
 
-    // Audit the cleanup itself
+    // Audit
     try {
       db.createAuditLog({
         adminEmail: ADMIN_ALLOWED_USERNAME,
         adminName: 'Super Admin',
         adminRole: 'SUPER_ADMIN',
         action: 'DATA_RETENTION_CLEAR',
-        details: `Cleared ${deleted} ${cat.label} rows older than ${days} days`,
-        reason: `Retention sweep: ${cat.label}`,
+        details: isAll
+          ? `Cleared ALL ${deleted} ${cat.label} rows (complete wipe)`
+          : `Cleared ${deleted} ${cat.label} rows older than ${days} days`,
+        reason: isAll
+          ? `FULL WIPE: ${cat.label}`
+          : `Retention sweep: ${cat.label}`,
       });
     } catch {}
 
-    console.log(`[Retention] Cleared ${deleted} rows from ${cat.table} (older than ${days}d)`);
+    console.log(`[Retention] Cleared ${deleted} rows from ${cat.table} (${isAll ? 'ALL' : `${days}d`})`);
 
     res.json({
       success: true,
       deletedCount: deleted,
       category: cat.label,
-      retentionDays: days,
-      message: `Deleted ${deleted} ${cat.label} row(s) older than ${days} days.`,
+      retentionDays: isAll ? 'all' : days,
+      message: isAll
+        ? `Deleted ALL ${deleted} ${cat.label} row(s).`
+        : `Deleted ${deleted} ${cat.label} row(s) older than ${days} days.`,
     });
   } catch (err: any) {
     console.error('[Retention] Failed:', err?.message);

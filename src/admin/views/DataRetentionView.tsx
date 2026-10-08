@@ -20,6 +20,7 @@ const RETENTION_OPTIONS = [
   { label: '90 days', value: 90 },
   { label: '180 days', value: 180 },
   { label: '1 year', value: 365 },
+  { label: '⚠ All (wipe everything)', value: 0 },
 ];
 
 function fmtDate(iso: string | null): string {
@@ -196,7 +197,9 @@ export const DataRetentionView: React.FC = () => {
               className="mt-auto w-full py-2 rounded-xl bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-200 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Clear older than {retention}d ({s.rows.toLocaleString()} rows)
+              {retention === 0
+                ? `Delete ALL ${s.rows.toLocaleString()} rows`
+                : `Clear older than ${retention}d (${s.rows.toLocaleString()} rows)`}
             </button>
           </div>
         ))}
@@ -219,14 +222,23 @@ export const DataRetentionView: React.FC = () => {
               <div className="flex-1">
                 <h3 className="font-bold text-white text-base">Clear {openCategory.label}</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Delete rows older than <strong className="text-rose-300">{retention} days</strong> from{' '}
-                  <strong className="text-white">{openCategory.label}</strong>.
+                  {retention === 0 ? (
+                    <>Delete <strong className="text-rose-300">ALL {openCategory.rows.toLocaleString()} rows</strong> from{' '}<strong className="text-white">{openCategory.label}</strong>.</>
+                  ) : (
+                    <>Delete rows older than <strong className="text-rose-300">{retention} days</strong> from{' '}<strong className="text-white">{openCategory.label}</strong>.</>
+                  )}
                 </p>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-200 text-xs leading-relaxed">
-              ⚠️ <strong>This cannot be undone.</strong> Records will be permanently removed from the database.
+            <div className={`p-3 rounded-xl text-xs leading-relaxed border ${
+              retention === 0
+                ? 'bg-rose-600/20 border-rose-500/50 text-rose-100'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-200'
+            }`}>
+              ⚠️ <strong>This cannot be undone.</strong> {retention === 0
+                ? <>Every single row in this category will be <strong>permanently deleted</strong>. This includes recent activity.</>
+                : <>Records will be permanently removed from the database.</>}
             </div>
 
             <div>
@@ -245,13 +257,17 @@ export const DataRetentionView: React.FC = () => {
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                Type <span className="text-rose-400 font-mono font-bold">DELETE</span> to confirm
+                Type{' '}
+                <span className="text-rose-400 font-mono font-bold">
+                  {retention === 0 ? 'DELETE ALL' : 'DELETE'}
+                </span>{' '}
+                to confirm
               </label>
               <input
                 type="text"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
-                placeholder="DELETE"
+                placeholder={retention === 0 ? 'DELETE ALL' : 'DELETE'}
                 className="w-full px-3 py-2 bg-[#1b1122] border border-rose-500/30 rounded-xl text-white text-xs font-mono outline-none focus:border-rose-500"
               />
             </div>
@@ -266,10 +282,18 @@ export const DataRetentionView: React.FC = () => {
               </button>
               <button
                 onClick={handleClear}
-                disabled={clearing || confirmText !== 'DELETE' || !adminPassword}
+                disabled={
+                  clearing ||
+                  !adminPassword ||
+                  (retention === 0 ? confirmText !== 'DELETE ALL' : confirmText !== 'DELETE')
+                }
                 className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white text-xs font-bold"
               >
-                {clearing ? 'Clearing...' : `Delete rows older than ${retention}d`}
+                {clearing
+                  ? 'Clearing...'
+                  : retention === 0
+                  ? `Delete ALL ${openCategory.rows.toLocaleString()} rows`
+                  : `Delete rows older than ${retention}d`}
               </button>
             </div>
           </div>
