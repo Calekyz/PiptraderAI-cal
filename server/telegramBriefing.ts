@@ -365,15 +365,10 @@ async function sendAndScheduleDeletion(text: string): Promise<void> {
 
 // ── Public API ────────────────────────────────────────────────────────
 export async function sendDailyBriefing(session: BriefingSessionId): Promise<{ ok: boolean; error?: string }> {
-  try {
-    console.log(`[Briefing] Building ${session} briefing...`);
-    const msg = await buildBriefingMessage(session);
-    await sendAndScheduleDeletion(msg);
-    return { ok: true };
-  } catch (err: any) {
-    console.error('[Briefing] Failed:', err?.message);
-    return { ok: false, error: err?.message };
-  }
+  console.log(`[Briefing] Building ${session} briefing...`);
+  const msg = await buildBriefingMessage(session);
+  await sendAndScheduleDeletion(msg); // throws on failure
+  return { ok: true };
 }
 
 // ── Scheduler: fires at 6am + 12pm + 5pm EAT (UTC+3) ───────────────────
@@ -410,14 +405,22 @@ export function startBriefingScheduler(): void {
 
       for (const sess of SESSIONS) {
         const targetMinutes = sess.hour * 60 + sess.minute;
-        // Fire if within [target, target+5min) — matches the 5-min tick
-        if (nowMinutes >= targetMinutes && nowMinutes < targetMinutes + 5) {
+        // Fire if within [target, target+15min) — handles tick offsets + restarts
+        if (nowMinutes >= targetMinutes && nowMinutes < targetMinutes + 15) {
           const key = `${sess.id}:${nairobiDate}`;
-          if (!sentBriefings.has(key)) {
+          if (sentBriefings.has(key)) continue;
+
+          console.log(`[Briefing] Firing ${sess.id} (${sess.label}) — EAT ${nairobiHour}:${String(now.getUTCMinutes()).padStart(2,'0')}`);
+
+          try {
+            await sendDailyBriefing(sess.id);
+            // Only mark as sent AFTER a successful send
             sentBriefings.add(key);
             await saveState();
-            console.log(`[Briefing] Firing ${sess.id} (${sess.label}) — EAT ${nairobiHour}:${String(now.getUTCMinutes()).padStart(2,'0')}`);
-            await sendDailyBriefing(sess.id);
+            console.log(`[Briefing] ✓ ${sess.id} sent + marked`);
+          } catch (err: any) {
+            console.warn(`[Briefing] ✗ ${sess.id} failed — will retry on next tick:`, err?.message);
+            // don't mark → next tick retries
           }
         }
       }
