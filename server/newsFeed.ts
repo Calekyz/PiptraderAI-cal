@@ -142,8 +142,11 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
   }
 
   try {
+    // Use quoted phrases + narrower terms. "rate hikes" alone matches utility news.
     const q = encodeURIComponent(
-      'forex OR "central bank" OR inflation OR FOMC OR "interest rate" OR currency OR gold OR bitcoin'
+      '"central bank" OR FOMC OR "Federal Reserve" OR ECB OR "Bank of England" OR "Bank of Japan" OR ' +
+      '"interest rate decision" OR "monetary policy" OR "forex market" OR "currency pair" OR ' +
+      '"US dollar" OR "euro" OR "yen" OR "pound sterling" OR "gold price" OR "XAUUSD"'
     );
     const url = `${NEWS_API_URL}?apikey=${NEWS_API_KEY}&language=en&category=business&size=10&q=${q}`;
     console.log(`[News] Fetching from newsdata.io`);
@@ -156,9 +159,15 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
       return _newsCache.articles;
     }
 
+    const TRADING_RELEVANT = /\b(forex|currency|dollar|euro|yen|pound|sterling|franc|gold|silver|oil|crude|bitcoin|ethereum|crypto|fed|fomc|ecb|boe|boj|central bank|monetary|inflation|interest rate|treasury|bond|yield|nasdaq|s&p|dow|stocks?|equit|recession|gdp|cpi|ppi|nfp|unemployment|payroll|market|trad(e|ing|er))/i;
+
     const articles = (data.results as RawArticle[])
       .map(mapArticle)
-      .filter((a) => a.title && a.summary);
+      .filter((a) => a.title && a.summary)
+      .filter((a) => {
+        const text = `${a.title} ${a.summary} ${a.tags.join(' ')}`;
+        return TRADING_RELEVANT.test(text);
+      });
 
     if (articles.length === 0) {
       console.warn('[News] newsdata.io returned 0 usable articles');
