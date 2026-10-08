@@ -142,11 +142,10 @@ export async function fetchLiveNews(): Promise<FFNewsArticle[]> {
   }
 
   try {
-    // Use quoted phrases + narrower terms. "rate hikes" alone matches utility news.
+    // Simple query — newsdata.io free tier chokes on long/quoted complex queries.
+    // The TRADING_RELEVANT filter below does the real cleanup.
     const q = encodeURIComponent(
-      '"central bank" OR FOMC OR "Federal Reserve" OR ECB OR "Bank of England" OR "Bank of Japan" OR ' +
-      '"interest rate decision" OR "monetary policy" OR "forex market" OR "currency pair" OR ' +
-      '"US dollar" OR "euro" OR "yen" OR "pound sterling" OR "gold price" OR "XAUUSD"'
+      'forex OR FOMC OR Fed OR ECB OR inflation OR currency OR "gold price" OR "US dollar"'
     );
     const url = `${NEWS_API_URL}?apikey=${NEWS_API_KEY}&language=en&category=business&size=10&q=${q}`;
     console.log(`[News] Fetching from newsdata.io`);
