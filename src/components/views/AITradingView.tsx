@@ -863,34 +863,38 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
           </div>
         </div>
 
-        {/* Nova AI upgrade banner — opens the advanced assistant */}
-        {onOpenNova && (
-          <div
-            id="open-nova-from-chat"
-            className="mb-3 px-4 py-3 rounded-xl border border-purple-500/40 bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-transparent flex items-center justify-between gap-3"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-              <div className="min-w-0">
-                <div className="text-xs text-purple-100 font-bold truncate">
-                  Upgrade to Nova AI
-                </div>
-                <div className="text-[10px] text-purple-300/70 truncate">
-                  Real explanations, chart vision, and deeper analysis
+        {/* Nova panel — desktop: right column, mobile: stacked below chart */}
+        <div className="lg:col-span-5 flex flex-col min-h-0 overflow-hidden border-t lg:border-t-0 lg:border-l border-[#16192e]">
+
+          {/* Nova AI upgrade banner — opens the advanced assistant */}
+          {onOpenNova && (
+            <div
+              id="open-nova-from-chat"
+              className="m-3 px-4 py-3 rounded-xl border border-purple-500/40 bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-transparent flex items-center justify-between gap-3 shrink-0"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs text-purple-100 font-bold truncate">
+                    Upgrade to Nova AI
+                  </div>
+                  <div className="text-[10px] text-purple-300/70 truncate">
+                    Real explanations, chart vision, and deeper analysis
+                  </div>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => onOpenNova('chat')}
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white text-[11px] font-bold cursor-pointer hover:shadow-md hover:shadow-purple-500/40 transition-all active:scale-95 whitespace-nowrap"
+              >
+                Open Nova →
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenNova('chat')}
-              className="px-3 py-1.5 rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#a855f7] text-white text-[11px] font-bold cursor-pointer hover:shadow-md hover:shadow-purple-500/40 transition-all active:scale-95 whitespace-nowrap"
-            >
-              Open Nova →
-            </button>
-          </div>
-        )}
+          )}
 
-        <StraddleChartAnalysisPanel
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <StraddleChartAnalysisPanel
           theme={theme}
           symbol={selectedAsset.symbol}
           timeframe={currentTfObj.label}
@@ -909,7 +913,9 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
           onSendMessage={handleSendChatMessage}
           onQuickAction={handleQuickAction}
           chatEndRef={chatEndRef}
-        />
+            />
+          </div>
+        </div>
       </div>
 
       {isAlertModalOpen && (
