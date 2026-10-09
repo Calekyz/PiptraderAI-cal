@@ -5121,6 +5121,50 @@ app.post('/api/bridge/risk-stop', async (req, res) => {
   res.json({ success: true, result: r.data });
 });
 
+// ── Bot strategies + open positions ──
+app.get('/api/bridge/strategies', async (req, res) => {
+  const userEmail = getUserEmailFromReq(req);
+  if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+  const r = await bridgeFetch(userEmail, '/v1/strategies');
+  if (!r.ok) return res.status(r.status).json({ success: false, error: r.error || 'Fetch failed' });
+  res.json({ success: true, strategies: Array.isArray(r.data) ? r.data : [] });
+});
+
+app.get('/api/bridge/open-orders', async (req, res) => {
+  const userEmail = getUserEmailFromReq(req);
+  if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+  const r = await bridgeFetch(userEmail, '/v1/order/list');
+  if (!r.ok) return res.status(r.status).json({ success: false, error: r.error || 'Fetch failed' });
+  const opened = Array.isArray(r.data?.opened) ? r.data.opened : [];
+  const pending = Array.isArray(r.data?.pending) ? r.data.pending : [];
+  res.json({
+    success: true,
+    count: Number(r.data?.count || opened.length + pending.length),
+    opened,
+    pending,
+  });
+});
+
+app.post('/api/bridge/strategy-toggle', async (req, res) => {
+  const userEmail = getUserEmailFromReq(req);
+  if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+  const { strategyId, enabled } = req.body || {};
+  if (!strategyId) return res.status(400).json({ success: false, error: 'strategyId required' });
+  const r = await bridgeFetch(userEmail, `/v1/strategies/${strategyId}/toggle`, 'POST', { enabled: Boolean(enabled) });
+  if (!r.ok) return res.status(r.status).json({ success: false, error: r.error || 'Toggle failed' });
+  res.json({ success: true, result: r.data });
+});
+
+app.post('/api/bridge/strategy-settings', async (req, res) => {
+  const userEmail = getUserEmailFromReq(req);
+  if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+  const { strategyId, settings } = req.body || {};
+  if (!strategyId || !settings) return res.status(400).json({ success: false, error: 'strategyId + settings required' });
+  const r = await bridgeFetch(userEmail, `/v1/strategies/${strategyId}/settings`, 'POST', settings);
+  if (!r.ok) return res.status(r.status).json({ success: false, error: r.error || 'Settings update failed' });
+  res.json({ success: true, result: r.data });
+});
+
 // ============================================================================
 // ADMIN: DATA RETENTION & CLEANUP
 // ============================================================================

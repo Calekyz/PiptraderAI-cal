@@ -120,6 +120,39 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
 
   // ═══ REAL STATS FROM BACKEND ═══
   const [stats, setStats] = useState({ strategies: 0, trades: 0, analyses: 0, pnl: 0 });
+  const [bridge, setBridge] = useState<{
+    connected: boolean;
+    eaOnline: boolean;
+    botRunning: boolean;
+    balance: number;
+    sessionPnl: number;
+    openTrades: number;
+  }>({ connected: false, eaOnline: false, botRunning: false, balance: 0, sessionPnl: 0, openTrades: 0 });
+
+  React.useEffect(() => {
+    if (!user?.email) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/bridge/status', { headers: { 'x-user-email': user.email } });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (cancelled || !d?.connected) return;
+
+        const ordersRes = await fetch('/api/bridge/open-orders', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({}));
+
+        setBridge({
+          connected: true,
+          eaOnline: Boolean(d.ea?.connected),
+          botRunning: Boolean(d.risk?.active),
+          balance: Number(d.account?.balance || 0),
+          sessionPnl: Number(d.risk?.current?.profit || 0),
+          openTrades: Array.isArray(ordersRes?.opened) ? ordersRes.opened.length : 0,
+        });
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.email]);
   const [referralStats, setReferralStats] = useState({
     totalReferred: 0, subscribed: 0, pending: 0, earnings: 0,
     balance: 0, totalWithdrawn: 0, minWithdrawal: 75,
@@ -286,7 +319,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Connected Accounts</div>
                 <div className="text-xl md:text-2xl font-extrabold text-[#0f172a] dark:text-white mt-1">
-                  {user?.mt5Connected ? '1' : '0'} <span className="text-[#94a3b8] dark:text-slate-500 font-normal text-sm md:text-base">/ 1</span>
+                  {bridge.connected ? '1' : '0'} <span className="text-[#94a3b8] dark:text-slate-500 font-normal text-sm md:text-base">/ 1</span>
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 text-[#3b82f6] dark:text-blue-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -294,7 +327,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
             </div>
             <div className="text-[11px] md:text-xs text-[#94a3b8] dark:text-slate-500 font-medium mt-3">
-              {user?.mt5Connected ? 'MT5 linked' : 'None connected'}
+              {bridge.connected ? 'Bot linked' : 'None connected'}
             </div>
           </div>
 
@@ -311,7 +344,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Active EAs</div>
                 <div className="text-xl md:text-2xl font-extrabold text-[#0f172a] dark:text-white mt-1">
-                  {stats.strategies}
+                  {bridge.eaOnline ? '1' : '0'}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-800/40 text-[#8b5cf6] dark:text-purple-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -319,7 +352,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
             </div>
             <div className="text-[11px] md:text-xs text-[#94a3b8] dark:text-slate-500 font-medium mt-3">
-              {stats.strategies === 0 ? 'None configured' : `${stats.strategies} running`}
+              {bridge.eaOnline ? (bridge.botRunning ? 'Running' : 'Idle') : 'None configured'}
             </div>
           </div>
 
@@ -336,7 +369,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Total Trades</div>
                 <div className="text-xl md:text-2xl font-extrabold text-[#0f172a] dark:text-white mt-1">
-                  {stats.trades}
+                  {bridge.openTrades}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-800/40 text-[#f59e0b] dark:text-amber-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -344,7 +377,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
             </div>
             <div className="text-[11px] md:text-xs text-[#94a3b8] dark:text-slate-500 font-medium mt-3">
-              All time
+              Open positions
             </div>
           </div>
 
@@ -356,8 +389,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-xs md:text-sm font-medium text-[#475569] dark:text-slate-400">Total P&amp;L</div>
-                <div className={`text-xl md:text-2xl font-extrabold font-mono mt-1 ${stats.pnl >= 0 ? 'text-[#16a34a] dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                  {stats.pnl >= 0 ? '+' : ''}${stats.pnl.toFixed(2)}
+                <div className={`text-xl md:text-2xl font-extrabold font-mono mt-1 ${bridge.sessionPnl >= 0 ? 'text-[#16a34a] dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  {bridge.sessionPnl >= 0 ? '+' : ''}${bridge.sessionPnl.toFixed(2)}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800/40 text-[#10b981] dark:text-emerald-400 flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -365,7 +398,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </div>
             </div>
             <div className="text-[11px] md:text-xs text-[#64748b] dark:text-slate-400 font-medium mt-3">
-              Balance: ${(user?.balance || 0).toFixed(2)}
+              Balance: ${(bridge.connected ? bridge.balance : (user?.balance || 0)).toFixed(2)}
             </div>
           </div>
         </div>

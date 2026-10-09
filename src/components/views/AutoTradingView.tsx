@@ -46,6 +46,8 @@ function fmtMoney(n: number | undefined | null): string {
 export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUpgrade }) => {
   const isPremium = user?.plan === 'Pro' || user?.plan === 'Elite';
 
+  const email = user?.email || '';
+
   const [status, setStatus] = useState<BotStatusPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -57,7 +59,29 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
   const [botEmail, setBotEmail] = useState('');
   const [botPassword, setBotPassword] = useState('');
 
-  const email = user?.email || '';
+  // Tabs
+  const [tab, setTab] = useState<'risk' | 'bots' | 'trades'>('risk');
+
+  // Bots + open orders (loaded on demand)
+  const [strategies, setStrategies] = useState<any[]>([]);
+  const [openOrders, setOpenOrders] = useState<any[]>([]);
+  const [tabLoading, setTabLoading] = useState(false);
+
+  const fetchTabData = useCallback(async () => {
+    if (!email) return;
+    setTabLoading(true);
+    try {
+      const [stratRes, ordRes] = await Promise.all([
+        fetch('/api/bridge/strategies', { headers: { 'x-user-email': email } }).then(r => r.json()).catch(() => ({ success: false })),
+        fetch('/api/bridge/open-orders', { headers: { 'x-user-email': email } }).then(r => r.json()).catch(() => ({ success: false })),
+      ]);
+      if (stratRes.success) setStrategies(stratRes.strategies || []);
+      if (ordRes.success) setOpenOrders(ordRes.opened || []);
+    } finally {
+      setTabLoading(false);
+    }
+  }, [email]);
+
 
   const fetchStatus = useCallback(async () => {
     if (!email) return;
@@ -85,6 +109,12 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
   }, [email]);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  useEffect(() => {
+    if (status?.connected && (tab === 'bots' || tab === 'trades')) {
+      fetchTabData();
+    }
+  }, [status?.connected, tab, fetchTabData]);
 
   // Auto-refresh every 20s when connected
   useEffect(() => {
@@ -131,6 +161,25 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
         headers: { 'x-user-email': email },
       });
       await fetchStatus();
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleStrategy = async (strategyId: any, enabled: boolean) => {
+    setActionLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/bridge/strategy-toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-email': email },
+        body: JSON.stringify({ strategyId, enabled }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) setError(data.error || 'Toggle failed');
+      await fetchTabData();
+    } catch (e: any) {
+      setError(e?.message || 'Toggle failed');
     } finally {
       setActionLoading(false);
     }
@@ -300,7 +349,26 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
         </div>
       )}
 
-      {/* Status row */}
+      {/* Tabs */}
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#0f1224] border border-[#1e233d] w-fit">
+        {(['risk', 'bots', 'trades'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              tab === t
+                ? 'bg-purple-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t === 'risk' ? 'Risk Session' : t === 'bots' ? `Bots (${strategies.length})` : `Trades (${openOrders.length})`}
+          </button>
+        ))}
+      </div>
+
+      {/* Status row — shown only on risk tab */}
+      {tab === 'risk' && (
+      <>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
           icon={<Activity className="w-4 h-4" />}
@@ -398,6 +466,132 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
           </div>
         )}
       </div>
+      </>
+      )}
+
+      {/* Bots tab */}
+      {tab === 'bots' && (
+        <div className="bg-[#0f1224] border border-[#1e233d] rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-bold text-white flex items-center gap-2">
+              <Zap className="w-4 h-4 text-purple-400" />
+              Bot Strategies
+            </div>
+            <button
+              onClick={fetchTabData}
+              disabled={tabLoading}
+              className="p-2 rounded-lg bg-[#181d38] hover:bg-[#22294e] text-slate-300 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${tabLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+          {strategies.length === 0 ? (
+            <div className="text-xs text-slate-400 text-center py-6">
+              No bot strategies configured yet.
+              <div className="text-[11px] text-slate-500 mt-1">
+                Configure bots on the cloud platform to see them here.
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {strategies.map((st: any) => {
+                const isActive = Boolean(st.is_active);
+                return (
+                  <div key={st.id} className="border border-[#1e233d] rounded-xl p-4 flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex-1 min-w-[180px]">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm font-bold text-white">{st.name || st.ea_name || `Strategy #${st.id}`}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-500/20 text-slate-400'}`}>
+                          {isActive ? 'Running' : 'Stopped'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-1">
+                        {st.account_label || st.account_id ? `Account: ${st.account_label || st.account_id}` : 'No account bound'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleToggleStrategy(st.id, !isActive)}
+                      disabled={actionLoading}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 ${
+                        isActive
+                          ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                      }`}
+                    >
+                      {isActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      {isActive ? 'Stop' : 'Start'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Trades tab */}
+      {tab === 'trades' && (
+        <div className="bg-[#0f1224] border border-[#1e233d] rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-bold text-white flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              Open Positions
+            </div>
+            <button
+              onClick={fetchTabData}
+              disabled={tabLoading}
+              className="p-2 rounded-lg bg-[#181d38] hover:bg-[#22294e] text-slate-300 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${tabLoading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+          {openOrders.length === 0 ? (
+            <div className="text-xs text-slate-400 text-center py-6">No open positions.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase tracking-wide text-slate-500 border-b border-[#1e233d]">
+                    <th className="py-2 pr-3">Symbol</th>
+                    <th className="py-2 pr-3">Type</th>
+                    <th className="py-2 pr-3">Vol</th>
+                    <th className="py-2 pr-3">Open</th>
+                    <th className="py-2 pr-3">SL</th>
+                    <th className="py-2 pr-3">TP</th>
+                    <th className="py-2 pr-3">Current</th>
+                    <th className="py-2 pr-3 text-right">P&amp;L</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {openOrders.map((o: any) => {
+                    const isBuy = String(o.type || '').includes('BUY');
+                    const profit = Number(o.profit || 0);
+                    return (
+                      <tr key={o.ticket} className="border-b border-[#16192e] last:border-0">
+                        <td className="py-2.5 pr-3 font-semibold text-white">{o.symbol}</td>
+                        <td className="py-2.5 pr-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isBuy ? 'bg-blue-500/20 text-blue-300' : 'bg-rose-500/20 text-rose-300'}`}>
+                            {isBuy ? 'BUY' : 'SELL'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 pr-3 font-mono text-slate-300">{o.volume}</td>
+                        <td className="py-2.5 pr-3 font-mono text-slate-300">{Number(o.price_open).toFixed(2)}</td>
+                        <td className="py-2.5 pr-3 font-mono text-rose-300">{o.sl ? Number(o.sl).toFixed(2) : '—'}</td>
+                        <td className="py-2.5 pr-3 font-mono text-emerald-300">{o.tp ? Number(o.tp).toFixed(2) : '—'}</td>
+                        <td className="py-2.5 pr-3 font-mono text-slate-200">{Number(o.price_current).toFixed(2)}</td>
+                        <td className={`py-2.5 pr-3 font-mono font-bold text-right ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Partial-error warning */}
       {status.errors && Object.values(status.errors).some((e) => e && e !== 'not_connected') && (
