@@ -532,7 +532,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
     { id: 'auto-trading', label: 'Auto', icon: Zap },
     { id: 'upload-chart', label: 'Upload', icon: Upload, isCenter: true },
     { id: 'subscription', label: 'Plan', icon: CreditCard },
-    { id: 'manage-bots', label: 'Strategy', icon: Cpu },
+    { id: 'ai-trading', label: 'AI', icon: BarChart2 },
   ];
 
   return (
@@ -1370,8 +1370,8 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 type="button"
                 onClick={() => setActiveTab('upload-chart')}
                 aria-label="Upload Chart"
-                className={`bottom-nav-upload-glow absolute left-1/2 -translate-x-1/2 -top-2 sm:-top-2.5 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#c4b5fd] hover:bg-[#d4c8ff] text-[#1a1228] flex items-center justify-center cursor-pointer transition-transform active:scale-95 ${
-                  activeTab === 'upload-chart' ? 'ring-2 ring-[#f5edff] scale-110 shadow-[0_0_22px_rgba(196,181,253,0.85)]' : ''
+                className={`bottom-nav-upload-glow absolute left-1/2 -translate-x-1/2 -top-2 sm:-top-2.5 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-400 hover:from-amber-300 hover:via-orange-400 hover:to-yellow-300 text-white shadow-[0_0_20px_rgba(251,146,60,0.85)] flex items-center justify-center cursor-pointer transition-transform active:scale-95 ${
+                  activeTab === 'upload-chart' ? 'ring-2 ring-amber-200 scale-110 shadow-[0_0_32px_rgba(251,146,60,1)]' : 'animate-pulse'
                 }`}
               >
                 <Upload className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
