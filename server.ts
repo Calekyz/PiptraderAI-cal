@@ -45,6 +45,7 @@ import { startBriefingScheduler, initBriefingState } from './server/telegramBrie
 import { getLimits, type PlanTier } from './src/lib/planLimits';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter, fetchForexFactoryCalendar } from './server/forexFactoryEngine';
+import { bridgeConnect, bridgeDisconnect, getBridgeSession, bridgeFetch, getBotApiUrl } from './server/bridge';
 import PDFDocument from 'pdfkit';
 import {
   analyzeMarket,
@@ -4991,6 +4992,135 @@ app.post('/api/user/heartbeat', (req, res) => {
 // ==========================================
 // ADMIN: BULK DELETE PENDING ACCOUNTS
 // ==========================================
+// ============================================================================
+// BRIDGE: main platform → bot platform (app.piptraderai.com)
+// ============================================================================
+
+function getUserEmailFromReq(req: any): string {
+  return String(
+    req.headers['x-user-email'] || req.body?.email || req.query?.email || ''
+  ).trim().toLowerCase();
+}
+
+/** POST /api/bridge/connect — user submits bot email/password once */
+app.post('/api/bridge/connect', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    const { botEmail, botPassword } = req.body || {};
+    if (!botEmail || !botPassword) {
+      return res.status(400).json({ success: false, error: 'Bot email and password required' });
+    }
+
+    const result = await bridgeConnect(userEmail, botEmail, botPassword);
+    if (!result.ok) {
+      return res.status(401).json({ success: false, error: result.error || 'Connect failed' });
+    }
+    res.json({ success: true, message: 'Bot account connected' });
+  } catch (err: any) {
+    console.error('[Bridge] connect:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Connect failed' });
+  }
+});
+
+/** POST /api/bridge/disconnect */
+app.post('/api/bridge/disconnect', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+    await bridgeDisconnect(userEmail);
+    res.json({ success: true, message: 'Disconnected' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Disconnect failed' });
+  }
+});
+
+/** GET /api/bridge/session — is this user connected? */
+app.get('/api/bridge/session', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+    const session = await getBridgeSession(userEmail);
+    res.json({
+      success: true,
+      connected: Boolean(session),
+      botEmail: session?.botEmail || null,
+      botRole: session?.botRole || null,
+      connectedAt: session?.connectedAt || null,
+      botApiUrl: getBotApiUrl(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Session lookup failed' });
+  }
+});
+
+/** GET /api/bridge/status — one-shot dashboard payload */
+app.get('/api/bridge/status', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    const session = await getBridgeSession(userEmail);
+    if (!session) {
+      return res.status(401).json({ success: false, error: 'not_connected' });
+    }
+
+    const [me, ea, risk, account] = await Promise.all([
+      bridgeFetch(userEmail, '/v1/auth/me'),
+      bridgeFetch(userEmail, '/v1/ea/status'),
+      bridgeFetch(userEmail, '/v1/risk/status'),
+      bridgeFetch(userEmail, '/v1/account'),
+    ]);
+
+    res.json({
+      success: true,
+      connected: true,
+      botEmail: session.botEmail,
+      me: me.ok ? me.data : null,
+      ea: ea.ok ? ea.data : null,
+      risk: risk.ok ? risk.data : null,
+      account: account.ok ? account.data : null,
+      errors: {
+        me: me.ok ? null : me.error,
+        ea: ea.ok ? null : ea.error,
+        risk: risk.ok ? null : risk.error,
+        account: account.ok ? null : account.error,
+      },
+    });
+  } catch (err: any) {
+    console.error('[Bridge] status:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Status failed' });
+  }
+});
+
+/** GET /api/bridge/account — proxy */
+app.get('/api/bridge/account', async (req, res) => {
+  const userEmail = getUserEmailFromReq(req);
+  if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+  const r = await bridgeFetch(userEmail, '/v1/account');
+  if (!r.ok) return res.status(r.status).json({ success: false, error: r.error || 'Bot fetch failed' });
+  res.json({ success: true, account: r.data });
+});
+
+/** POST /api/bridge/risk-start */
+app.post('/api/bridge/risk-start', async (req, res) => {
+  const userEmail = getUserEmailFromReq(req);
+  if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+  const r = await bridgeFetch(userEmail, '/v1/risk/start', 'POST', req.body || {});
+  if (!r.ok) return res.status(r.status).json({ success: false, error: r.error || 'Start failed' });
+  res.json({ success: true, result: r.data });
+});
+
+/** POST /api/bridge/risk-stop */
+app.post('/api/bridge/risk-stop', async (req, res) => {
+  const userEmail = getUserEmailFromReq(req);
+  if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+  const r = await bridgeFetch(userEmail, '/v1/risk/stop', 'POST', req.body || {});
+  if (!r.ok) return res.status(r.status).json({ success: false, error: r.error || 'Stop failed' });
+  res.json({ success: true, result: r.data });
+});
+
 // ============================================================================
 // ADMIN: DATA RETENTION & CLEANUP
 // ============================================================================
