@@ -1135,11 +1135,6 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 <UpgradeWhatsAppCard user={user} compact />
               </div>
             )}
-            {activeTab === 'overview' && !['Pro','Elite'].includes(String(user?.plan || '')) && (
-              <div className="mb-4">
-                <UpgradeWhatsAppCard user={user} compact />
-              </div>
-            )}
             {activeTab === 'overview' && (
               <OverviewView
                 user={user}
