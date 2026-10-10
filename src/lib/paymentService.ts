@@ -42,7 +42,7 @@ export interface PaymentRecordDTO {
   usdPrice: number;
   exchangeRate: number;
   kesAmount: number;
-  paymentMethod: 'mpesa_automated' | 'mpesa_manual' | 'binance_usdt';
+  paymentMethod: 'mpesa_automated' | 'mpesa_manual' | 'binance_usdt' | 'airtel_manual' | 'mukuru_manual' | 'neteller_transfer';
   phoneNumber?: string;
   merchantRequestId?: string;
   checkoutRequestId?: string;
@@ -260,7 +260,7 @@ export async function initiateMpesaStkPush(params: {
 
 export async function submitManualPayment(params: {
   productId: string;
-  paymentMethod: 'mpesa_manual' | 'binance_usdt';
+  paymentMethod: 'mpesa_manual' | 'binance_usdt' | 'airtel_manual' | 'mukuru_manual' | 'neteller_transfer';
   amountSent: string | number;
   transactionRef?: string;
   binanceId?: string;
