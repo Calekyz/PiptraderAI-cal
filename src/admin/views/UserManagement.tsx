@@ -189,7 +189,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     setEditData({
       firstName: user.firstName,
       lastName: user.lastName,
-      phone: user.phone || '',
+      phone: (user.phone && user.countryCode) ? `${user.countryCode} ${user.phone}` : (user.phone || ''),
       plan: user.plan,
       credits: user.credits || 0,
       status: user.status || 'ACTIVE',
@@ -280,7 +280,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     if (!activeUser) return;
     setFormError(null);
     try {
-      await AdminApi.updateUser(activeUser.id, editData);
+      // Split "+256 754369972" back into { phone, countryCode } if prefixed
+      const rawPhone = (editData.phone || '').trim();
+      const match = rawPhone.match(/^(\+?\d{1,4})\s+(.+)$/);
+      const submitData = match
+        ? { ...editData, countryCode: match[1], phone: match[2].trim() }
+        : editData;
+
+      await AdminApi.updateUser(activeUser.id, submitData);
       setIsEditModalOpen(false);
       fetchUsers();
       if (onRefreshStats) onRefreshStats();
@@ -882,7 +889,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 
               <div>
                 <label className="text-slate-400 block mb-1">Phone</label>
-                <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} className="w-full px-3 py-2 bg-[#161a30] border border-[#262b49] rounded-xl text-white outline-none focus:border-purple-500 font-mono" />
+                <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} placeholder="+256 754369972" className="w-full px-3 py-2 bg-[#161a30] border border-[#262b49] rounded-xl text-white outline-none focus:border-purple-500 font-mono" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -211,9 +211,18 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
         return;
       }
 
-      // 3. Phone check
+      // 3. Phone check — must be digits only, 7-15 chars
+      const digitsOnly = phoneNumber.replace(/[^0-9]/g, '');
       if (!phoneNumber.trim()) {
         setErrorMessage('Please enter your phone number.');
+        return;
+      }
+      if (/[a-zA-Z]/.test(phoneNumber)) {
+        setErrorMessage('Phone number can only contain digits.');
+        return;
+      }
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+        setErrorMessage('Please enter a valid phone number (7-15 digits).');
         return;
       }
 
