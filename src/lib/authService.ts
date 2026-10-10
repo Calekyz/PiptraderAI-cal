@@ -141,7 +141,9 @@ export async function registerUserAsync(data: {
   return {
     requireVerification: resData.requireVerification !== false,
     email: resData.email || normalizedEmail,
-    message: resData.message || 'Verification code sent to your email.'
+    message: resData.message || 'Verification code sent to your email.',
+    autoVerified: Boolean(resData.autoVerified),
+    user: resData.user || undefined,
   };
 }
 

@@ -271,6 +271,21 @@ export const PipNexAuthCard: React.FC<PipNexAuthCardProps> = ({ onSuccessAuth, i
           saveActiveSession(result.user);
           triggerConfetti();
           onSuccessAuth(result.user);
+        } else {
+          // Safety net — server accepted signup but returned no user object.
+          // Try an immediate login with the same credentials.
+          try {
+            const profile = await loginUserAsync(email.trim().toLowerCase(), password);
+            saveActiveSession(profile);
+            triggerConfetti();
+            onSuccessAuth(profile);
+          } catch (loginErr: any) {
+            // Final fallback — drop to sign-in mode with a helpful message
+            setErrorMessage(
+              'Account created but auto-login failed. Please sign in with your email and password.'
+            );
+            setAuthMode('signin');
+          }
         }
       } catch (err: any) {
         setIsLoading(false);
