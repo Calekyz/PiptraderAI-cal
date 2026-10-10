@@ -1,20 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  ArrowLeft, 
-  Copy, 
-  Check, 
-  Zap, 
-  ClipboardList, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
-  ShieldCheck, 
-  Sparkles,
-  Lock,
-  RefreshCw,
-  Smartphone
-} from 'lucide-react';
+import { AlertCircle, ArrowLeft, Building2, Check, CheckCheck, CheckCircle2, ChevronDown, ClipboardList, Copy, CreditCard, Loader2, Lock, MessageCircle, RefreshCw, ShieldCheck, Smartphone, Sparkles, X, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { UserProfile } from '../types';
 import { 
@@ -44,6 +29,15 @@ type PaymentStep =
   | 'BINANCE_MANUAL'     // Wallet info + TxID input
   | 'CONFIRMED';         // Success screen
 
+// ── Alternative manual payment destinations ──────────────────────
+const ALT_PAYMENTS = [
+  { key: 'airtel',   label: 'Airtel Money', detail: '254789889573',        sub: '',                    icon: 'phone' as const },
+  { key: 'mukuru',   label: 'Mukuru',       detail: '254799045699',        sub: 'Caleb Orenge · Kenya', icon: 'bank'  as const },
+  { key: 'neteller', label: 'Neteller',     detail: 'caleborenge08@gmail.com', sub: '',                icon: 'card'  as const },
+];
+const SALES_WHATSAPP = '254116081230';
+
+
 export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
   isOpen,
   onClose,
@@ -70,6 +64,16 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activePayment, setActivePayment] = useState<PaymentRecordDTO | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [showMoreMethods, setShowMoreMethods] = useState(false);
+  const [copiedAlt, setCopiedAlt] = useState<string | null>(null);
+
+  const handleCopyAlt = async (key: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedAlt(key);
+      setTimeout(() => setCopiedAlt((k) => (k === key ? null : k)), 1800);
+    } catch { /* silent */ }
+  };
 
   // Load config & catalogue from backend (backend is SOURCE OF TRUTH)
   useEffect(() => {
@@ -390,6 +394,83 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                     </div>
                     <ArrowLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0" />
                   </button>
+
+                  {/* ─── More methods (Airtel / Mukuru / Neteller) ─── */}
+                  <div className="rounded-2xl border border-slate-200 dark:border-[#2d3250] bg-white dark:bg-[#121524] overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setShowMoreMethods((v) => !v)}
+                      className="w-full p-4 flex items-center gap-3.5 text-left hover:bg-slate-50 dark:hover:bg-[#161a2c] transition-all cursor-pointer"
+                    >
+                      <div className="w-11 h-11 rounded-full bg-slate-100 dark:bg-[#1b2035] flex items-center justify-center shrink-0 border border-slate-200 dark:border-[#2d3250]">
+                        <MessageCircle className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">More methods</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">Alt</span>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Airtel · Mukuru · Neteller — pay directly, then confirm on WhatsApp
+                        </div>
+                      </div>
+                      <ChevronDown
+                        className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${showMoreMethods ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    {showMoreMethods && (
+                      <div className="border-t border-slate-200 dark:border-[#232742] p-3 space-y-2 bg-slate-50/40 dark:bg-[#0e1224]">
+                        {ALT_PAYMENTS.map((opt) => {
+                          const Icon =
+                            opt.icon === 'phone' ? Smartphone :
+                            opt.icon === 'card'  ? CreditCard :
+                                                   Building2;
+                          const isCopied = copiedAlt === opt.key;
+                          return (
+                            <div
+                              key={opt.key}
+                              className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-white dark:bg-[#0f1224] border border-slate-200 dark:border-[#232742]"
+                            >
+                              <div className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                <Icon className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">{opt.label}</div>
+                                <div className="text-[11px] font-mono text-slate-800 dark:text-white truncate">{opt.detail}</div>
+                                {opt.sub && <div className="text-[9px] text-slate-500 truncate">{opt.sub}</div>}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyAlt(opt.key, opt.detail)}
+                                className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                                  isCopied
+                                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
+                                    : 'bg-slate-100 dark:bg-[#181d38] hover:bg-slate-200 dark:hover:bg-[#22294e] text-slate-600 dark:text-slate-300'
+                                }`}
+                              >
+                                {isCopied ? (<><CheckCheck className="w-3 h-3" />Copied</>) : (<><Copy className="w-3 h-3" />Copy</>)}
+                              </button>
+                            </div>
+                          );
+                        })}
+
+                        <a
+                          href={`https://wa.me/${SALES_WHATSAPP}?text=${encodeURIComponent(
+                            `Hi, I want to pay for the ${currentProduct?.name || 'subscription'} plan (${
+                              currentProduct?.usdPrice ? `$${currentProduct.usdPrice}` : ''
+                            }) via Airtel / Mukuru / Neteller. Please assist with activation.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Chat on WhatsApp to complete
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="pt-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
