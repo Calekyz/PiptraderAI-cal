@@ -129,39 +129,42 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     openTrades: number;
   }>({ connected: false, eaOnline: false, botRunning: false, balance: 0, sessionPnl: 0, openTrades: 0 });
 
-  React.useEffect(() => {
+  const fetchBridgeStatus = React.useCallback(async () => {
     if (!user?.email) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('/api/bridge/status', { headers: { 'x-user-email': user.email } });
-        if (!res.ok) return;
-        const d = await res.json();
-        if (cancelled || !d?.connected) return;
+    try {
+      const res = await fetch('/api/bridge/status', { headers: { 'x-user-email': user.email } });
+      if (!res.ok) return;
+      const d = await res.json();
+      if (!d?.connected) return;
 
-        const [ordersRes, snapRes] = await Promise.all([
-          fetch('/api/bridge/open-orders', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({})),
-          fetch('/api/bridge/daily-snapshot', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({})),
-        ]);
+      const [ordersRes, snapRes] = await Promise.all([
+        fetch('/api/bridge/open-orders', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({})),
+        fetch('/api/bridge/daily-snapshot', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({})),
+      ]);
 
-        // Today's P&L = (current balance + floating profit) - opening balance snapshot
-        const currentBalance = Number(d.account?.balance || 0);
-        const floatingProfit = Number(d.account?.profit || 0);
-        const openingBalance = Number(snapRes?.openingBalance ?? currentBalance);
-        const todayPnl = (currentBalance + floatingProfit) - openingBalance;
+      // Total P&L = (current balance + floating) - opening balance for the day
+      const currentBalance = Number(d.account?.balance || 0);
+      const floatingProfit = Number(d.account?.profit || 0);
+      const openingBalance = Number(snapRes?.openingBalance ?? currentBalance);
+      const totalPnl = (currentBalance + floatingProfit) - openingBalance;
 
-        setBridge({
-          connected: true,
-          eaOnline: Boolean(d.ea?.connected),
-          botRunning: Boolean(d.risk?.active),
-          balance: currentBalance,
-          sessionPnl: todayPnl,
-          openTrades: Array.isArray(ordersRes?.opened) ? ordersRes.opened.length : 0,
-        });
-      } catch { /* silent */ }
-    })();
-    return () => { cancelled = true; };
+      setBridge({
+        connected: true,
+        eaOnline: Boolean(d.ea?.connected),
+        botRunning: Boolean(d.risk?.active),
+        balance: currentBalance,
+        sessionPnl: totalPnl,
+        openTrades: Array.isArray(ordersRes?.opened) ? ordersRes.opened.length : 0,
+      });
+    } catch { /* silent */ }
   }, [user?.email]);
+
+  // Initial fetch + poll every 2s (real-time P&L updates)
+  React.useEffect(() => {
+    fetchBridgeStatus();
+    const id = setInterval(fetchBridgeStatus, 2000);
+    return () => clearInterval(id);
+  }, [fetchBridgeStatus]);
   const [referralStats, setReferralStats] = useState({
     totalReferred: 0, subscribed: 0, pending: 0, earnings: 0,
     balance: 0, totalWithdrawn: 0, minWithdrawal: 75,
