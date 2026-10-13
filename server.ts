@@ -5121,6 +5121,36 @@ app.post('/api/bridge/risk-stop', async (req, res) => {
   res.json({ success: true, result: r.data });
 });
 
+// ── Daily balance snapshot (for Today's P&L) ──
+app.get('/api/bridge/daily-snapshot', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    // EAT date key (UTC+3)
+    const eatDate = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+    const key = `bridge:daily:${userEmail}:${eatDate}`;
+
+    const { kvGet, kvSet } = await import('./server/db');
+    let snap: any = await kvGet(key);
+
+    // If no snapshot yet, fetch current balance and store it
+    if (!snap) {
+      const acct = await bridgeFetch(userEmail, '/v1/account');
+      if (!acct.ok) return res.status(acct.status).json({ success: false, error: acct.error || 'Account fetch failed' });
+      const openingBalance = Number(acct.data?.balance || 0);
+      snap = { openingBalance, capturedAt: new Date().toISOString(), date: eatDate };
+      await kvSet(key, snap);
+      console.log(`[Bridge] Daily snapshot created for ${userEmail}: $${openingBalance}`);
+    }
+
+    res.json({ success: true, ...snap });
+  } catch (err: any) {
+    console.error('[Bridge] daily-snapshot:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Snapshot failed' });
+  }
+});
+
 // ── Bot strategies + open positions ──
 app.get('/api/bridge/strategies', async (req, res) => {
   const userEmail = getUserEmailFromReq(req);
