@@ -139,14 +139,23 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         const d = await res.json();
         if (cancelled || !d?.connected) return;
 
-        const ordersRes = await fetch('/api/bridge/open-orders', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({}));
+        const [ordersRes, snapRes] = await Promise.all([
+          fetch('/api/bridge/open-orders', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({})),
+          fetch('/api/bridge/daily-snapshot', { headers: { 'x-user-email': user.email } }).then(r => r.json()).catch(() => ({})),
+        ]);
+
+        // Today's P&L = (current balance + floating profit) - opening balance snapshot
+        const currentBalance = Number(d.account?.balance || 0);
+        const floatingProfit = Number(d.account?.profit || 0);
+        const openingBalance = Number(snapRes?.openingBalance ?? currentBalance);
+        const todayPnl = (currentBalance + floatingProfit) - openingBalance;
 
         setBridge({
           connected: true,
           eaOnline: Boolean(d.ea?.connected),
           botRunning: Boolean(d.risk?.active),
-          balance: Number(d.account?.balance || 0),
-          sessionPnl: Number(d.risk?.current?.profit || 0),
+          balance: currentBalance,
+          sessionPnl: todayPnl,
           openTrades: Array.isArray(ordersRes?.opened) ? ordersRes.opened.length : 0,
         });
       } catch { /* silent */ }
