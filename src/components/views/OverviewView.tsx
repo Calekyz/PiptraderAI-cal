@@ -126,8 +126,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
     botRunning: boolean;
     balance: number;
     sessionPnl: number;
+    floatingPnl: number;
+    realizedPnl: number;
     openTrades: number;
-  }>({ connected: false, eaOnline: false, botRunning: false, balance: 0, sessionPnl: 0, openTrades: 0 });
+  }>({ connected: false, eaOnline: false, botRunning: false, balance: 0, sessionPnl: 0, floatingPnl: 0, realizedPnl: 0, openTrades: 0 });
 
   const fetchBridgeStatus = React.useCallback(async () => {
     if (!user?.email) return;
@@ -147,6 +149,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       const floatingProfit = Number(d.account?.profit || 0);
       const openingBalance = Number(snapRes?.openingBalance ?? currentBalance);
       const totalPnl = (currentBalance + floatingProfit) - openingBalance;
+      // Realized today = total - floating (from closed trades since opening snapshot)
+      const realizedPnl = totalPnl - floatingProfit;
 
       setBridge({
         connected: true,
@@ -154,6 +158,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         botRunning: Boolean(d.risk?.active),
         balance: currentBalance,
         sessionPnl: totalPnl,
+        floatingPnl: floatingProfit,
+        realizedPnl,
         openTrades: Array.isArray(ordersRes?.opened) ? ordersRes.opened.length : 0,
       });
     } catch { /* silent */ }
@@ -412,6 +418,22 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             <div className="text-[11px] md:text-xs text-[#64748b] dark:text-slate-400 font-medium mt-3">
               Balance: ${(bridge.connected ? bridge.balance : (user?.balance || 0)).toFixed(2)}
             </div>
+            {bridge.connected && (
+              <div className="mt-1.5 pt-1.5 border-t border-[#e5e7eb] dark:border-[#1a1d2c] flex items-center justify-between text-[10px] md:text-[11px] font-mono">
+                <span className="text-slate-500 dark:text-slate-500">
+                  Floating:{' '}
+                  <strong className={bridge.floatingPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                    {bridge.floatingPnl >= 0 ? '+' : ''}${bridge.floatingPnl.toFixed(2)}
+                  </strong>
+                </span>
+                <span className="text-slate-500 dark:text-slate-500">
+                  Realized:{' '}
+                  <strong className={bridge.realizedPnl >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                    {bridge.realizedPnl >= 0 ? '+' : ''}${bridge.realizedPnl.toFixed(2)}
+                  </strong>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
