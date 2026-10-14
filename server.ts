@@ -153,33 +153,102 @@ app.get('/api/engine/news-prediction', async (req, res) => {
     const title = String(next.title || '');
 
     if (currency === 'USD' && /CPI|PPI|NFP|NON-?FARM|RETAIL|GDP|FOMC|RATE|PAYROLL|UNEMPLOY/i.test(title)) {
-      if (diff > 0.05 || usdScore > 0.5) {
+      // ── Rule 1: Forecast vs Previous dominates ──
+      // Forecast HIGHER than previous = hotter data = USD stronger = gold DOWN = SELL
+      // Forecast LOWER  than previous = cooler data = USD weaker  = gold UP  = BUY
+      if (diff > 0.05) {
         direction = 'SELL';
-        confidence = Math.min(88, 60 + Math.abs(diff) * 20 + Math.abs(usdScore) * 4);
-        reasoning = `USD expected stronger → gold pressured down. Forecast ${forecast} vs previous ${previous}. USD bias ${usdScore.toFixed(2)}.`;
-      } else if (diff < -0.05 || usdScore < -0.5) {
+        confidence = Math.min(85, 60 + Math.min(20, Math.abs(diff) * 100));
+        reasoning = `Forecast ${next.forecast} is higher than previous ${next.previous} → hotter inflation → USD expected stronger → gold pressured down.`;
+      } else if (diff < -0.05) {
         direction = 'BUY';
-        confidence = Math.min(88, 60 + Math.abs(diff) * 20 + Math.abs(usdScore) * 4);
-        reasoning = `USD expected weaker → gold bid up. Forecast ${forecast} vs previous ${previous}. USD bias ${usdScore.toFixed(2)}.`;
+        confidence = Math.min(85, 60 + Math.min(20, Math.abs(diff) * 100));
+        reasoning = `Forecast ${next.forecast} is lower than previous ${next.previous} → cooling inflation → USD expected weaker → gold bid up.`;
       } else {
-        direction = 'WAIT';
-        confidence = 50;
-        reasoning = `Neutral setup. Forecast ${forecast} ≈ previous ${previous}, USD bias ${usdScore.toFixed(2)}. Wait for actual release.`;
+        // ── Rule 2: Flat forecast → use current USD bias as tiebreaker ──
+        if (usdScore > 0.5) {
+          direction = 'SELL';
+          confidence = 60;
+          reasoning = `Forecast flat (${next.forecast} vs ${next.previous}). Current USD bias strong (${usdScore.toFixed(2)}) → mild SELL bias on gold.`;
+        } else if (usdScore < -0.5) {
+          direction = 'BUY';
+          confidence = 60;
+          reasoning = `Forecast flat (${next.forecast} vs ${next.previous}). Current USD bias weak (${usdScore.toFixed(2)}) → mild BUY bias on gold.`;
+        } else {
+          direction = 'WAIT';
+          confidence = 50;
+          reasoning = `Forecast flat and USD bias neutral. Wait for actual release.`;
+        }
       }
     } else if (currency === 'EUR' || currency === 'GBP') {
       if (diff > 0.05) {
         direction = 'BUY';
-        confidence = Math.min(85, 60 + Math.abs(diff) * 15);
-        reasoning = `${currency} expected stronger → USD weaker → gold up.`;
+        confidence = Math.min(85, 60 + Math.abs(diff) * 50);
+        reasoning = `${currency} forecast higher than previous → ${currency} stronger → USD weaker → gold up.`;
       } else if (diff < -0.05) {
         direction = 'SELL';
-        confidence = Math.min(85, 60 + Math.abs(diff) * 15);
-        reasoning = `${currency} expected weaker → USD stronger → gold down.`;
+        confidence = Math.min(85, 60 + Math.abs(diff) * 50);
+        reasoning = `${currency} forecast lower than previous → ${currency} weaker → USD stronger → gold down.`;
       } else {
+        direction = 'WAIT';
         reasoning = `${currency} forecast flat. Neutral.`;
       }
     } else {
       reasoning = `Event not typically directional for gold.`;
+    }
+
+    // ── Ask Gemini to confirm/refine this prediction ──
+    let aiAgreed = true;
+    let aiNote = '';
+    if (direction !== 'WAIT') {
+      try {
+        const { GoogleGenAI } = await import('@google/genai');
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (apiKey) {
+          const ai = new GoogleGenAI({ apiKey });
+          const prompt = `You are a professional forex analyst. Give a rapid directional call.
+
+EVENT: ${next.title} (${currency}) — High impact
+SCHEDULED: in ${minutesAway} minutes
+FORECAST: ${next.forecast ?? '?'}
+PREVIOUS: ${next.previous ?? '?'}
+
+CONTEXT:
+- Current USD news bias: ${usdScore.toFixed(2)} (${usdScore > 0.5 ? 'bullish' : usdScore < -0.5 ? 'bearish' : 'neutral'})
+- Rule-based prediction: ${direction} GOLD (XAUUSD)
+- Reasoning: ${reasoning}
+
+Reply with EXACTLY this format (one line each):
+VERDICT: AGREE or DISAGREE
+NOTE: <one short sentence why>`;
+
+          const resp = await ai.models.generateContent({
+            model: 'gemini-flash-lite-latest',
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: { temperature: 0.3, maxOutputTokens: 150 },
+          });
+
+          const text = String((resp as any)?.text || '').trim();
+          const verdictMatch = text.match(/VERDICT:\s*(AGREE|DISAGREE)/i);
+          const noteMatch = text.match(/NOTE:\s*(.+)/i);
+          if (verdictMatch) {
+            aiAgreed = verdictMatch[1].toUpperCase() === 'AGREE';
+          }
+          if (noteMatch) aiNote = noteMatch[1].trim();
+
+          if (!aiAgreed) {
+            direction = 'WAIT';
+            confidence = 50;
+            reasoning = `AI disagrees with rule-based ${direction}: ${aiNote || 'no explanation'}`;
+          } else if (aiNote) {
+            reasoning = `${reasoning} AI confirms: ${aiNote}`;
+            confidence = Math.min(92, confidence + 5);  // boost on AI agreement
+          }
+        }
+      } catch (e: any) {
+        console.warn('[News Prediction] AI verify failed:', e?.message);
+        // Fall through with rule-based prediction
+      }
     }
 
     res.json({
@@ -198,6 +267,8 @@ app.get('/api/engine/news-prediction', async (req, res) => {
         confidence: Math.round(confidence),
         reasoning,
         usdScore,
+        aiAgreed,
+        aiNote: aiNote || null,
       },
       generatedAt: new Date().toISOString(),
     });
