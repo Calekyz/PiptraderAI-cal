@@ -40,6 +40,26 @@ function parseSignal(text: string | null): { direction: 'BUY' | 'SELL' | 'WAIT';
   return { direction: 'WAIT', confidence: 0, symbol: '' };
 }
 
+function liveCountdown(event: any): string {
+  const ts = event?.timestamp
+    || (event?.date ? new Date(event.date).getTime() : 0)
+    || (event?.dateTime ? new Date(event.dateTime).getTime() : 0);
+  if (!ts || isNaN(ts)) return event?.countdown || 'TBD';
+  const diff = ts - Date.now();
+  if (diff <= 0) {
+    // Within 30 min after event = "Released"
+    if (diff > -30 * 60 * 1000) return 'Released';
+    return 'Past';
+  }
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1000);
+  if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
 export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
   isOpen,
   onClose,
@@ -48,6 +68,13 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
 }) => {
   const [analysisText, setAnalysisText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tick, setTick] = useState(0);
+
+  // Live tick so countdown updates every second
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!isOpen || !event) {
@@ -196,7 +223,7 @@ export const MacroAnalysisModal: React.FC<MacroAnalysisModalProps> = ({
           <div className="bg-gray-50 dark:bg-[#0f1120] p-2.5 rounded-xl border border-gray-200 dark:border-[#1c223a] text-center">
             <div className="text-[9px] uppercase tracking-wider text-gray-500 font-bold font-mono">COUNTDOWN</div>
             <div className="font-mono text-emerald-600 dark:text-emerald-400 text-xs font-bold pt-1">
-              {event.countdown}
+              {liveCountdown(event)}
             </div>
           </div>
 
