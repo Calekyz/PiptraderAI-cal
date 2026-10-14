@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Calendar, Clock, ShieldAlert, Sparkles, TrendingDown, TrendingUp, X, Zap } from 'lucide-react';
+import { AlertTriangle, BarChart3, Calendar, Clock, ShieldAlert, Sparkles, TrendingDown, TrendingUp, X, Zap } from 'lucide-react';
 import { MacroEvent } from '../types';
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { useSignalVerification } from '../hooks/useSignalVerification';
@@ -70,7 +70,7 @@ function formatCountdown(targetTs: number): string {
 export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events, user }) => {
   const [analysisText, setAnalysisText] = useState<string | null>(null);
   const [fundamentalDirection, setFundamentalDirection] = useState<'BUY' | 'SELL' | null>(null);
-  const [prediction, setPrediction] = useState<{ direction: 'BUY' | 'SELL' | 'WAIT'; confidence: number; reasoning: string } | null>(null);
+  const [prediction, setPrediction] = useState<{ direction: 'BUY' | 'SELL' | 'WAIT'; confidence: number; reasoning: string; usdScore?: number; aiAgreed?: boolean; aiNote?: string | null } | null>(null);
   const [predictionMinutesAway, setPredictionMinutesAway] = useState<number | null>(null);
   const [usdScore, setUsdScore] = useState<number>(0);
   const [loading, setLoading] = useState(false);
@@ -178,8 +178,7 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
     const minAway = Math.round((targetTs - Date.now()) / 60000);
     setPredictionMinutesAway(minAway);
 
-    // Only fetch inside the T-25 to T-5 window
-    if (minAway > 25 || minAway < -2) return;
+    // Fetch whenever we have a target event (analysis needs data at any time)
 
     let cancelled = false;
     (async () => {
@@ -453,6 +452,73 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
           </div>
         )
       )}
+
+      {/* ── Expected Analysis — always shown when we have a prediction ── */}
+      {prediction && (
+        <div className="mt-4 p-4 rounded-xl bg-gray-50 dark:bg-[#0a0c16] border border-gray-200 dark:border-[#16192c] space-y-3">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-3.5 h-3.5 text-purple-500" />
+            <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide">What to Expect</span>
+          </div>
+
+          {/* Forecast vs Previous */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="p-2.5 rounded-lg bg-white dark:bg-[#121524] border border-gray-200 dark:border-[#1e233d]">
+              <div className="text-[10px] uppercase text-gray-500 dark:text-gray-500 font-semibold">Forecast</div>
+              <div className="text-sm font-bold font-mono text-gray-900 dark:text-white mt-0.5">{target.forecast || '—'}</div>
+            </div>
+            <div className="p-2.5 rounded-lg bg-white dark:bg-[#121524] border border-gray-200 dark:border-[#1e233d]">
+              <div className="text-[10px] uppercase text-gray-500 dark:text-gray-500 font-semibold">Previous</div>
+              <div className="text-sm font-bold font-mono text-gray-900 dark:text-white mt-0.5">{target.previous || '—'}</div>
+            </div>
+          </div>
+
+          {/* AI Analysis */}
+          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Sparkles className="w-3 h-3 text-purple-500" />
+              <span className="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">AI Analysis</span>
+            </div>
+            <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">
+              {prediction.aiNote || prediction.reasoning}
+            </p>
+          </div>
+
+          {/* USD Bias */}
+          <div className="flex items-center justify-between text-[11px] p-2.5 rounded-lg bg-white dark:bg-[#121524] border border-gray-200 dark:border-[#1e233d]">
+            <span className="text-gray-600 dark:text-gray-400 font-medium">USD News Bias</span>
+            <span className={`font-bold font-mono ${
+              prediction.usdScore > 0.5 ? 'text-emerald-500'
+              : prediction.usdScore < -0.5 ? 'text-rose-500'
+              : 'text-gray-500'
+            }`}>
+              {prediction.usdScore >= 0 ? '+' : ''}{prediction.usdScore.toFixed(2)}
+            </span>
+          </div>
+
+          {/* Expected Direction Summary */}
+          {prediction.direction !== 'WAIT' && (
+            <div className={`p-2.5 rounded-lg border text-[11px] flex items-center justify-between ${
+              prediction.direction === 'BUY'
+                ? 'bg-emerald-500/5 border-emerald-500/30'
+                : 'bg-rose-500/5 border-rose-500/30'
+            }`}>
+              <span className="text-gray-600 dark:text-gray-400 font-medium">Expected Direction</span>
+              <span className={`font-bold font-mono ${
+                prediction.direction === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {prediction.direction} GOLD · {prediction.confidence}%
+              </span>
+            </div>
+          )}
+
+          <div className="text-[10px] text-gray-500 dark:text-gray-500 leading-relaxed pt-1 border-t border-gray-200/60 dark:border-[#16192c]">
+            <strong className="text-gray-700 dark:text-gray-400">Watch:</strong> Actual print vs forecast ({target.forecast || '—'}).
+            Bullish for gold if below forecast, bearish if above.
+          </div>
+        </div>
+      )}
+
 
       {/* Action row */}
       <div className="pt-4 mt-4 border-t border-gray-100 dark:border-[#161828] flex gap-2">
