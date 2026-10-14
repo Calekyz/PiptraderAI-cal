@@ -70,6 +70,8 @@ function formatCountdown(targetTs: number): string {
 export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events, user }) => {
   const [analysisText, setAnalysisText] = useState<string | null>(null);
   const [fundamentalDirection, setFundamentalDirection] = useState<'BUY' | 'SELL' | null>(null);
+  const [prediction, setPrediction] = useState<{ direction: 'BUY' | 'SELL' | 'WAIT'; confidence: number; reasoning: string } | null>(null);
+  const [predictionMinutesAway, setPredictionMinutesAway] = useState<number | null>(null);
   const [usdScore, setUsdScore] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [target, setTarget] = useState<MacroEvent | null>(null);
@@ -98,7 +100,7 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
   );
 
   useEffect(() => {
-    if (!isOpen) { setAnalysisText(null); setTarget(null); setFundamentalDirection(null); setUsdScore(0); return; }
+    if (!isOpen) { setAnalysisText(null); setTarget(null); setFundamentalDirection(null); setUsdScore(0); setPrediction(null); setPredictionMinutesAway(null); return; }
 
     const now = Date.now();
     const weekAhead = now + 7 * 24 * 3600 * 1000;
@@ -166,6 +168,32 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
     };
     fetchAnalysis();
   }, [isOpen, events, user]);
+
+  // ── Prediction fallback — fires when we're close to a high-impact event ──
+  useEffect(() => {
+    if (!isOpen) { setPrediction(null); setPredictionMinutesAway(null); return; }
+
+    const targetTs = target?.timestamp || (target?.date ? new Date(target.date).getTime() : 0);
+    if (!targetTs) return;
+    const minAway = Math.round((targetTs - Date.now()) / 60000);
+    setPredictionMinutesAway(minAway);
+
+    // Only fetch inside the T-25 to T-5 window
+    if (minAway > 25 || minAway < -2) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/engine/news-prediction');
+        const d = await r.json();
+        if (cancelled) return;
+        if (d?.success && d?.prediction) {
+          setPrediction(d.prediction);
+        }
+      } catch { /* silent */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isOpen, target]);
 
   if (!isOpen) return null;
 
@@ -373,18 +401,57 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
           )}
         </>
       ) : (
-        /* ── Scenario D: near but no clear signal ── */
-        <div className="text-center py-8 space-y-3">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center">
-            <AlertTriangle className="w-7 h-7 text-amber-500" />
+        /* ── Scenario D: no full signal yet — show AI prediction if available ── */
+        prediction && prediction.direction !== 'WAIT' && predictionMinutesAway !== null && predictionMinutesAway <= 25 && predictionMinutesAway >= -2 ? (
+          <div className={`relative overflow-hidden rounded-2xl border-2 p-5 shadow-xl ${
+            prediction.direction === 'BUY'
+              ? 'bg-emerald-500/10 border-emerald-500'
+              : 'bg-rose-500/10 border-rose-500'
+          }`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                prediction.direction === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500'
+              }`}>
+                {prediction.direction === 'BUY'
+                  ? <TrendingUp className="w-6 h-6 text-white" strokeWidth={3} />
+                  : <TrendingDown className="w-6 h-6 text-white" strokeWidth={3} />}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  🔮 AI News Prediction · {predictionMinutesAway} min away
+                </div>
+                <div className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                  prediction.direction === 'BUY'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
+                }`}>
+                  {prediction.direction} GOLD
+                </div>
+                <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-0.5">
+                  {prediction.confidence}% confidence
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">
+              {prediction.reasoning}
+            </p>
+            <div className="mt-3 pt-3 border-t border-gray-200/40 dark:border-white/10 text-[10px] text-gray-500 dark:text-gray-400">
+              Prediction only. Full entry/SL/TP signal will appear if engine + AI both confirm after release.
+            </div>
           </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            {name} in {formatCountdown(targetTs)}
-          </h3>
-          <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
-            Engine is waiting for candle confirmation. Check back 15–30 minutes before the release for the final signal.
-          </p>
-        </div>
+        ) : (
+          <div className="text-center py-8 space-y-3">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7 text-amber-500" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              {name} in {formatCountdown(targetTs)}
+            </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+              Engine is waiting for candle confirmation. Check back 15–30 minutes before the release.
+            </p>
+          </div>
+        )
       )}
 
       {/* Action row */}

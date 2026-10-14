@@ -59,7 +59,6 @@ import { pool } from './src/db/index';
 // __filename / __dirname provided by Node's CJS runtime (esbuild bundles server to cjs)
 const __dirname = path.dirname(__filename);
 
-// ════════════════════════════════════════════════════════════════
 // FUNDAMENTAL DIRECTION GATE — applies to ALL signals
 // ------------------------------------------------------------------
 // USD strong (score > +0.5)  → gold should fall → SELL only
@@ -110,6 +109,106 @@ async function sendSignalWithFundamentalGate(sig: any): Promise<any> {
 }
 
 const app = express();
+
+// ════════════════════════════════════════════════════════════════
+// NEWS PREDICTION — deterministic T-15 min outlook
+// ------------------------------------------------------------------
+// Used as a FALLBACK when no full technical+AI signal is ready yet.
+// Users always get SOMETHING actionable before high-impact news.
+// ================================================================
+function parseNumericField(v: any): number {
+  if (v === null || v === undefined) return 0;
+  const s = String(v).replace(/[%,$KMBT\s]/gi, '');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+app.get('/api/engine/news-prediction', async (req, res) => {
+  try {
+    const events = await fetchFfEventsForEngine();
+    const now = Date.now();
+
+    const upcoming = events
+      .filter((e: any) => e.timestamp && e.timestamp > now)
+      .filter((e: any) => /HIGH/i.test(String(e.impact || e.impactLevel || '')))
+      .sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+    const next: any = upcoming[0];
+    if (!next) return res.json({ success: false, error: 'no_upcoming_events' });
+
+    const minutesAway = Math.round((next.timestamp - now) / 60000);
+    const currency = String(next.currency || next.country || 'USD').toUpperCase();
+
+    const bias: any = analyzeNews(events);
+    const usdScore = Number(bias?.usd?.score || 0);
+
+    const forecast = parseNumericField(next.forecast);
+    const previous = parseNumericField(next.previous);
+    const diff = forecast - previous;
+
+    let direction: 'BUY' | 'SELL' | 'WAIT' = 'WAIT';
+    let confidence = 55;
+    let reasoning = '';
+
+    const title = String(next.title || '');
+
+    if (currency === 'USD' && /CPI|PPI|NFP|NON-?FARM|RETAIL|GDP|FOMC|RATE|PAYROLL|UNEMPLOY/i.test(title)) {
+      if (diff > 0.05 || usdScore > 0.5) {
+        direction = 'SELL';
+        confidence = Math.min(88, 60 + Math.abs(diff) * 20 + Math.abs(usdScore) * 4);
+        reasoning = `USD expected stronger → gold pressured down. Forecast ${forecast} vs previous ${previous}. USD bias ${usdScore.toFixed(2)}.`;
+      } else if (diff < -0.05 || usdScore < -0.5) {
+        direction = 'BUY';
+        confidence = Math.min(88, 60 + Math.abs(diff) * 20 + Math.abs(usdScore) * 4);
+        reasoning = `USD expected weaker → gold bid up. Forecast ${forecast} vs previous ${previous}. USD bias ${usdScore.toFixed(2)}.`;
+      } else {
+        direction = 'WAIT';
+        confidence = 50;
+        reasoning = `Neutral setup. Forecast ${forecast} ≈ previous ${previous}, USD bias ${usdScore.toFixed(2)}. Wait for actual release.`;
+      }
+    } else if (currency === 'EUR' || currency === 'GBP') {
+      if (diff > 0.05) {
+        direction = 'BUY';
+        confidence = Math.min(85, 60 + Math.abs(diff) * 15);
+        reasoning = `${currency} expected stronger → USD weaker → gold up.`;
+      } else if (diff < -0.05) {
+        direction = 'SELL';
+        confidence = Math.min(85, 60 + Math.abs(diff) * 15);
+        reasoning = `${currency} expected weaker → USD stronger → gold down.`;
+      } else {
+        reasoning = `${currency} forecast flat. Neutral.`;
+      }
+    } else {
+      reasoning = `Event not typically directional for gold.`;
+    }
+
+    res.json({
+      success: true,
+      event: {
+        title: next.title,
+        currency,
+        impact: next.impact || next.impactLevel || 'High',
+        forecast: next.forecast ?? '—',
+        previous: next.previous ?? '—',
+        timestamp: next.timestamp,
+      },
+      minutesAway,
+      prediction: {
+        direction,
+        confidence: Math.round(confidence),
+        reasoning,
+        usdScore,
+      },
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error('[News Prediction]', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Prediction failed' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// FUNDAMENTAL DIRECTION GATE
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
