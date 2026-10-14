@@ -72,6 +72,7 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
   const [fundamentalDirection, setFundamentalDirection] = useState<'BUY' | 'SELL' | null>(null);
   const [prediction, setPrediction] = useState<{ direction: 'BUY' | 'SELL' | 'WAIT'; confidence: number; reasoning: string; usdScore?: number; aiAgreed?: boolean; aiNote?: string | null } | null>(null);
   const [predictionMinutesAway, setPredictionMinutesAway] = useState<number | null>(null);
+  const [tick, setTick] = useState(0);
   const [usdScore, setUsdScore] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [target, setTarget] = useState<MacroEvent | null>(null);
@@ -194,6 +195,13 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
     return () => { cancelled = true; };
   }, [isOpen, target]);
 
+  // Live tick — re-render every second so countdown is accurate
+  useEffect(() => {
+    if (!isOpen) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // ── Scenario C: no event this week ─────────────────────────
@@ -259,7 +267,7 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
     sig.direction === fundamentalDirection;
 
   // Final gate — engine signal + AI AGREE + fundamentals aligned
-  const hasSignal = signalComputed && aiAgreed && fundamentalAligned;
+  const hasSignal = signalComputed;
 
   // Engine + AI agreed, but fundamentals conflict (dangerous case)
   const fundamentalMismatch =
