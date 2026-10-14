@@ -404,8 +404,10 @@ export function startBriefingScheduler(): void {
 
       for (const sess of SESSIONS) {
         const targetMinutes = sess.hour * 60 + sess.minute;
-        // Fire if within [target, target+15min) — handles tick offsets + restarts
-        if (nowMinutes >= targetMinutes && nowMinutes < targetMinutes + 15) {
+        // Fire if within [target, target+60min) — 1-hour catch-up window
+        // Handles: server spin-down, deploys during window, scheduler drift.
+        // Briefing may arrive up to 1h late, but NEVER missed.
+        if (nowMinutes >= targetMinutes && nowMinutes < targetMinutes + 60) {
           const key = `${sess.id}:${nairobiDate}`;
           if (sentBriefings.has(key)) continue;
 
