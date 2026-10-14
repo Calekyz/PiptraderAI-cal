@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, TrendingUp, TrendingDown, Clock, Calendar, AlertTriangle, Sparkles, Zap } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, ShieldAlert, Sparkles, TrendingDown, TrendingUp, X, Zap } from 'lucide-react';
 import { MacroEvent } from '../types';
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
 import { useSignalVerification } from '../hooks/useSignalVerification';
@@ -14,9 +14,26 @@ interface Props {
 
 const TARGET_KEYWORDS = ['NFP', 'NON-FARM', 'NONFARM', 'CPI', 'FOMC', 'PPI', 'FED FUNDS', 'INTEREST RATE'];
 
+// Speeches / testimonies / minutes are NOT tradable releases.
+// "FOMC Member Bowman Speaks" must not trigger a signal.
+const EXCLUDE_KEYWORDS = [
+  'SPEAKS', 'SPEECH', 'TESTIMONY', 'TESTIFIES', 'PRESS CONFERENCE', 'PRESSER',
+  'REMARKS', 'ADDRESS', 'STATEMENT', 'MINUTES', 'SYMPOSIUM', 'PANEL',
+  'MEMBER', 'BULLARD', 'BOWMAN', 'WALLER', 'MUSALEM', 'SCHMID', 'COLLINS',
+  'POWELL SPEAKS', 'LAGARDE SPEAKS', 'BAILEY SPEAKS', 'UEDA SPEAKS',
+  'AUCTION', 'BOND AUCTION', 'HOLIDAY', 'BANK HOLIDAY',
+];
+
 function isTargetEvent(ev: MacroEvent): boolean {
   const t = (ev.title || '').toUpperCase();
-  return TARGET_KEYWORDS.some(k => t.includes(k));
+  // 1. Must match a target keyword
+  if (!TARGET_KEYWORDS.some(k => t.includes(k))) return false;
+  // 2. Must NOT be a speech / testimony / auction / holiday
+  if (EXCLUDE_KEYWORDS.some(k => t.includes(k))) return false;
+  // 3. Must be High impact (per FF calendar classification)
+  const impact = String((ev as any).impactLevel || (ev as any).impact || '').toUpperCase();
+  if (impact && impact !== 'HIGH') return false;
+  return true;
 }
 
 function shortName(title: string): string {
@@ -181,7 +198,19 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
 
   const isBuy = sig.direction === 'BUY';
   const isSell = sig.direction === 'SELL';
-  const hasSignal = (isBuy || isSell) && sig.confidence >= 55;
+
+  // Engine thinks there's a signal
+  const signalComputed = (isBuy || isSell) && sig.confidence >= 55;
+
+  // AI must 100% agree before we show a news signal.
+  // News direction depends on USD strength/weakness → gold move.
+  // If AI is unsure, we do NOT publish the signal.
+  const aiAgreed = aiVerify?.verdict === 'AGREE';
+  const aiRejected = aiVerify && aiVerify.verdict !== 'AGREE';
+  const aiPending = signalComputed && !aiVerify;
+
+  // Final gate — only show if engine found a signal AND AI said AGREE
+  const hasSignal = signalComputed && aiAgreed;
 
   return (
     <Shell onClose={onClose}>
@@ -207,6 +236,40 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
         <div className="py-12 flex flex-col items-center gap-3 text-gray-400">
           <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs">Analyzing {name} signal...</span>
+        </div>
+      ) : aiPending ? (
+        /* ── Engine found a signal, but AI hasn't confirmed yet ── */
+        <div className="text-center py-8 space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-purple-500/10 border-2 border-purple-500/40 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+            Verifying with AI…
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+            Engine detected a {sig.direction} setup on {name}. Waiting for Nova AI to confirm the market direction.
+            News signals only publish when AI agrees 100%.
+          </p>
+        </div>
+      ) : aiRejected ? (
+        /* ── Engine found a signal, but AI rejected it ── */
+        <div className="text-center py-8 space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border-2 border-amber-500/40 flex items-center justify-center">
+            <ShieldAlert className="w-7 h-7 text-amber-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+            Signal not confirmed
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
+            Engine suggested <strong className="text-gray-900 dark:text-white">{sig.direction}</strong>, but Nova AI returned{' '}
+            <strong className="text-amber-500">{aiVerify?.verdict}</strong>.
+            We only publish news signals with full AI agreement to protect you.
+          </p>
+          {aiVerify && (
+            <div className="flex justify-center pt-1">
+              <AIVerificationPill result={aiVerify} />
+            </div>
+          )}
         </div>
       ) : hasSignal ? (
         <>
