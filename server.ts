@@ -59,6 +59,56 @@ import { pool } from './src/db/index';
 // __filename / __dirname provided by Node's CJS runtime (esbuild bundles server to cjs)
 const __dirname = path.dirname(__filename);
 
+// ════════════════════════════════════════════════════════════════
+// FUNDAMENTAL DIRECTION GATE — applies to ALL signals
+// ------------------------------------------------------------------
+// USD strong (score > +0.5)  → gold should fall → SELL only
+// USD weak   (score < -0.5)  → gold should rise → BUY only
+// Neutral    (±0.5)          → no override
+// ================================================================
+let _usdBiasCache: { score: number; at: number } = { score: 0, at: 0 };
+const _USD_BIAS_TTL_MS = 5 * 60 * 1000;
+
+async function getCachedUsdBiasScore(): Promise<number> {
+  const now = Date.now();
+  if (now - _usdBiasCache.at < _USD_BIAS_TTL_MS) return _usdBiasCache.score;
+  try {
+    const events = await fetchFfEventsForEngine();
+    const bias: any = analyzeNews(events);
+    const score = Number(bias?.usd?.score ?? 0);
+    _usdBiasCache = { score, at: now };
+    console.log(`[Fundamental Gate] USD score refreshed: ${score.toFixed(2)}`);
+    return score;
+  } catch (e: any) {
+    console.warn('[Fundamental Gate] bias fetch failed:', e?.message);
+    return _usdBiasCache.score;
+  }
+}
+
+function symbolIsUsdRelated(symbol: string): boolean {
+  const s = String(symbol || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (!s) return false;
+  return s.includes('USD') || s === 'GOLD' || s === 'SILVER' || s === 'XAU' || s === 'XAG';
+}
+
+async function sendSignalWithFundamentalGate(sig: any): Promise<any> {
+  try {
+    if (symbolIsUsdRelated(sig?.symbol)) {
+      const score = await getCachedUsdBiasScore();
+      const expected = score > 0.5 ? 'SELL' : score < -0.5 ? 'BUY' : null;
+      if (expected && sig.direction !== expected) {
+        console.log(`[Fundamental Gate] BLOCKED ${sig.direction} ${sig.symbol} — USD score ${score.toFixed(2)} implies ${expected}`);
+        return { ok: false, skipped: true, error: `fundamental_conflict (USD ${score.toFixed(2)} → ${expected})` };
+      }
+    }
+    return await sendSignalToTelegram(sig);
+  } catch (e: any) {
+    console.warn('[Fundamental Gate] error:', e?.message);
+    // Fail-open: if gate errors, still send the signal
+    return await sendSignalToTelegram(sig);
+  }
+}
+
 const app = express();
 const PORT = 3000;
 
@@ -6327,7 +6377,7 @@ app.post('/api/engine/analyze', async (req, res) => {
           //    (SKIPPED = verifier unavailable — still allow if confidence is strong)
           const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
           if (shouldSend) {
-            await sendSignalToTelegram({
+            await sendSignalWithFundamentalGate({
               symbol,
               timeframe,
               direction: plan.direction as 'BUY' | 'SELL',
@@ -6457,7 +6507,7 @@ app.get('/api/engine/scan', async (req, res) => {
 
             const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
             if (shouldSend) {
-              await sendSignalToTelegram({
+              await sendSignalWithFundamentalGate({
                 symbol: r.symbol,
                 timeframe,
                 direction: plan.direction as 'BUY' | 'SELL',
@@ -6567,7 +6617,7 @@ async function runAutoSignalScan(): Promise<void> {
 
         const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
         if (shouldSend) {
-          await sendSignalToTelegram({
+          await sendSignalWithFundamentalGate({
             symbol: r.symbol,
             timeframe,
             direction: plan.direction as 'BUY' | 'SELL',
