@@ -279,6 +279,79 @@ NOTE: <one short sentence why>`;
 });
 
 // ════════════════════════════════════════════════════════════════
+// NEWS T-15 PREDICTION PUSH — one Telegram alert 15 min before news
+// ================================================================
+async function runNewsPredictionCheck(): Promise<void> {
+  try {
+    const port = process.env.PORT || 3000;
+    const res = await fetch(`http://127.0.0.1:${port}/api/engine/news-prediction`);
+    if (!res.ok) return;
+    const data: any = await res.json();
+    if (!data?.success || !data?.prediction) return;
+    if (data.prediction.direction === 'WAIT') return;
+    const minAway = Number(data.minutesAway);
+    if (minAway < 13 || minAway > 17) return;
+
+    const eventTs = String(data.event.timestamp);
+    const key = `bridge:news-pred:${eventTs}`;
+    const { kvGet, kvSet } = await import('./server/db');
+    if (await kvGet(key)) return;
+
+    const token = process.env.TELEGRAM_SIGNAL_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) { console.warn('[News T-15] No bot token'); return; }
+    const channel = (process.env.TELEGRAM_SIGNAL_GROUPS || process.env.TELEGRAM_CHANNEL_ID || '@peshyFx').split(',')[0].trim();
+
+    const dir = data.prediction.direction;
+    const emoji = dir === 'BUY' ? '🟢' : '🔴';
+    const usd = Number(data.prediction.usdScore || 0);
+    const safeReasoning = String(data.prediction.reasoning || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const lines = [
+      `🔮 <b>T-15 MIN · ${data.event.title}</b>`,
+      `<i>${data.event.currency} · ${minAway} min away</i>`,
+      '',
+      `${emoji} <b>Expected: ${dir} GOLD (XAUUSD)</b>`,
+      `Confidence: <b>${data.prediction.confidence}%</b>`,
+      '',
+      `📊 Forecast: <code>${data.event.forecast}</code>`,
+      `📉 Previous: <code>${data.event.previous}</code>`,
+      `💵 USD Bias: <code>${usd >= 0 ? '+' : ''}${usd.toFixed(2)}</code>`,
+      '',
+      `<b>Why:</b>`,
+      `<i>${safeReasoning}</i>`,
+      '',
+      `<i>Prediction only. Full signal to follow after release if confirmed.</i>`,
+      '<i>PipTraderAI · piptraderai.com</i>'
+    ];
+
+    const sendRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: channel,
+        text: lines.join('\n'),
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    });
+    const sendData: any = await sendRes.json().catch(() => ({}));
+    if (!sendRes.ok || sendData?.ok === false) {
+      console.warn('[News T-15] Send failed:', sendData?.description || sendRes.status);
+      return;
+    }
+    await kvSet(key, { sentAt: Date.now(), direction: dir, confidence: data.prediction.confidence });
+    console.log(`[News T-15] Sent ${dir} prediction for ${data.event.title}`);
+  } catch (err: any) {
+    console.warn('[News T-15] check failed:', err?.message);
+  }
+}
+
+function startNewsPredictionScheduler(): void {
+  console.log('[News T-15] Scheduler started — every 60s');
+  setInterval(() => { runNewsPredictionCheck().catch(() => {}); }, 60 * 1000);
+}
+
+// ════════════════════════════════════════════════════════════════
 // FUNDAMENTAL DIRECTION GATE
 const PORT = 3000;
 
@@ -6843,6 +6916,13 @@ async function setupVite() {
     startSignalDeletionSweeper();
   } catch (err: any) {
     console.warn('[Boot] Signal deletion sweeper failed:', err?.message);
+  }
+
+  // Start news T-15 prediction push
+  try {
+    startNewsPredictionScheduler();
+  } catch (err: any) {
+    console.warn('[Boot] News T-15 scheduler failed:', err?.message);
   }
 
   if (process.env.NODE_ENV !== 'production') {
