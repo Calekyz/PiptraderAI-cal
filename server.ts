@@ -90,23 +90,6 @@ function symbolIsUsdRelated(symbol: string): boolean {
   return s.includes('USD') || s === 'GOLD' || s === 'SILVER' || s === 'XAU' || s === 'XAG';
 }
 
-async function sendSignalWithFundamentalGate(sig: any): Promise<any> {
-  try {
-    if (symbolIsUsdRelated(sig?.symbol)) {
-      const score = await getCachedUsdBiasScore();
-      const expected = score > 0.5 ? 'SELL' : score < -0.5 ? 'BUY' : null;
-      if (expected && sig.direction !== expected) {
-        console.log(`[Fundamental Gate] BLOCKED ${sig.direction} ${sig.symbol} — USD score ${score.toFixed(2)} implies ${expected}`);
-        return { ok: false, skipped: true, error: `fundamental_conflict (USD ${score.toFixed(2)} → ${expected})` };
-      }
-    }
-    return await sendSignalToTelegram(sig);
-  } catch (e: any) {
-    console.warn('[Fundamental Gate] error:', e?.message);
-    // Fail-open: if gate errors, still send the signal
-    return await sendSignalToTelegram(sig);
-  }
-}
 
 const app = express();
 
@@ -6620,7 +6603,7 @@ app.post('/api/engine/analyze', async (req, res) => {
           //    (SKIPPED = verifier unavailable — still allow if confidence is strong)
           const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
           if (shouldSend) {
-            await sendSignalWithFundamentalGate({
+            await sendSignalToTelegram({
               symbol,
               timeframe,
               direction: plan.direction as 'BUY' | 'SELL',
@@ -6750,7 +6733,7 @@ app.get('/api/engine/scan', async (req, res) => {
 
             const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
             if (shouldSend) {
-              await sendSignalWithFundamentalGate({
+              await sendSignalToTelegram({
                 symbol: r.symbol,
                 timeframe,
                 direction: plan.direction as 'BUY' | 'SELL',
@@ -6860,7 +6843,7 @@ async function runAutoSignalScan(): Promise<void> {
 
         const shouldSend = verdict === 'AGREE' || verdict === 'SKIPPED';
         if (shouldSend) {
-          await sendSignalWithFundamentalGate({
+          await sendSignalToTelegram({
             symbol: r.symbol,
             timeframe,
             direction: plan.direction as 'BUY' | 'SELL',

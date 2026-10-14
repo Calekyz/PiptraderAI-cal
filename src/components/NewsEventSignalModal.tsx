@@ -304,25 +304,6 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
             News signals only publish when AI agrees 100%.
           </p>
         </div>
-      ) : fundamentalMismatch ? (
-        /* ── Technical and fundamental disagree ── */
-        <div className="text-center py-8 space-y-3">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border-2 border-rose-500/40 flex items-center justify-center">
-            <ShieldAlert className="w-7 h-7 text-rose-500" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            Technical &amp; fundamental conflict
-          </h3>
-          <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
-            Technical engine suggests <strong className="text-gray-900 dark:text-white">{sig.direction}</strong>, but USD fundamentals
-            {usdScore > 0
-              ? <> show a <strong className="text-rose-500">strong USD</strong> → gold should fall (<strong>SELL</strong>).</>
-              : <> show a <strong className="text-emerald-500">weak USD</strong> → gold should rise (<strong>BUY</strong>).</>
-            }
-            <br /><br />
-            Signal suppressed to protect you. Wait for technicals to align with the news.
-          </p>
-        </div>
       ) : aiRejected ? (
         /* ── Engine found a signal, but AI rejected it ── */
         <div className="text-center py-8 space-y-3">
@@ -385,6 +366,29 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
               </div>
             )}
           </div>
+
+          {/* Advisory: fundamental direction (info only) */}
+          {fundamentalMismatch && (
+            <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div className="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
+                <strong>Advisory:</strong> Technical engine says <strong>{sig.direction}</strong>,
+                but USD fundamentals suggest {usdScore > 0 ? 'SELL' : 'BUY'} on gold.
+                <br />Engine signal stands — treat as a caution flag.
+              </div>
+            </div>
+          )}
+
+          {/* Advisory: AI disagreement (info only) */}
+          {aiRejected && aiVerify && (
+            <div className="mt-3 p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-start gap-2">
+              <Sparkles className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+              <div className="text-[11px] leading-relaxed text-purple-700 dark:text-purple-300">
+                <strong>Advisory:</strong> Nova AI returned <strong>{aiVerify.verdict}</strong> on this setup.
+                Engine signal stands — treat as a caution flag.
+              </div>
+            </div>
+          )}
 
           {/* Reasons */}
           {analysisText && (
