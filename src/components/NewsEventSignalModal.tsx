@@ -69,6 +69,8 @@ function formatCountdown(targetTs: number): string {
 
 export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events, user }) => {
   const [analysisText, setAnalysisText] = useState<string | null>(null);
+  const [fundamentalDirection, setFundamentalDirection] = useState<'BUY' | 'SELL' | null>(null);
+  const [usdScore, setUsdScore] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [target, setTarget] = useState<MacroEvent | null>(null);
 
@@ -96,7 +98,7 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
   );
 
   useEffect(() => {
-    if (!isOpen) { setAnalysisText(null); setTarget(null); return; }
+    if (!isOpen) { setAnalysisText(null); setTarget(null); setFundamentalDirection(null); setUsdScore(0); return; }
 
     const now = Date.now();
     const weekAhead = now + 7 * 24 * 3600 * 1000;
@@ -134,6 +136,16 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
 
         const plan = engineRes?.plan;
         const pairBias = (newsRes?.pairBiases || []).find((p: any) => p.pair === primaryPair);
+
+        // ── Fundamental direction for GOLD based on USD bias ──
+        // USD strong (score > 0) → gold should fall → SELL
+        // USD weak (score < 0)   → gold should rise → BUY
+        const usdScoreVal = Number(newsRes?.usd?.score ?? 0);
+        let fundDir: 'BUY' | 'SELL' | null = null;
+        if (usdScoreVal > 0.5) fundDir = 'SELL';
+        else if (usdScoreVal < -0.5) fundDir = 'BUY';
+        setUsdScore(usdScoreVal);
+        setFundamentalDirection(fundDir);
 
         const parts: string[] = [];
         if (pairBias) {
@@ -209,8 +221,22 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
   const aiRejected = aiVerify && aiVerify.verdict !== 'AGREE';
   const aiPending = signalComputed && !aiVerify;
 
-  // Final gate — only show if engine found a signal AND AI said AGREE
-  const hasSignal = signalComputed && aiAgreed;
+  // ── Fundamental alignment check ──
+  // For a USD event, the signal direction must match what USD fundamentals imply for gold.
+  // USD strong → gold down → SELL
+  // USD weak   → gold up   → BUY
+  const isUsdEvent = String(target?.currency || '').toUpperCase() === 'USD';
+  const fundamentalAligned =
+    !isUsdEvent ||
+    !fundamentalDirection ||
+    sig.direction === fundamentalDirection;
+
+  // Final gate — engine signal + AI AGREE + fundamentals aligned
+  const hasSignal = signalComputed && aiAgreed && fundamentalAligned;
+
+  // Engine + AI agreed, but fundamentals conflict (dangerous case)
+  const fundamentalMismatch =
+    signalComputed && aiAgreed && isUsdEvent && !!fundamentalDirection && !fundamentalAligned;
 
   return (
     <Shell onClose={onClose}>
@@ -249,6 +275,25 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
           <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
             Engine detected a {sig.direction} setup on {name}. Waiting for Nova AI to confirm the market direction.
             News signals only publish when AI agrees 100%.
+          </p>
+        </div>
+      ) : fundamentalMismatch ? (
+        /* ── Technical and fundamental disagree ── */
+        <div className="text-center py-8 space-y-3">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border-2 border-rose-500/40 flex items-center justify-center">
+            <ShieldAlert className="w-7 h-7 text-rose-500" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+            Technical &amp; fundamental conflict
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+            Technical engine suggests <strong className="text-gray-900 dark:text-white">{sig.direction}</strong>, but USD fundamentals
+            {usdScore > 0
+              ? <> show a <strong className="text-rose-500">strong USD</strong> → gold should fall (<strong>SELL</strong>).</>
+              : <> show a <strong className="text-emerald-500">weak USD</strong> → gold should rise (<strong>BUY</strong>).</>
+            }
+            <br /><br />
+            Signal suppressed to protect you. Wait for technicals to align with the news.
           </p>
         </div>
       ) : aiRejected ? (
