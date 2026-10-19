@@ -1,265 +1,255 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Sparkles, Shield, Crown, CheckCircle2, ArrowRight } from 'lucide-react';
+import { MessageCircle, Check, Sparkles, Rocket, ChevronDown, Copy, CheckCheck, Smartphone, CreditCard, Building2 } from 'lucide-react';
 import { UserProfile } from '../types';
-import { DynamicPaymentModal } from './DynamicPaymentModal';
-import { fetchProductsCatalogue, ProductPlanInfo } from '../lib/paymentService';
 
-export type PlanTierType = 'Starter' | 'Pro' | 'Elite';
+const WHATSAPP_NUMBER = '254116081230';
 
-interface UpgradePlanModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  defaultTier?: PlanTierType;
-  user?: UserProfile | null;
-  onUpgradeSuccess: (tier: any) => void;
+interface PaymentOption {
+  key: string;
+  label: string;
+  detail: string;
+  sub?: string;
+  icon: 'phone' | 'card' | 'bank';
+  copyValue: string;
 }
 
-export const UpgradePlanModal: React.FC<UpgradePlanModalProps> = ({
-  isOpen,
-  onClose,
-  defaultTier = 'Pro',
-  user,
-  onUpgradeSuccess
-}) => {
-  const initialTier: string =
-    defaultTier === 'Elite' ? 'elite' :
-    defaultTier === 'Starter' ? 'starter' :
-    'pro';
+const PAYMENT_OPTIONS: PaymentOption[] = [
+  {
+    key: 'mpesa',
+    label: 'M-Pesa',
+    detail: '254799045699',
+    sub: 'Caleb Orenge · M-Pesa Kenya',
+    icon: 'phone',
+    copyValue: '254799045699',
+  },
+  {
+    key: 'mukuru',
+    label: 'Mukuru',
+    detail: '254799045699',
+    sub: 'Caleb Orenge · M-Pesa network · Kenya',
+    icon: 'bank',
+    copyValue: '254799045699',
+  },
+  {
+    key: 'neteller',
+    label: 'Neteller',
+    detail: 'caleborenge08@gmail.com',
+    icon: 'card',
+    copyValue: 'caleborenge08@gmail.com',
+  },
+];
 
-  const [selectedProductId, setSelectedProductId] = useState<string>(initialTier);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [products, setProducts] = useState<ProductPlanInfo[]>([]);
+interface Plan {
+  key: string;
+  name: string;
+  price: number;
+  tagline: string;
+  popular?: boolean;
+}
+
+const FALLBACK_PLANS: Plan[] = [
+  { key: 'starter', name: 'Starter', price: 195, tagline: 'For getting started' },
+  { key: 'pro',     name: 'Pro',     price: 349, tagline: 'Most popular', popular: true },
+  { key: 'elite',   name: 'Elite',   price: 599, tagline: 'Unlimited access' },
+];
+
+interface Props {
+  user?: UserProfile;
+  /** Optional: hide on plans that are already paid */
+  compact?: boolean;
+}
+
+export const UpgradeWhatsAppCard: React.FC<Props> = ({ user, compact }) => {
+  const [plans, setPlans] = useState<Plan[]>(FALLBACK_PLANS);
+  const [selected, setSelected] = useState<string>('pro');
+  const [showPayments, setShowPayments] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = async (key: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1800);
+    } catch { /* silent */ }
+  };
 
   useEffect(() => {
-    if (isOpen) {
-      fetchProductsCatalogue().then((prods) => {
-        if (prods.length > 0) {
-          setProducts(prods);
+    (async () => {
+      try {
+        const { fetchProductsCatalogue } = await import('../lib/paymentService');
+        const prods = await fetchProductsCatalogue();
+        if (Array.isArray(prods) && prods.length > 0) {
+          const mapped: Plan[] = prods
+            .filter((p: any) => p.usdPrice && p.name)
+            .map((p: any, i: number) => ({
+              key: String(p.tier || p.name || '').toLowerCase() || `plan-${i}`,
+              name: String(p.name).replace(/\s*Plan\s*/i, '').trim(),
+              price: Number(p.usdPrice),
+              tagline: p.description || (i === 1 ? 'Most popular' : ''),
+              popular: i === 1,
+            }));
+          if (mapped.length > 0) setPlans(mapped);
         }
-      });
-    }
-  }, [isOpen]);
+      } catch { /* keep fallback */ }
+    })();
+  }, []);
 
-  if (!isOpen) return null;
+  const selectedPlan = plans.find(p => p.key === selected) || plans[1];
 
-  const fallbackTiers: ProductPlanInfo[] = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      subtitle: 'Perfect for getting started',
-      usdPrice: 45,
-      exchangeRate: 129,
-      kesAmount: 5805,
-      formattedKes: 'KES 5,805',
-      billing: '/ ½ month',
-      badge: '',
-      highlighted: false,
-      color: 'from-blue-600 to-indigo-600',
-      features: [
-        '10 Chart Uploads per day',
-        'Advanced Chart Analysis',
-        'Multi-Timeframe Analysis',
-        'PipTraderAI Pulse Signals (2/day)',
-        'AI News Trading Analysis',
-        'Position Size Calculator',
-        '3 Custom AI Setups per day',
-        'Smart Chart Analyzer',
-        'Trading Journal',
-        '24/7 Priority Support'
-      ]
-    },
-    {
-      id: 'pro',
-      name: 'Pro',
-      subtitle: 'For serious traders',
-      usdPrice: 95,
-      exchangeRate: 129,
-      kesAmount: 12255,
-      formattedKes: 'KES 12,255',
-      billing: '/ month',
-      badge: '⭐ MOST POPULAR',
-      highlighted: true,
-      color: 'from-purple-600 to-indigo-600',
-      features: [
-        '24 Chart Uploads per day',
-        'Multi-Timeframe Analysis',
-        'Signal of the Day (90%+ accurate)',
-        'PipTraderAI Pulse Signals (2/day)',
-        'AI News Trading Analysis (NFP/CPI)',
-        'AI Auto trading',
-        'PipTraderAI PropPass',
-        'Smart Chart Analyzer',
-        'Unlimited Custom Setups',
-        '24/7 Priority Support'
-      ]
-    },
-    {
-      id: 'elite',
-      name: 'Elite',
-      subtitle: 'Maximum performance',
-      usdPrice: 195,
-      exchangeRate: 129,
-      kesAmount: 25155,
-      formattedKes: 'KES 25,155',
-      billing: '/ 3 months',
-      badge: 'MAX PERFORMANCE',
-      highlighted: false,
-      color: 'from-amber-600 to-orange-600',
-      features: [
-        'Unlimited PipTraderAI Pulse Signals',
-        'Direct AI Chart Analysis (no uploads)',
-        'Prompt Trading UI',
-        'MT5 Account Connection',
-        '🤖 Run Bots Without PC (Cloud Bots)',
-        '🚀 Auto Trading (2000 AI credits)',
-        '☁️ FREE VPS Included ($50/mo value)',
-        'Voice-based AI Interaction',
-        'AI reads account for journaling',
-        'AI generates & executes strategies',
-        'Unlimited MT5 accounts (10)',
-        '24/7 Bot Monitoring & Alerts',
-        'Priority AI processing',
-        'White-glove support'
-      ]
-    }
-  ];
-
-  const activeTiers = products.length > 0 ? products.slice(0, 3) : fallbackTiers;
-  const currentSelected = activeTiers.find((t) => t.id === selectedProductId) || activeTiers[1];
-
-  const handleProceedToPayment = () => {
-    setIsPaymentModalOpen(true);
-  };
-
-  const handlePaymentCompleted = (planName: string) => {
-    // ⚠️ SECURITY: Do NOT activate the plan client-side.
-    // Route through the real payment flow (opened by parent).
-    onUpgradeSuccess(planName); // parent will open DynamicPaymentModal
-    setIsPaymentModalOpen(false);
-    onClose();
-  };
+  const waHref = (() => {
+    const lines = [
+      `Hi, I'd like to subscribe to the ${selectedPlan.name} plan ($${selectedPlan.price}/mo).`,
+      user?.email ? `My email: ${user.email}` : '',
+      (user?.firstName || user?.lastName)
+        ? `My name: ${[user.firstName, user.lastName].filter(Boolean).join(' ')}`
+        : '',
+      '',
+      'I will send payment via one of your payment options. Please assist with activation.',
+    ].filter(Boolean);
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(lines.join('\n'))}`;
+  })();
 
   return (
-    <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-        <div 
-          id="upgrade-plan-modal"
-          className="w-full max-w-5xl bg-[#0b0c14] border border-white/8 rounded-[28px] p-5 sm:p-7 shadow-[0_24px_80px_-16px_rgba(0,0,0,0.7)] text-white relative max-h-[92vh] flex flex-col overflow-hidden"
-        >
-          <div className="flex items-start justify-between gap-4 pb-5">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-400/20 text-[10px] font-semibold tracking-wide uppercase text-purple-300 mb-2.5">
-                <Sparkles className="w-3 h-3" />
-                PipTraderAI Membership
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Choose your plan</h2>
-              <p className="text-xs text-slate-400 mt-1 max-w-xl">
-                Unlock AI chart intelligence, automated bots, and institutional signals. Select a plan, then pay with Pipnex Payment Agent.
-              </p>
-            </div>
-            <button
-              id="close-upgrade-modal-btn"
-              onClick={onClose}
-              className="p-2 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+    <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-[#0e1224] to-[#0e1224] p-4 sm:p-5 shadow-lg">
+      {/* Glow accent */}
+      <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 overflow-y-auto pr-0.5 custom-scrollbar">
-            {activeTiers.map((tier) => {
-              const isSelected = selectedProductId === tier.id;
-              return (
-                <button
-                  key={tier.id}
-                  id={`tier-card-${tier.id}`}
-                  type="button"
-                  onClick={() => setSelectedProductId(tier.id)}
-                  className={`text-left rounded-2xl p-4 sm:p-5 border cursor-pointer transition-all duration-200 relative flex flex-col min-h-[280px] ${
-                    isSelected
-                      ? 'bg-gradient-to-b from-[#2a2144] to-[#151228] border-purple-400/70 shadow-[0_0_28px_rgba(139,92,246,0.28)] ring-1 ring-purple-400/40'
-                      : 'bg-[#12141f] border-white/8 hover:border-purple-400/35 hover:bg-[#16182a]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.14em] text-purple-300/80 font-semibold">{tier.name}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">{tier.subtitle}</div>
-                    </div>
-                    <span className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                      isSelected
-                        ? 'bg-purple-500 border-purple-300 text-white'
-                        : 'border-white/20 text-transparent'
-                    }`}>
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </span>
-                  </div>
-
-                  {tier.badge && (
-                    <span className={`self-start mb-3 text-[9px] uppercase tracking-wide px-2 py-0.5 rounded-full font-bold ${
-                      tier.highlighted
-                        ? 'bg-purple-500/20 text-purple-200 border border-purple-400/30'
-                        : 'bg-amber-500/10 text-amber-300 border border-amber-400/20'
-                    }`}>
-                      {tier.badge.replace(/^⭐\s*/, '')}
-                    </span>
-                  )}
-
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-extrabold tracking-tight text-white">${tier.usdPrice}</span>
-                    <span className="text-[11px] text-slate-400">{tier.billing}</span>
-                  </div>
-                  <div className="text-[11px] text-slate-500 mt-0.5 mb-3">
-                    ≈ KES {tier.kesAmount.toLocaleString()}
-                  </div>
-
-                  <div className="space-y-1.5 text-xs flex-1 overflow-y-auto max-h-44 custom-scrollbar pr-1">
-                    {tier.features.map((feat, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-slate-300">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="leading-snug text-[12px]">{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className={`mt-4 w-full py-2 rounded-xl text-center text-[11px] font-semibold ${
-                    isSelected
-                      ? 'bg-purple-500 text-white shadow-[0_0_16px_rgba(139,92,246,0.45)]'
-                      : 'bg-white/5 text-slate-300 border border-white/8'
-                  }`}>
-                    {isSelected ? 'Selected' : `Select ${tier.name}`}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="pt-5 mt-4 border-t border-white/8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-start gap-2 text-[11px] text-slate-400 max-w-sm">
-              <Shield className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <span>Pay securely via Pipnex Payment Agent, M-Pesa STK, or Binance USDT.</span>
-            </div>
-
-            <button
-              id="confirm-upgrade-plan-btn"
-              onClick={handleProceedToPayment}
-              className="px-5 sm:px-6 py-3 rounded-2xl bg-gradient-to-r from-[#a78bfa] via-[#8b5cf6] to-[#6d28d9] hover:from-[#c4b5fd] hover:via-[#a78bfa] hover:to-[#7c3aed] active:scale-[0.98] text-white font-bold text-sm shadow-[0_8px_28px_rgba(139,92,246,0.45)] transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Crown className="w-4 h-4 text-[#fde68a]" />
-              <span>Pay {currentSelected.name} · ${currentSelected.usdPrice}</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+          <Rocket className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+            Upgrade via WhatsApp
+            <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+          </h3>
+          <p className="text-[11px] text-emerald-200/70 mt-0.5">
+            Pick a plan, we'll help you pay and activate instantly.
+          </p>
         </div>
       </div>
 
-      <DynamicPaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        productId={selectedProductId}
-        user={user}
-        onPaymentSuccess={handlePaymentCompleted}
-      />
-    </>
+      {/* Plan selector */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {plans.map((p) => {
+          const isSel = p.key === selected;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setSelected(p.key)}
+              className={`relative p-2.5 rounded-xl border text-left transition-all ${
+                isSel
+                  ? 'border-emerald-400 bg-emerald-500/15 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                  : 'border-[#1e233d] bg-[#0f1224] hover:border-emerald-500/40'
+              }`}
+            >
+              {p.popular && (
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-[8px] font-bold text-black">
+                  POPULAR
+                </div>
+              )}
+              <div className={`text-[10px] font-bold uppercase tracking-wide ${isSel ? 'text-emerald-300' : 'text-slate-500'}`}>
+                {p.name}
+              </div>
+              <div className={`text-sm font-extrabold mt-0.5 ${isSel ? 'text-white' : 'text-slate-300'}`}>
+                ${p.price}
+                <span className="text-[9px] font-normal text-slate-500">/mo</span>
+              </div>
+              {isSel && (
+                <Check className="absolute top-1.5 right-1.5 w-3 h-3 text-emerald-300" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Payment Options — expandable */}
+      <div className="mb-3 rounded-xl border border-[#1e233d] bg-[#0a0d1c] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowPayments((v) => !v)}
+          className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-[#0f1224] transition-colors"
+        >
+          <span className="text-[11px] font-semibold text-slate-300">
+            Payment options ({PAYMENT_OPTIONS.length})
+          </span>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-slate-500 transition-transform ${showPayments ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {showPayments && (
+          <div className="px-2 pb-2 space-y-1.5">
+            {PAYMENT_OPTIONS.map((opt) => {
+              const Icon =
+                opt.icon === 'phone' ? Smartphone :
+                opt.icon === 'card'  ? CreditCard :
+                                       Building2;
+              const isCopied = copiedKey === opt.key;
+              return (
+                <div
+                  key={opt.key}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[#0f1224] border border-[#1a1f36]"
+                >
+                  <div className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-300 flex items-center justify-center shrink-0">
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">
+                      {opt.label}
+                    </div>
+                    <div className="text-[11px] font-mono text-white truncate">
+                      {opt.detail}
+                    </div>
+                    {opt.sub && (
+                      <div className="text-[9px] text-slate-500 truncate">{opt.sub}</div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(opt.key, opt.copyValue)}
+                    className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 transition-all ${
+                      isCopied
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'bg-[#181d38] hover:bg-[#22294e] text-slate-300'
+                    }`}
+                  >
+                    {isCopied ? (
+                      <><CheckCheck className="w-3 h-3" />Copied</>
+                    ) : (
+                      <><Copy className="w-3 h-3" />Copy</>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+            <div className="text-[10px] text-slate-500 text-center pt-1">
+              After sending payment, share the confirmation on WhatsApp ↓
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* WhatsApp CTA */}
+      <a
+        href={waHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
+      >
+        <MessageCircle className="w-4 h-4" />
+        Chat on WhatsApp — {selectedPlan.name} (${selectedPlan.price}/mo)
+      </a>
+
+      {!compact && (
+        <div className="mt-2 text-[10px] text-slate-500 text-center">
+          No card needed. Pay via M-Pesa, bank, or crypto.
+        </div>
+      )}
+    </div>
   );
 };
+
+export default UpgradeWhatsAppCard;
