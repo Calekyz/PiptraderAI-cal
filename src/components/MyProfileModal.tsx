@@ -4,11 +4,7 @@ import {
   User, 
   Mail, 
   Crown, 
-  ShieldCheck, 
-  Calendar, 
-  Award, 
   Save, 
-  Sparkles,
   Check
 } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -182,3 +178,5 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
     </div>
   );
 };
+
+export default MyProfileModal;
