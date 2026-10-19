@@ -48,16 +48,16 @@ const ALT_METHODS: AltMethod[] = [
   {
     stepKey: 'AIRTEL_MANUAL',
     methodCode: 'airtel_manual',
-    label: 'Airtel Money',
-    detail: '254789889573',
-    sub: 'Predamah Ragira · Airtel Kenya',
+    label: 'M-Pesa Direct',
+    detail: '254799045699',
+    sub: 'Caleb Orenge · M-Pesa Kenya',
     instructions: [
-      'Open Airtel Money on your phone',
+      'Open M-Pesa on your phone',
       'Choose Send Money',
-      'Send the exact amount below to the Airtel number shown (Predamah Ragira)',
+      'Send the exact amount below to the M-Pesa number shown (Caleb Orenge)',
       'Copy the confirmation SMS and paste it below',
     ],
-    inputLabel: 'Airtel confirmation message or transaction ID',
+    inputLabel: 'M-Pesa confirmation message or transaction ID',
     inputPlaceholder: 'Paste the confirmation SMS or code here',
   },
   {
@@ -477,18 +477,18 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                     <ArrowLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0" />
                   </button>
 
-                  {/* ─── Airtel Money ─── */}
+                  {/* ─── M-Pesa Direct (was Airtel) ─── */}
                   <button
-                    id="select-airtel-payment-card"
+                    id="select-mpesa-direct-payment-card"
                     type="button"
                     onClick={() => { setAltConfirmText(''); setStep('AIRTEL_MANUAL'); }}
-                    className="w-full p-4 rounded-2xl border border-slate-200 dark:border-[#2d3250] bg-white dark:bg-[#121524] hover:border-red-400/60 hover:bg-red-50/40 dark:hover:bg-[#231515] transition-all cursor-pointer flex items-center gap-3.5 text-left"
+                    className="w-full p-4 rounded-2xl border border-slate-200 dark:border-[#2d3250] bg-white dark:bg-[#121524] hover:border-emerald-400/60 hover:bg-emerald-50/60 dark:hover:bg-[#13241c] transition-all cursor-pointer flex items-center gap-3.5 text-left"
                   >
-                    <div className="w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/40 flex items-center justify-center shrink-0 border border-red-200 dark:border-red-800/40">
-                      <Smartphone className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <div className="w-11 h-11 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800/40">
+                      <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">Airtel Money</div>
+                      <div className="text-sm font-bold text-slate-900 dark:text-white">M-Pesa Direct</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send to {ALT_METHODS[0].detail}, paste your confirmation.</div>
                     </div>
                     <ArrowLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0" />
@@ -1008,7 +1008,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
             )}
 
             {/* ========================================================================= */}
-            {/* SUCCESS / CONFIRMED SCREEN */}
+            {/* ALTERNATIVE MANUAL METHODS (M-Pesa Direct / Mukuru / Neteller) */}
             {/* ========================================================================= */}
             {(step === 'AIRTEL_MANUAL' || step === 'MUKURU_MANUAL' || step === 'NETELLER_MANUAL') && (() => {
               const config = ALT_METHODS.find((m) => m.stepKey === step);
