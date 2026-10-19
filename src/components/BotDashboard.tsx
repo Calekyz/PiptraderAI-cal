@@ -59,7 +59,6 @@ import { HorizontalQuickAccessMenu } from './HorizontalQuickAccessMenu';
 import { MacroAnalysisModal } from './MacroAnalysisModal';
 import { UpgradePlanModal } from './UpgradePlanModal';
 import { MT5ConnectionModal } from './MT5ConnectionModal';
-import { MyProfileModal } from './MyProfileModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { PendingPaymentBanner } from './PendingPaymentBanner';
 import { AuditLockScreen } from './AuditLockScreen';
@@ -231,7 +230,6 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   };
 
   // Modals state
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isMT5ModalOpen, setIsMT5ModalOpen] = useState(false);
 
   // Responsive Sidebar / Drawer State with persistence in localStorage
@@ -646,7 +644,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
             </div>
 
             <div 
-              onClick={() => setIsProfileModalOpen(true)}
+              onClick={() => setActiveTab('settings')}
               className="p-2.5 rounded-2xl bg-[#fafafa] dark:bg-[#111322] border border-[#e5e7eb] dark:border-[#1e2238] flex items-center justify-between shadow-2xs hover:border-purple-300 dark:hover:border-purple-500/50 transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-2.5 overflow-hidden">
@@ -992,11 +990,11 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
 
                     {/* Section 1: Profile & Connections */}
                     <div className="space-y-1">
-                      {/* 1. My Profile */}
+                      {/* 1. My Profile — opens Settings tab where user edits profile */}
                       <button
                         id="menu-my-profile-btn"
                         onClick={() => {
-                          setIsProfileModalOpen(true);
+                          setActiveTab('settings');
                           setIsUserMenuOpen(false);
                         }}
                         className="w-full text-left px-3.5 py-2.5 rounded-xl text-[#0f172a] dark:text-slate-200 hover:bg-[#f0edfe] dark:hover:bg-[#1a1735] hover:text-[#5b3fe4] dark:hover:text-purple-300 flex items-center justify-between transition-colors group cursor-pointer"
@@ -1407,15 +1405,6 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
         defaultTier={upgradeDefaultTier}
         user={user}
         onUpgradeSuccess={handleUpgradeSuccess}
-      />
-
-      {/* My Profile Modal */}
-      <MyProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        user={user}
-        onUpdateUser={onUpdateUser}
-        onOpenUpgrade={handleOpenUpgrade}
       />
 
       {/* MT5 Account Connection Modal */}
