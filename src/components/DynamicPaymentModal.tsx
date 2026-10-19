@@ -27,7 +27,6 @@ type PaymentStep =
   | 'MPESA_AUTOMATED'    // STK Push flow with phone input & live polling
   | 'MPESA_MANUAL'       // Till info + SMS input
   | 'BINANCE_MANUAL'     // Wallet info + TxID input
-  | 'AIRTEL_MANUAL'
   | 'MUKURU_MANUAL'
   | 'NETELLER_MANUAL'
   | 'CONFIRMED';         // Success screen
@@ -35,7 +34,7 @@ type PaymentStep =
 // ── Alternative manual payment destinations ──────────────────────
 interface AltMethod {
   stepKey: PaymentStep;
-  methodCode: 'airtel_manual' | 'mukuru_manual' | 'neteller_transfer';
+  methodCode: 'mukuru_manual' | 'neteller_transfer';
   label: string;
   detail: string;
   sub: string;
@@ -45,21 +44,6 @@ interface AltMethod {
 }
 
 const ALT_METHODS: AltMethod[] = [
-  {
-    stepKey: 'AIRTEL_MANUAL',
-    methodCode: 'airtel_manual',
-    label: 'M-Pesa Direct',
-    detail: '254799045699',
-    sub: 'Caleb Orenge · M-Pesa Kenya',
-    instructions: [
-      'Open M-Pesa on your phone',
-      'Choose Send Money',
-      'Send the exact amount below to the M-Pesa number shown (Caleb Orenge)',
-      'Copy the confirmation SMS and paste it below',
-    ],
-    inputLabel: 'M-Pesa confirmation message or transaction ID',
-    inputPlaceholder: 'Paste the confirmation SMS or code here',
-  },
   {
     stepKey: 'MUKURU_MANUAL',
     methodCode: 'mukuru_manual',
@@ -248,7 +232,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
     }
   };
 
-  // 2. Submit Manual M-Pesa Payment
+  // 2. Submit Alt-method manual payment (Mukuru / Neteller)
   const handleSubmitAlt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProduct) return;
@@ -477,23 +461,6 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                     <ArrowLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0" />
                   </button>
 
-                  {/* ─── M-Pesa Direct (was Airtel) ─── */}
-                  <button
-                    id="select-mpesa-direct-payment-card"
-                    type="button"
-                    onClick={() => { setAltConfirmText(''); setStep('AIRTEL_MANUAL'); }}
-                    className="w-full p-4 rounded-2xl border border-slate-200 dark:border-[#2d3250] bg-white dark:bg-[#121524] hover:border-emerald-400/60 hover:bg-emerald-50/60 dark:hover:bg-[#13241c] transition-all cursor-pointer flex items-center gap-3.5 text-left"
-                  >
-                    <div className="w-11 h-11 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0 border border-emerald-200 dark:border-emerald-800/40">
-                      <Smartphone className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-slate-900 dark:text-white">M-Pesa Direct</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send to {ALT_METHODS[0].detail}, paste your confirmation.</div>
-                    </div>
-                    <ArrowLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0" />
-                  </button>
-
                   {/* ─── Mukuru ─── */}
                   <button
                     id="select-mukuru-payment-card"
@@ -506,7 +473,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-slate-900 dark:text-white">Mukuru</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send to {ALT_METHODS[1].detail}, paste your reference.</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send to {ALT_METHODS[0].detail}, paste your reference.</div>
                     </div>
                     <ArrowLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0" />
                   </button>
@@ -523,7 +490,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold text-slate-900 dark:text-white">Neteller</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send to {ALT_METHODS[2].detail}, paste your TxID.</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send to {ALT_METHODS[1].detail}, paste your TxID.</div>
                     </div>
                     <ArrowLeft className="w-4 h-4 text-slate-300 rotate-180 shrink-0" />
                   </button>
@@ -1008,9 +975,9 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
             )}
 
             {/* ========================================================================= */}
-            {/* ALTERNATIVE MANUAL METHODS (M-Pesa Direct / Mukuru / Neteller) */}
+            {/* ALTERNATIVE MANUAL METHODS (Mukuru / Neteller) */}
             {/* ========================================================================= */}
-            {(step === 'AIRTEL_MANUAL' || step === 'MUKURU_MANUAL' || step === 'NETELLER_MANUAL') && (() => {
+            {(step === 'MUKURU_MANUAL' || step === 'NETELLER_MANUAL') && (() => {
               const config = ALT_METHODS.find((m) => m.stepKey === step);
               if (!config) return null;
               return (
