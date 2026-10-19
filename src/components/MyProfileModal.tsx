@@ -4,7 +4,11 @@ import {
   User, 
   Mail, 
   Crown, 
+  ShieldCheck, 
+  Calendar, 
+  Award, 
   Save, 
+  Sparkles,
   Check
 } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -49,12 +53,15 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in"
         onClick={onClose}
       />
 
+      {/* Modal Card */}
       <div className="relative w-full max-w-lg bg-[#0c0d18] text-white border border-[#232742] rounded-3xl shadow-2xl overflow-hidden z-10 animate-in zoom-in-95 duration-200">
+        {/* Header */}
         <div className="px-6 py-5 border-b border-[#1b1e33] flex items-center justify-between bg-[#0f1122]">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-[#f3f0ff] dark:bg-[#1f1a3a] border border-[#d8b4fe] dark:border-[#7c3aed] flex items-center justify-center text-[#7c3aed] font-bold text-sm">
@@ -74,6 +81,7 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
           </button>
         </div>
 
+        {/* Form Body */}
         <form onSubmit={handleSave} className="p-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -116,6 +124,7 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
             </div>
           </div>
 
+          {/* Membership Badge Card */}
           <div className="p-4 rounded-2xl bg-[#111322] border border-[#20253f] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
@@ -151,6 +160,7 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
             </div>
           )}
 
+          {/* Footer actions */}
           <div className="pt-2 flex items-center justify-end gap-2.5">
             <button
               type="button"
@@ -172,5 +182,3 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
     </div>
   );
 };
-
-export default MyProfileModal;
