@@ -86,7 +86,7 @@ async function sweepDeletions(): Promise<void> {
 
 // ── Admin contact info ────────────────────────────────────────────────
 const CONTACTS = {
-  telegram: ['@mentor_calekyz', '@Peshfx'],
+  telegram: ['@mentor_calekyz', '@Peshfx1'],
   whatsapp: ['+254726222093', '+254116081230'],
   email: 'piptraderaicustomer@gmail.com',
 };
@@ -206,6 +206,59 @@ Keep it concise, professional, no fluff. No emojis in the text body.`;
 }
 
 // ── Compose the full briefing message ─────────────────────────────────
+// ── Weekend detection (EAT = UTC+3) ───────────────────────────────
+function isWeekendEAT(): boolean {
+  const utc = new Date();
+  const eat = new Date(utc.getTime() + 3 * 3600 * 1000);
+  const day = eat.getUTCDay();
+  return day === 0 || day === 6;  // 0 = Sunday, 6 = Saturday
+}
+
+// ── Weekend advert briefing ──────────────────────────────────────
+function buildAdvertBriefing(): string {
+  const lines: string[] = [];
+
+  lines.push(`🎯 <b>PIPTRADERAI WEEKEND SPOTLIGHT</b>`);
+  lines.push(`<i>Built for traders. Powered by AI.</i>`);
+  lines.push('');
+
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push(`💎 <b>What's live on the platform</b>`);
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('');
+  lines.push(`🧠 <b>AI Trading Engine</b>`);
+  lines.push(`   Gemini-powered chart analysis, institutional setups, exact entry/SL/TP`);
+  lines.push('');
+  lines.push(`✨ <b>Nova AI Assistant</b>`);
+  lines.push(`   Chat, screenshot vision, strategy guidance — 24/7`);
+  lines.push('');
+  lines.push(`📡 <b>Pulse Signals</b>`);
+  lines.push(`   Institutional-grade scalping and swing trade setups`);
+  lines.push('');
+  lines.push(`🤖 <b>AutoTrading Bridge</b>`);
+  lines.push(`   Connect MT5, run bots from the cloud — no PC required`);
+  lines.push('');
+  lines.push(`🛡️ <b>PropPass</b>`);
+  lines.push(`   Live drawdown tracking built for FTMO, FundedNext, and more`);
+  lines.push('');
+  lines.push(`📊 <b>Live Calendar + News</b>`);
+  lines.push(`   Real-time ForexFactory events, AI predictions, T-15 alerts`);
+  lines.push('');
+
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push(`🚀 <b>Ready to trade smarter?</b>`);
+  lines.push(`Start free → <a href="https://piptraderai.com">piptraderai.com</a>`);
+  lines.push('');
+  lines.push(`❓ <b>Questions? Reach us:</b>`);
+  lines.push(`Telegram: ${CONTACTS.telegram.join(' · ')}`);
+  lines.push(`WhatsApp: ${CONTACTS.whatsapp.join(' · ')}`);
+  lines.push(`Email: ${CONTACTS.email}`);
+  lines.push('');
+  lines.push(`⏱ <i>This message auto-deletes in 5 hours.</i>`);
+
+  return lines.join('\n');
+}
+
 async function buildBriefingMessage(session: BriefingSessionId): Promise<string> {
   // 1. Fetch events — try Deno proxy first (bypasses FF IP block on Render),
   //    then fall back to the direct FF URL (same strategy as the main engine)
@@ -364,6 +417,14 @@ async function sendAndScheduleDeletion(text: string): Promise<void> {
 
 // ── Public API ────────────────────────────────────────────────────────
 export async function sendDailyBriefing(session: BriefingSessionId): Promise<{ ok: boolean; error?: string }> {
+  // Weekend → advert only, no market analysis
+  if (isWeekendEAT()) {
+    console.log(`[Briefing] Weekend detected — sending advert instead of ${session} briefing`);
+    const msg = buildAdvertBriefing();
+    await sendAndScheduleDeletion(msg);
+    return { ok: true };
+  }
+
   console.log(`[Briefing] Building ${session} briefing...`);
   const msg = await buildBriefingMessage(session);
   await sendAndScheduleDeletion(msg); // throws on failure
