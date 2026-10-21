@@ -5397,6 +5397,199 @@ app.post('/api/bridge/risk-stop', async (req, res) => {
   res.json({ success: true, result: r.data });
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// BRIDGE: MT5 DETAILS — save broker/login/server (per user, KV)
+// ═══════════════════════════════════════════════════════════════════
+app.get('/api/bridge/mt5-details', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    const { kvGet } = await import('./server/db');
+    const saved: any = await kvGet(`bridge:mt5-details:${userEmail}`);
+
+    // Also try to fetch live MT5 account from bot platform
+    let liveAccount: any = null;
+    const session = await getBridgeSession(userEmail);
+    if (session) {
+      const acct = await bridgeFetch(userEmail, '/v1/account');
+      if (acct.ok) liveAccount = acct.data;
+    }
+
+    res.json({
+      success: true,
+      saved: saved ? {
+        broker: saved.broker || '',
+        login: saved.login || '',
+        server: saved.server || '',
+        hasPassword: Boolean(saved.password),
+        updatedAt: saved.updatedAt || null,
+      } : null,
+      liveAccount,
+      connected: Boolean(liveAccount),
+    });
+  } catch (err: any) {
+    console.error('[MT5 Details] get:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Failed' });
+  }
+});
+
+app.post('/api/bridge/mt5-details', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    const { broker, login, password, server } = req.body || {};
+    if (!broker || !login || !server) {
+      return res.status(400).json({ success: false, error: 'Broker, login, and server are required' });
+    }
+    if (login.length < 4) {
+      return res.status(400).json({ success: false, error: 'Login must be at least 4 characters' });
+    }
+
+    const { kvGet, kvSet } = await import('./server/db');
+    const existing: any = await kvGet(`bridge:mt5-details:${userEmail}`);
+
+    const record = {
+      broker: String(broker).trim(),
+      login: String(login).trim(),
+      server: String(server).trim(),
+      // Only overwrite password if a new one was provided
+      password: password ? String(password) : (existing?.password || ''),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await kvSet(`bridge:mt5-details:${userEmail}`, record);
+    console.log(`[MT5 Details] saved for ${userEmail}: ${record.broker} / ${record.login}`);
+
+    res.json({ success: true, updatedAt: record.updatedAt });
+  } catch (err: any) {
+    console.error('[MT5 Details] save:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Save failed' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BRIDGE: PROP SETTINGS — prop firm rules (per user, KV)
+// ═══════════════════════════════════════════════════════════════════
+app.get('/api/bridge/prop-settings', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    const { kvGet } = await import('./server/db');
+    const saved: any = await kvGet(`bridge:prop-settings:${userEmail}`);
+
+    res.json({ success: true, settings: saved || null });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Failed' });
+  }
+});
+
+app.post('/api/bridge/prop-settings', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    const { firm, accountSize, maxDailyLossPct, profitTargetPct, days } = req.body || {};
+    if (!firm) return res.status(400).json({ success: false, error: 'Firm name is required' });
+
+    const record = {
+      firm: String(firm).trim(),
+      accountSize: Number(accountSize) || 0,
+      maxDailyLossPct: Number(maxDailyLossPct) || 5,
+      profitTargetPct: Number(profitTargetPct) || 10,
+      days: Number(days) || 30,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const { kvSet } = await import('./server/db');
+    await kvSet(`bridge:prop-settings:${userEmail}`, record);
+    console.log(`[Prop Settings] saved for ${userEmail}: ${record.firm} / $${record.accountSize}`);
+
+    res.json({ success: true, settings: record });
+  } catch (err: any) {
+    console.error('[Prop Settings] save:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Save failed' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BRIDGE: PROP STATUS — combine settings + live data
+// ═══════════════════════════════════════════════════════════════════
+app.get('/api/bridge/prop-status', async (req, res) => {
+  try {
+    const userEmail = getUserEmailFromReq(req);
+    if (!userEmail) return res.status(400).json({ success: false, error: 'Missing user email' });
+
+    const { kvGet } = await import('./server/db');
+    const settings: any = await kvGet(`bridge:prop-settings:${userEmail}`);
+
+    const session = await getBridgeSession(userEmail);
+    if (!session) {
+      return res.json({ success: true, connected: false, settings: settings || null, live: null });
+    }
+
+    const [account, risk] = await Promise.all([
+      bridgeFetch(userEmail, '/v1/account'),
+      bridgeFetch(userEmail, '/v1/risk/status'),
+    ]);
+
+    if (!account.ok) {
+      return res.json({ success: true, connected: true, settings: settings || null, live: null, error: 'account_fetch_failed' });
+    }
+
+    const acct = account.data || {};
+    const currentBalance = Number(acct.balance || 0);
+    const equity = Number(acct.equity || 0);
+
+    // Starting balance: from active risk session, else from saved settings account size
+    const startingBalance = Number(risk.ok && risk.data?.session?.starting_balance)
+      || Number(settings?.accountSize)
+      || currentBalance;
+
+    // Compute progress
+    const profit = currentBalance - startingBalance;
+    const profitPct = startingBalance > 0 ? (profit / startingBalance) * 100 : 0;
+    const drawdownPct = startingBalance > 0 ? Math.max(0, ((startingBalance - currentBalance) / startingBalance) * 100) : 0;
+    const targetPct = Number(settings?.profitTargetPct) || 10;
+    const maxLossPct = Number(settings?.maxDailyLossPct) || 5;
+    const progressPct = targetPct > 0 ? Math.min(100, (profitPct / targetPct) * 100) : 0;
+    const drawdownUsagePct = maxLossPct > 0 ? Math.min(100, (drawdownPct / maxLossPct) * 100) : 0;
+
+    // Risk state
+    const riskActive = Boolean(risk.ok && risk.data?.active);
+    const riskSession = risk.ok ? (risk.data?.session || null) : null;
+
+    res.json({
+      success: true,
+      connected: true,
+      settings: settings || null,
+      live: {
+        balance: currentBalance,
+        equity,
+        startingBalance,
+        profit,
+        profitPct: Number(profitPct.toFixed(2)),
+        drawdownPct: Number(drawdownPct.toFixed(2)),
+        targetPct,
+        maxLossPct,
+        progressPct: Number(progressPct.toFixed(1)),
+        drawdownUsagePct: Number(drawdownUsagePct.toFixed(1)),
+        riskActive,
+        riskSession,
+        accountLogin: acct.login,
+        accountServer: acct.server,
+        accountBroker: acct.company,
+        accountCurrency: acct.currency,
+      },
+    });
+  } catch (err: any) {
+    console.error('[Prop Status] error:', err?.message);
+    res.status(500).json({ success: false, error: err?.message || 'Status failed' });
+  }
+});
+
 // ── Daily balance snapshot (for Today's P&L) ──
 app.get('/api/bridge/daily-snapshot', async (req, res) => {
   try {
