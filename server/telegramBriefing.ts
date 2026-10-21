@@ -211,7 +211,7 @@ async function buildBriefingMessage(session: BriefingSessionId): Promise<string>
   //    then fall back to the direct FF URL (same strategy as the main engine)
   let events: Array<any> = [];
   const SOURCES = [
-    'https://salty-caracal-1472.caleborenge8.deno.net',
+    'https://gloomy-caribou-3690.piptraderaisupport.deno.net',
     'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
   ];
   try {
