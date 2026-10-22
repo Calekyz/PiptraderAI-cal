@@ -22,3 +22,5 @@ src.bak.*
 telegram-state.json
 briefing-state.json
 data/
+server.ts.bak
+server.ts.bak.manual

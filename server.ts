@@ -3008,7 +3008,21 @@ app.post('/api/auth/register', async (req, res) => {
       const otpCode = crypto.randomInt(100000, 999999).toString();
       db.createOrUpdateEmailVerification(existing.id, cleanEmail, otpCode, 10);
 
-      // SMTP disabled — email verification removed
+      const sendResult = await sendVerificationEmail(
+        cleanEmail,
+        (existing as any).firstName || 'Trader',
+        otpCode
+      );
+      if (!sendResult.success) {
+        console.error('[Auth] Existing-user verification email failed:', sendResult.error);
+        return res.status(502).json({
+          success: false,
+          requireVerification: true,
+          email: cleanEmail,
+          error: 'Could not send verification email. Please try again in a moment.'
+        });
+      }
+
       return res.status(200).json({
         success: true,
         requireVerification: true,
@@ -3080,7 +3094,15 @@ app.post('/api/auth/register', async (req, res) => {
     
     db.createOrUpdateEmailVerification(newUser.id, cleanEmail, otpCode, 10);
 
-    // SMTP disabled — email verification removed
+    const sendResult = await sendVerificationEmail(
+      cleanEmail,
+      [newUser.firstName, newUser.lastName].filter(Boolean).join(' ') || 'Trader',
+      otpCode
+    );
+    if (!sendResult.success) {
+      console.error('[Auth] Signup verification email failed:', sendResult.error);
+    }
+
     if (db.createAdminNotification) {
       db.createAdminNotification({
         type: 'USER_REGISTRATION',
@@ -3090,13 +3112,14 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    // AUTO-VERIFY: mark user verified immediately (SMTP disabled)
-    db.updateUser(newUser.id, { isVerified: true });
+    // AUTO-VERIFY REMOVED — users must verify via email code before login.
+    // (Re-enable for debugging only:)
+    // db.updateUser(newUser.id, { isVerified: true });
 
     res.status(201).json({
       success: true,
-      requireVerification: false,
-      autoVerified: true,
+      requireVerification: true,
+      autoVerified: false,
       email: cleanEmail,
       user: {
         id: newUser.id,
@@ -3106,11 +3129,11 @@ app.post('/api/auth/register', async (req, res) => {
         plan: newUser.plan,
         balance: newUser.balance,
         credits: newUser.credits ?? 0,
-        isVerified: true,
+        isVerified: false,
         authProvider: 'email',
         mt5Connected: false
       },
-      message: 'Account created successfully. Please log in.'
+      message: 'Account created. Enter the 6-digit code sent to your email to verify your account.'
     });
   } catch (err: any) {
     console.error('[Auth Register Error]:', err);
@@ -3234,7 +3257,19 @@ app.post('/api/auth/resend-code', async (req, res) => {
     const newOtp = crypto.randomInt(100000, 999999).toString();
     db.createOrUpdateEmailVerification(user.id, cleanEmail, newOtp, 10);
 
-    // SMTP disabled — email verification removed
+    const sendResult = await sendVerificationEmail(
+      cleanEmail,
+      (user as any).firstName || 'Trader',
+      newOtp
+    );
+    if (!sendResult.success) {
+      console.error('[Auth] Resend verification email failed:', sendResult.error);
+      return res.status(502).json({
+        success: false,
+        error: 'Could not send verification email. Please try again in a moment.'
+      });
+    }
+
     res.json({
       success: true,
       message: 'A new 6-digit verification code has been sent to your email.'
@@ -3267,10 +3302,15 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid email or password.' });
     }
 
-    // AUTO-VERIFY: if user isn't verified, verify them now (SMTP disabled)
+    // Email verification gate — unverified users cannot log in.
+    // They must enter the 6-digit code sent by Resend first.
     if (!user.isVerified) {
-      db.updateUser(user.id, { isVerified: true });
-      user.isVerified = true;
+      return res.status(403).json({
+        success: false,
+        requireVerification: true,
+        email: cleanEmail,
+        error: 'Please verify your email first. Check your inbox for the 6-digit code.'
+      });
     }
 
     const safeProfile = {

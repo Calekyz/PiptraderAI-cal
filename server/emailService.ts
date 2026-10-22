@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 export interface EmailSendResult {
   success: boolean;
@@ -8,54 +8,28 @@ export interface EmailSendResult {
   deliveredTo?: string;
 }
 
-// Lazy-initialized SMTP transporter
-let cachedTransporter: nodemailer.Transporter | null = null;
+let cachedResend: Resend | null = null;
 
-export function getEmailTransporter(): nodemailer.Transporter {
-  if (cachedTransporter) {
-    return cachedTransporter;
+function getResendClient(): Resend | null {
+  if (cachedResend) return cachedResend;
+  const apiKey = process.env.RESEND_API_KEY || '';
+  if (!apiKey) {
+    console.warn('[Email Service] RESEND_API_KEY not set — email sending disabled.');
+    return null;
   }
-
-  const host = process.env.SMTP_HOST || '';
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER || '';
-  const pass = process.env.SMTP_PASS || '';
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-
-  if (host && user && pass) {
-    console.log(`[Email Service] Initializing SMTP transporter with host: ${host}:${port}`);
-    cachedTransporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: {
-        user,
-        pass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
-  } else {
-    // Fallback transporter (supports standard local/container SMTP or JSON transport)
-    console.log('[Email Service] Standard SMTP environment variables not fully configured. Using fallback transport.');
-    cachedTransporter = nodemailer.createTransport({
-      jsonTransport: true
-    });
-  }
-
-  return cachedTransporter;
+  cachedResend = new Resend(apiKey);
+  return cachedResend;
 }
 
 /**
- * Send real 6-digit verification code to the user's email address
+ * Send real 6-digit verification code to the user's email address via Resend
  */
 export async function sendVerificationEmail(
   toEmail: string,
   userName: string,
   verificationCode: string
 ): Promise<EmailSendResult> {
-  const fromAddress = process.env.SMTP_FROM || '"PipTraderAI" <no-reply@piptraderai.com>';
+  const fromAddress = process.env.EMAIL_FROM || '"PipTraderAI" <noreply@piptraderai.com>';
   const cleanName = userName?.trim() || 'Trader';
   const cleanEmail = toEmail.trim().toLowerCase();
 
@@ -89,8 +63,7 @@ PipTraderAI Team
     <tr>
       <td align="center">
         <table role="presentation" width="100%" style="max-width: 520px; background-color: #0d0f1a; border: 1px solid #1f2438; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6);" cellspacing="0" cellpadding="0">
-          
-          <!-- Header Branding -->
+
           <tr>
             <td style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #181d2e;">
               <table role="presentation" align="center" cellspacing="0" cellpadding="0">
@@ -106,13 +79,12 @@ PipTraderAI Team
             </td>
           </tr>
 
-          <!-- Main Content -->
           <tr>
             <td style="padding: 32px 32px 24px 32px;">
               <h1 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 700; color: #ffffff; line-height: 1.3;">
                 Verify Your Account
               </h1>
-              
+
               <p style="margin: 0 0 16px 0; font-size: 15px; color: #94a3b8; line-height: 1.6;">
                 Hello <strong style="color: #ffffff;">${cleanName}</strong>,
               </p>
@@ -121,7 +93,6 @@ PipTraderAI Team
                 Thank you for registering. Enter the 6-digit verification code below in the application to verify your email address and activate your account.
               </p>
 
-              <!-- 6-Digit Code Box -->
               <div style="margin: 28px 0; padding: 20px; background-color: #121626; border: 1px solid #28304d; border-radius: 14px; text-align: center;">
                 <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #818cf8; font-weight: 700; margin-bottom: 8px;">
                   Your Verification Code
@@ -140,7 +111,6 @@ PipTraderAI Team
             </td>
           </tr>
 
-          <!-- Footer -->
           <tr>
             <td style="padding: 20px 32px 28px 32px; background-color: #0a0c16; border-top: 1px solid #151928; text-align: center;">
               <p style="margin: 0 0 6px 0; font-size: 12px; color: #475569;">
@@ -159,30 +129,29 @@ PipTraderAI Team
 </body>
 </html>`;
 
+  const resend = getResendClient();
+  if (!resend) {
+    return { success: false, error: 'Email service not configured (missing RESEND_API_KEY)' };
+  }
+
   try {
-    const transporter = getEmailTransporter();
-    
-    const mailOptions = {
+    const { data, error } = await resend.emails.send({
       from: fromAddress,
       to: cleanEmail,
       subject: 'Verify Your Account',
       text: textBody,
-      html: htmlBody
-    };
+      html: htmlBody,
+    });
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[Email Service] Verification email dispatched to ${cleanEmail}. MessageId: ${info.messageId || 'json-transport'}`);
-    
-    return {
-      success: true,
-      messageId: info.messageId,
-      deliveredTo: cleanEmail
-    };
+    if (error) {
+      console.error(`[Email Service Error] Resend rejected email to ${cleanEmail}:`, error);
+      return { success: false, error: error.message || 'Resend send failed' };
+    }
+
+    console.log(`[Email Service] Verification email dispatched to ${cleanEmail}. MessageId: ${data?.id || 'unknown'}`);
+    return { success: true, messageId: data?.id, deliveredTo: cleanEmail };
   } catch (err: any) {
     console.error(`[Email Service Error] Failed to dispatch verification email to ${cleanEmail}:`, err);
-    return {
-      success: false,
-      error: err.message || 'Failed to send email verification code'
-    };
+    return { success: false, error: err.message || 'Failed to send email verification code' };
   }
 }
