@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Mt5TradingPanel } from '../Mt5TradingPanel';
 import {
   Bot,
   Zap,
@@ -250,6 +251,7 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
     return (
       <>
         <div className="max-w-2xl mx-auto p-4 space-y-4">
+          <Mt5TradingPanel user={user} />
           {error && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
               {error}
@@ -310,6 +312,7 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
 
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-5">
+      <Mt5TradingPanel user={user} />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">

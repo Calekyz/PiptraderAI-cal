@@ -46,6 +46,7 @@ import { getLimits, type PlanTier } from './src/lib/planLimits';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter, fetchForexFactoryCalendar } from './server/forexFactoryEngine';
 import { bridgeConnect, bridgeDisconnect, getBridgeSession, bridgeFetch, getBotApiUrl } from './server/bridge';
+import { bridgeUserStats, bridgePushSignal, bridgeSignals, isMt5BridgeConfigured } from './server/mt5Bridge';
 import PDFDocument from 'pdfkit';
 import {
   analyzeMarket,
@@ -3139,6 +3140,33 @@ app.post('/api/auth/register', async (req, res) => {
     console.error('[Auth Register Error]:', err);
     res.status(500).json({ success: false, error: 'An unexpected error occurred while registering. Please try again.' });
   }
+});
+
+// ─── MT5 Bridge proxies (token-authenticated) ───
+app.get('/api/mt5/stats', async (req: any, res: any) => {
+  const email = String(req.query.email || req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
+  const r = await bridgeUserStats(email);
+  return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
+});
+
+app.post('/api/mt5/execute', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || req.body?.email || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
+  const { action, symbol, side, volume, sl, tp, ticket, comment } = req.body || {};
+  if (!action || !symbol) return res.status(400).json({ ok: false, error: 'action_and_symbol_required' });
+  const r = await bridgePushSignal({ email, action, symbol, side, volume, sl, tp, ticket, comment });
+  return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
+});
+
+app.get('/api/mt5/signals', async (req: any, res: any) => {
+  const email = String(req.query.email || req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
+  const r = await bridgeSignals(email);
+  return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
 });
 
 app.post('/api/auth/verify-code', (req, res) => {
