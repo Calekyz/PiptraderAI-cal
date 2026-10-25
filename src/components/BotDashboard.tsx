@@ -68,6 +68,7 @@ import { TrialCountdownBanner } from './TrialCountdownBanner';
 import { PremiumLock } from './PremiumLock';
 import { fetchTrialStatusAsync } from '../lib/authService';
 import { UpgradeWhatsAppCard } from './UpgradeWhatsAppCard';
+import { isPaidPlan } from '../lib/planAccess';
 
 interface BotDashboardProps {
   user: UserProfile;
@@ -1128,7 +1129,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
               onOpenSubscription={() => setActiveTab('subscription')}
             />
 
-            {activeTab === 'overview' && !['Pro','Elite'].includes(String(user?.plan || '')) && (
+            {activeTab === 'overview' && !isPaidPlan(user?.plan) && (
               <div className="mb-4">
                 <UpgradeWhatsAppCard user={user} compact />
               </div>

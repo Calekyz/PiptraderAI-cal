@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { UpgradeWhatsAppCard } from '../UpgradeWhatsAppCard';
+import { isPaidPlan } from '../../lib/planAccess';
 import { 
   fetchProductsCatalogue, 
   fetchUserPaymentHistory, 
@@ -145,7 +146,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
     <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl">
 
       {/* Upgrade via WhatsApp — only for non-paid users */}
-      {!(['Pro','Elite'].includes(String(user.plan || ''))) && (
+      {!isPaidPlan(user?.plan) && (
         <div className="mb-5">
           <UpgradeWhatsAppCard user={user} />
         </div>
