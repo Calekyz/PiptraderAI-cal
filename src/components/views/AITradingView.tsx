@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ExecuteTradeButton } from '../ExecuteTradeButton';
 import { 
   ArrowLeft, Sparkles, ChevronDown, Search, Maximize2, Minimize2, ExternalLink,
   Bell, Play, RotateCcw, BarChart2, TrendingUp, Activity, Plus, CandlestickChart,
@@ -806,6 +807,16 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
             <span>{calculatedAsk}</span>
             <span className="text-[10px] bg-blue-700/80 px-1 py-0.2 rounded font-extrabold">BUY</span>
           </button>
+                <div className="ai-execute-btn mt-2">
+                  <ExecuteTradeButton
+                    symbol={quote?.symbol || 'XAUUSD.vcn'}
+                    side="buy"
+                    volume={0.1}
+                    comment="from_ai_trading"
+                    label="Execute BUY (AI Signal)"
+                  />
+                </div>
+
           <div className="hidden xl:flex items-center gap-1 text-[10px] text-gray-400 pl-2 border-l border-gray-300 dark:border-gray-700">
             <Clock className="w-3 h-3 text-emerald-500" />
             <span>{quote?.lastUpdatedText || 'Live Feed'}</span>

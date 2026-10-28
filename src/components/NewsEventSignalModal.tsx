@@ -522,6 +522,16 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
               {prediction.usdScore >= 0 ? '+' : ''}{prediction.usdScore.toFixed(2)}
             </span>
           </div>
+                  <div className="mt-3 pt-3 border-t border-[#1a1d2d] news-execute-btn">
+                    <ExecuteTradeButton
+                      symbol={(prediction as any).symbol || 'XAUUSD.vcn'}
+                      side={String(prediction.direction).toUpperCase() === 'SELL' ? 'sell' : 'buy'}
+                      volume={0.1}
+                      comment={'news_' + ((target as any)?.title || 'event').slice(0, 20)}
+                      label={'Execute ' + String(prediction.direction).toUpperCase() + ' on ' + ((prediction as any).symbol || 'XAUUSD')}
+                    />
+                  </div>
+
 
           {/* Expected Direction Summary */}
           {prediction.direction !== 'WAIT' && (
