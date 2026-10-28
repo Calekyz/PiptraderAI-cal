@@ -3384,26 +3384,91 @@ app.post('/api/mt5/execute', async (req: any, res: any) => {
   const email = String(req.headers['x-user-email'] || req.body?.email || '').trim().toLowerCase();
   if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
   if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
+
+  // Pause gate
   const __state = (await kvGet<any>('prompt-state:' + email)) || {};
-  if (__state.paused) return res.status(423).json({ ok: false, error: 'trading_paused_by_user', reason: 'Trading is paused. Click Resume on the Prompt Trading page.' });
+  if (__state.paused) {
+    return res.status(423).json({ ok: false, error: 'trading_paused_by_user', reason: 'Trading is paused. Click Resume on the Prompt Trading page.' });
+  }
 
   const { action, symbol, side, volume, sl, tp, ticket, comment, executionMode } = req.body || {};
   if (!action || !symbol) return res.status(400).json({ ok: false, error: 'action_and_symbol_required' });
 
-  // Simulation mode — do not push to bridge
+  // Simulation — do not touch the bridge
   if (executionMode === 'simulation') {
     const fakeId = 'SIM_' + Date.now().toString(36).toUpperCase() + '_' + Math.random().toString(36).slice(2, 8).toUpperCase();
-    console.log('[MT5 Execute] SIMULATED — not pushed to bridge:', { email, symbol, side, volume, sl, tp });
+    console.log('[MT5 Execute] SIMULATED — not pushed:', { email, symbol, side, volume, sl, tp });
     return res.json({
       ok: true,
       simulation: true,
+      mode: 'simulation',
       signal_id: fakeId,
-      message: 'Simulated — no real trade was pushed to MT5. Switch Execution Mode to Manual Approval to trade live.'
+      message: 'Simulated — no real trade was pushed to MT5.'
     });
   }
 
-  const r = await bridgePushSignal({ email, action, symbol, side, volume, sl, tp, ticket, comment });
-  return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
+  // Try DIRECT execute via mt5-bridge /v1/order (uses user's stored bot JWT + VPS)
+  const isClose = action === 'close';
+  const orderPayload: any = isClose
+    ? { ticket, symbol }
+    : {
+        symbol,
+        volume: Number(volume) || 0.01,
+        order_type: String(side || 'buy').toLowerCase(),
+        deviation: 5,
+        sl: sl ?? undefined,
+        tp: tp ?? undefined,
+        comment: comment || 'PipTrader trade'
+      };
+
+  const path = isClose ? '/v1/order/close' : '/v1/order';
+  const direct = await bridgeFetch(email, path, 'POST', orderPayload);
+
+  if (direct.ok) {
+    const ticketNum = direct.data?.ticket ?? direct.data?.order ?? direct.data?.ticket_id ?? null;
+    const signal_id = ticketNum ? 'DIRECT_' + ticketNum : 'DIRECT_' + Date.now().toString(36).toUpperCase();
+    console.log('[MT5 Execute] DIRECT success:', { email, path, ticket: ticketNum });
+    return res.json({
+      ok: true,
+      mode: 'direct',
+      signal_id,
+      ticket: ticketNum,
+      order_type: orderPayload.order_type,
+      symbol,
+      raw: direct.data,
+      message: 'Order executed on MT5' + (ticketNum ? ' — ticket #' + ticketNum : '')
+    });
+  }
+
+  const errMsg = String(direct.data?.error || direct.error || '');
+  const isNoVps = direct.status === 404 && /vps|assigned/i.test(errMsg);
+  const isAuthIssue = direct.status === 401 || direct.error === 'session_expired' || direct.error === 'not_connected';
+
+  if (isNoVps) {
+    // Fallback: queue via signal table (needs poller)
+    console.warn('[MT5 Execute] No VPS assigned — falling back to queue for', email);
+    const queued = await bridgePushSignal({ email, action, symbol, side, volume, sl, tp, ticket, comment });
+    if (queued.ok) {
+      return res.json({
+        ok: true,
+        mode: 'queued',
+        signal_id: queued.data?.signal_id,
+        message: 'No VPS assigned to your account — signal queued. Ask admin to assign a VPS for instant execution.'
+      });
+    }
+    return res.status(500).json({ ok: false, error: 'queue_failed', detail: queued.error || queued.data?.error });
+  }
+
+  if (isAuthIssue) {
+    return res.status(401).json({
+      ok: false,
+      error: 'mt5_not_connected',
+      reason: 'Please connect your MT5 account from the Auto-Trading page first.'
+    });
+  }
+
+  console.error('[MT5 Execute] Direct failed:', direct.status, errMsg);
+  return res.status(direct.status || 500).json({ ok: false, error: errMsg || 'execute_failed', mode: 'direct' });
 });
 
 app.get('/api/mt5/signals', async (req: any, res: any) => {
