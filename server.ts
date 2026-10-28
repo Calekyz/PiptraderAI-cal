@@ -2669,14 +2669,23 @@ app.get('/api/macro-news', async (req, res) => {
   }
 });
 
+const __CONTRACT_SIZE: Record<string, number> = {
+  XAUUSD: 100, XAGUSD: 5000,
+  EURUSD: 100000, GBPUSD: 100000, USDJPY: 100000,
+  AUDUSD: 100000, USDCAD: 100000, USDCHF: 100000, NZDUSD: 100000,
+  BTCUSD: 1, ETHUSD: 1, US30: 1, NAS100: 1, SPX500: 1
+};
+
 app.post('/api/prompt-trade', async (req, res) => {
   try {
-    const { prompt, pairs } = req.body || {};
+    const { prompt, pairs, riskPercent: rawRisk, maxSpread: rawSpread } = req.body || {};
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 5) {
       return res.status(400).json({ ok: false, error: 'A prompt of at least 5 characters is required.' });
     }
 
-    // Determine target pair — prefer explicit pairs from UI, else parse from prompt
+    const riskPercent = Math.min(10, Math.max(0.1, Number(rawRisk) || 1.0));
+    const maxSpread = Math.min(20, Math.max(0.1, Number(rawSpread) || 1.5));
+
     const PAIR_RE = /\b(XAUUSD|XAGUSD|EURUSD|GBPUSD|USDJPY|AUDUSD|USDCAD|USDCHF|NZDUSD|BTCUSD|ETHUSD|US30|NAS100|SPX500)\b/i;
     const requestedPairs = Array.isArray(pairs) && pairs.length
       ? pairs.map((pp) => String(pp).toUpperCase())
@@ -2685,10 +2694,11 @@ app.post('/api/prompt-trade', async (req, res) => {
     const targetPair = String(requestedPairs[0] || parsedFromPrompt || 'EURUSD').toUpperCase();
     const mt5Symbol = targetPair.endsWith('.vcn') ? targetPair : targetPair + '.vcn';
 
-    // Fetch live market context (best-effort)
+    // Fetch live market context + balance (best-effort)
     let currentPrice = null;
     let recentCandles = [];
     let marketDataAvailable = false;
+    let userBalance: number | null = null;
     try {
       const { candles, quote } = await fetchRealCandles(targetPair, '15m');
       if (candles && candles.length) {
@@ -2702,12 +2712,22 @@ app.post('/api/prompt-trade', async (req, res) => {
       console.warn('[Prompt Trade] market data fetch failed:', e && e.message);
     }
 
+    const emailFromHeader = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+    if (emailFromHeader && isMt5BridgeConfigured()) {
+      try {
+        const stats = await bridgeUserStats(emailFromHeader);
+        if (stats.ok && stats.data && stats.data.balance) userBalance = Number(stats.data.balance);
+      } catch {}
+    }
+
     const marketContext = marketDataAvailable
       ? 'Live market data for ' + targetPair + ' — current price: ' + currentPrice + '\nLast 20 M15 candles [open,high,low,close]:\n' + recentCandles.map((c) => '[' + c.open + ',' + c.high + ',' + c.low + ',' + c.close + ']').join('\n')
       : 'No live market data available for ' + targetPair + '. Use conservative historically-plausible levels AND explicitly say in strategyExplanation that live price was unavailable.';
 
+    const riskContext = 'User risk settings: risk ' + riskPercent + '% per trade' + (userBalance ? ' on a $' + userBalance.toFixed(2) + ' account' : '') + '. Max spread allowed: ' + maxSpread + ' pips.';
+
     const systemPrompt = 'You are the PipTraderAI Prompt Trading Engine. Convert natural-language trading instructions into a concrete automated trade setup.\n\n' +
-      marketContext + '\n\n' +
+      marketContext + '\n\n' + riskContext + '\n\n' +
       'Return ONLY valid JSON (no markdown, no code fences) matching this schema:\n' +
       '{\n' +
       '  "pair": "' + targetPair + '",\n' +
@@ -2728,6 +2748,7 @@ app.post('/api/prompt-trade', async (req, res) => {
       '- entryPrice MUST be within ±0.5% of current price when market data is available.\n' +
       '- All prices positive finite numbers. lotSize between 0.01 and 5.0.\n' +
       '- Respect user-stated SL/TP if present in prompt.\n' +
+      '- Respect the user risk setting above when choosing lotSize.\n' +
       '- Never guarantee profits.';
 
     let rawText = '';
@@ -2746,7 +2767,7 @@ app.post('/api/prompt-trade', async (req, res) => {
 
     let parsed = null;
     try {
-      const cleaned = String(rawText || '').trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+      const cleaned = String(rawText || '').trim().replace(/^\x60\x60\x60json\s*/i, '').replace(/\x60\x60\x60\s*$/i, '').trim();
       parsed = JSON.parse(cleaned);
     } catch {
       console.error('[Prompt Trade] JSON parse failed:', String(rawText || '').slice(0, 300));
@@ -2764,7 +2785,7 @@ app.post('/api/prompt-trade', async (req, res) => {
     const sl = Number(parsed.stopLoss);
     const tp1 = Number(parsed.takeProfit1);
     const tp2 = Number(parsed.takeProfit2);
-    const lot = Number(parsed.lotSize);
+    let lot = Number(parsed.lotSize);
 
     const allValid = [entry, sl, tp1, lot].every((n) => Number.isFinite(n) && n > 0);
     if (!allValid) {
@@ -2772,10 +2793,26 @@ app.post('/api/prompt-trade', async (req, res) => {
     }
 
     if (dir === 'BUY' && !(sl < entry && tp1 > entry && (Number.isFinite(tp2) ? tp2 > entry : true))) {
-      return res.json({ ok: false, error: 'Invalid BUY levels: SL(' + sl + ') must be < entry(' + entry + ') < TP(' + tp1 + '/' + tp2 + '). Try rephrasing.' });
+      return res.json({ ok: false, error: 'Invalid BUY levels: SL(' + sl + ') must be < entry(' + entry + ') < TP(' + tp1 + '/' + tp2 + ').' });
     }
     if (dir === 'SELL' && !(sl > entry && tp1 < entry && (Number.isFinite(tp2) ? tp2 < entry : true))) {
-      return res.json({ ok: false, error: 'Invalid SELL levels: TP(' + tp1 + '/' + tp2 + ') must be < entry(' + entry + ') < SL(' + sl + '). Try rephrasing.' });
+      return res.json({ ok: false, error: 'Invalid SELL levels: TP(' + tp1 + '/' + tp2 + ') must be < entry(' + entry + ') < SL(' + sl + ').' });
+    }
+
+    // Risk-based lotSize recalculation (respects user risk %)
+    let riskAdjusted = false;
+    if (userBalance && userBalance > 0) {
+      const contractSize = __CONTRACT_SIZE[targetPair] || 100000;
+      const slDistance = Math.abs(entry - sl);
+      const riskAmount = userBalance * (riskPercent / 100);
+      const riskPerLot = slDistance * contractSize;
+      if (riskPerLot > 0) {
+        const calcLot = Math.min(5, Math.max(0.01, riskAmount / riskPerLot));
+        if (calcLot < lot) {
+          lot = calcLot;
+          riskAdjusted = true;
+        }
+      }
     }
 
     const safeLot = Math.min(5, Math.max(0.01, lot));
@@ -2797,9 +2834,13 @@ app.post('/api/prompt-trade', async (req, res) => {
       lotSize: safeLot,
       riskReward: riskRewardStr,
       strategyExplanation: String(parsed.strategyExplanation || 'AI-generated setup based on your prompt.'),
-      botParameters: parsed.botParameters || { trailingStopPips: 15, maxSpread: 1.5, timeframe: '15m' },
+      botParameters: parsed.botParameters || { trailingStopPips: 15, maxSpread, timeframe: '15m' },
       currentPrice,
-      marketDataAvailable
+      marketDataAvailable,
+      riskPercent,
+      maxSpread,
+      riskAdjusted,
+      userBalance
     });
   } catch (error) {
     console.error('[Prompt Trade] fatal:', error && error.message);
@@ -3317,8 +3358,22 @@ app.post('/api/mt5/execute', async (req: any, res: any) => {
   if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
   const __state = (await kvGet<any>('prompt-state:' + email)) || {};
   if (__state.paused) return res.status(423).json({ ok: false, error: 'trading_paused_by_user', reason: 'Trading is paused. Click Resume on the Prompt Trading page.' });
-  const { action, symbol, side, volume, sl, tp, ticket, comment } = req.body || {};
+
+  const { action, symbol, side, volume, sl, tp, ticket, comment, executionMode } = req.body || {};
   if (!action || !symbol) return res.status(400).json({ ok: false, error: 'action_and_symbol_required' });
+
+  // Simulation mode — do not push to bridge
+  if (executionMode === 'simulation') {
+    const fakeId = 'SIM_' + Date.now().toString(36).toUpperCase() + '_' + Math.random().toString(36).slice(2, 8).toUpperCase();
+    console.log('[MT5 Execute] SIMULATED — not pushed to bridge:', { email, symbol, side, volume, sl, tp });
+    return res.json({
+      ok: true,
+      simulation: true,
+      signal_id: fakeId,
+      message: 'Simulated — no real trade was pushed to MT5. Switch Execution Mode to Manual Approval to trade live.'
+    });
+  }
+
   const r = await bridgePushSignal({ email, action, symbol, side, volume, sl, tp, ticket, comment });
   return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
 });

@@ -271,14 +271,37 @@ export const PromptTradingView: React.FC = () => {
   };
 
   const handleVoiceToggle = () => {
-    if (!isListening) {
-      setIsListening(true);
-      setTimeout(() => {
-        setPromptText("Scalping EURUSD during London session, looking for BOS on M5 with liquidity sweep, target 1:3 RR");
-        setIsListening(false);
-      }, 1800);
-    } else {
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setErrorMessage('Voice input needs Chrome or Edge. Type your prompt instead.');
+      return;
+    }
+    if (isListening) {
+      try { (window as any).__ptRecog?.stop(); } catch {}
       setIsListening(false);
+      return;
+    }
+    try {
+      const recog = new SR();
+      recog.continuous = false;
+      recog.interimResults = false;
+      recog.lang = 'en-US';
+      recog.onresult = (event: any) => {
+        const text = event.results?.[0]?.[0]?.transcript || '';
+        if (text) setPromptText((prev) => (prev ? prev + ' ' : '') + text);
+      };
+      recog.onerror = (event: any) => {
+        setIsListening(false);
+        if (event.error === 'not-allowed') setErrorMessage('Microphone permission denied.');
+      };
+      recog.onend = () => setIsListening(false);
+      recog.start();
+      (window as any).__ptRecog = recog;
+      setIsListening(true);
+      setErrorMessage(null);
+    } catch (err: any) {
+      setIsListening(false);
+      setErrorMessage('Voice input failed: ' + (err?.message || 'unknown'));
     }
   };
 
@@ -342,7 +365,8 @@ export const PromptTradingView: React.FC = () => {
       </div>
 
       {/* Main 3-Column Layout from Screenshot 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      {/* display toggled by activeTab (Trading / History / Strategies / Analytics) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start" style={{ display: activeTab === 'trading' ? undefined : 'none' }}>
         
         {/* Left Column: Prompt Trading AI (col-span-5) */}
         <div className="lg:col-span-5 space-y-4">
@@ -891,6 +915,6 @@ export const PromptTradingView: React.FC = () => {
         </div>
       )}
 
-    </div>
+      {activeTab === 'history' && (        <div className="space-y-3">          <div className="flex items-center gap-2 mb-3">            <Clock className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400" />            <h3 className="text-sm font-bold text-[#0f172a] dark:text-white">Strategy History</h3>            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-100 dark:bg-[#121422] text-[#64748b] dark:text-gray-400 border border-gray-200 dark:border-[#222638]">{strategyHistory.length}</span>          </div>          {strategyHistory.length === 0 ? (            <div className="p-10 text-center text-xs text-[#64748b] dark:text-gray-500 border border-dashed border-gray-200 dark:border-[#171926] rounded-xl">No strategies generated yet. Go to Trading tab and create your first one.</div>          ) : (            <div className="space-y-2">              {strategyHistory.map((s) => (                <div key={s.id} onClick={() => setActiveGeneratedStrategy(s)} className="p-3 rounded-xl bg-white dark:bg-[#0a0c16] border border-[#e2e8f0] dark:border-[#1a1d2d] hover:border-purple-300 dark:hover:border-purple-500/40 cursor-pointer transition-all">                  <div className="flex items-center gap-2 mb-1">                    <span className="font-bold text-xs text-[#0f172a] dark:text-white">{s.pair}</span>                    <span className={"px-1.5 py-0.5 rounded text-[9px] font-mono font-bold " + (s.direction === "BUY" ? "bg-emerald-100 text-emerald-700 dark:bg-[#122b1c] dark:text-emerald-400" : "bg-rose-100 text-rose-700 dark:bg-[#2b1216] dark:text-[#ff4b58]")}>{s.direction}</span>                    <span className="text-[10px] text-gray-500 font-mono ml-auto">{s.timestamp}</span>                  </div>                  <p className="text-[11px] text-gray-500 line-clamp-1">{s.prompt}</p>                  <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-gray-500">                    <span>Entry: {s.entryPrice}</span>                    <span>SL: {s.stopLoss}</span>                    <span>TP: {s.takeProfit}</span>                    <span>Lot: {s.lotSize}</span>                    <span className="text-purple-500 dark:text-purple-300 font-bold">RR: {s.riskReward}</span>                  </div>                </div>              ))}            </div>          )}        </div>      )}      {activeTab === 'strategies' && (        <div className="space-y-4">          <div className="flex items-center gap-2 mb-3">            <Layers className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400" />            <h3 className="text-sm font-bold text-[#0f172a] dark:text-white">Saved Strategies</h3>          </div>          {(() => {            const grouped: Record<string, typeof strategyHistory> = {};            strategyHistory.forEach((s) => { (grouped[s.pair] = grouped[s.pair] || []).push(s); });            const pairs = Object.keys(grouped);            if (pairs.length === 0) return <div className="p-10 text-center text-xs text-gray-500 border border-dashed border-gray-200 dark:border-[#171926] rounded-xl">No saved strategies yet.</div>;            return (              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">                {pairs.map((pair) => {                  const items = grouped[pair];                  const last = items[0];                  return (                    <div key={pair} className="p-4 rounded-xl bg-white dark:bg-[#0a0c16] border border-[#e2e8f0] dark:border-[#1a1d2d] space-y-2">                      <div className="flex items-center justify-between">                        <span className="font-bold text-sm text-[#0f172a] dark:text-white">{pair}</span>                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-100 dark:bg-[#1b1f32] text-purple-700 dark:text-purple-300 font-bold">{items.length} setup{items.length > 1 ? "s" : ""}</span>                      </div>                      <div className="text-[11px] text-gray-500">Last: <span className="font-bold">{last.direction}</span> @ {last.entryPrice} · RR {last.riskReward} · {last.timestamp}</div>                    </div>                  );                })}              </div>            );          })()}        </div>      )}      {activeTab === 'analytics' && (        <div className="space-y-4">          <div className="flex items-center gap-2 mb-3">            <BarChart3 className="w-4 h-4 text-[#5b3fe4] dark:text-purple-400" />            <h3 className="text-sm font-bold text-[#0f172a] dark:text-white">Strategy Analytics</h3>          </div>          {(() => {            const total = strategyHistory.length;            if (total === 0) return <div className="p-10 text-center text-xs text-gray-500 border border-dashed border-gray-200 dark:border-[#171926] rounded-xl">Generate strategies first to see analytics.</div>;            const buys = strategyHistory.filter((s) => s.direction === "BUY").length;            const sells = total - buys;            const avgConf = Math.round(strategyHistory.reduce((a, s) => a + (s.confidence || 0), 0) / total);            const rrNums = strategyHistory.map((s) => {              const m = String(s.riskReward || "").match(/1[:\s]+([\d.]+)/);              return m ? parseFloat(m[1]) : 0;            }).filter((n) => n > 0);            const avgRR = rrNums.length ? (rrNums.reduce((a, b) => a + b, 0) / rrNums.length).toFixed(1) : "—";            const stats = [              { label: "Total Strategies", value: String(total), sub: "all generated" },              { label: "Buy / Sell", value: buys + " / " + sells, sub: buys >= sells ? "buy bias" : "sell bias" },              { label: "Avg Confidence", value: avgConf + "%", sub: "across all setups" },              { label: "Avg Risk:Reward", value: "1:" + avgRR, sub: "weighted" },            ];            return (              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">                {stats.map((s) => (                  <div key={s.label} className="p-4 rounded-xl bg-white dark:bg-[#0a0c16] border border-[#e2e8f0] dark:border-[#1a1d2d]">                    <div className="text-[10px] uppercase text-gray-500 tracking-wider">{s.label}</div>                    <div className="text-xl font-bold text-[#0f172a] dark:text-white mt-1">{s.value}</div>                    <div className="text-[10px] text-gray-400 mt-0.5">{s.sub}</div>                  </div>                ))}              </div>            );          })()}        </div>      )}    </div>
   );
 };
