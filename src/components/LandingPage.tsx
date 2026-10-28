@@ -590,11 +590,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
           <div className="flex items-center gap-3">
             <a 
-              href="mailto:Pipnexaicustomer@gmail.com" 
+              href="mailto:piptraderaisupport@gmail.com" 
               className="flex items-center gap-1.5 text-purple-300 hover:text-purple-200 font-mono"
             >
               <Mail className="w-3.5 h-3.5" />
-              <span>Pipnexaicustomer@gmail.com</span>
+              <span>piptraderaisupport@gmail.com</span>
             </a>
             <span className="text-gray-600">•</span>
             <a 
@@ -685,7 +685,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <strong>Disclaimer &amp; Decision Support Notice:</strong> PipTraderAI Algo and Nova AI are designed exclusively as AI-powered analysis, educational, and decision-support tools. PipTraderAI does not offer guaranteed profits, guaranteed signals, or get-rich-quick claims. Trading Foreign Exchange (Forex) and CFDs carries a high level of risk and may not be suitable for all investors. Never trade with capital you cannot afford to lose.
             </p>
             <p className="text-gray-400">
-              © {new Date().getFullYear()} PipTraderAI Algo. All rights reserved. Support: Pipnexaicustomer@gmail.com · +254726222093
+              © {new Date().getFullYear()} PipTraderAI Algo. All rights reserved. Support: piptraderaisupport@gmail.com · +254726222093
             </p>
           </div>
 

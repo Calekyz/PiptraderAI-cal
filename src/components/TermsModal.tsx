@@ -181,8 +181,8 @@ export const TermsModal: React.FC<TermsModalProps> = ({
                 <h4 className="text-sm font-bold text-white mb-2">11. Contact</h4>
                 <p>
                   For any questions regarding these Terms, please contact us at{' '}
-                  <a href="mailto:Pipnexaicustomer@gmail.com" className="text-indigo-400 hover:underline">
-                    Pipnexaicustomer@gmail.com
+                  <a href="mailto:piptraderaisupport@gmail.com" className="text-indigo-400 hover:underline">
+                    piptraderaisupport@gmail.com
                   </a>
                   .
                 </p>
@@ -255,8 +255,8 @@ export const TermsModal: React.FC<TermsModalProps> = ({
                 </ul>
                 <p className="mt-2">
                   To exercise these rights, contact us at{' '}
-                  <a href="mailto:Pipnexaicustomer@gmail.com" className="text-indigo-400 hover:underline">
-                    Pipnexaicustomer@gmail.com
+                  <a href="mailto:piptraderaisupport@gmail.com" className="text-indigo-400 hover:underline">
+                    piptraderaisupport@gmail.com
                   </a>
                   .
                 </p>
@@ -297,8 +297,8 @@ export const TermsModal: React.FC<TermsModalProps> = ({
                 <h4 className="text-sm font-bold text-white mb-2">10. Contact</h4>
                 <p>
                   For privacy-related questions, please contact us at{' '}
-                  <a href="mailto:Pipnexaicustomer@gmail.com" className="text-indigo-400 hover:underline">
-                    Pipnexaicustomer@gmail.com
+                  <a href="mailto:piptraderaisupport@gmail.com" className="text-indigo-400 hover:underline">
+                    piptraderaisupport@gmail.com
                   </a>
                   .
                 </p>
