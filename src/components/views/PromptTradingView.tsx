@@ -22,6 +22,7 @@ import {
   CircleDot
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { getUserEmail } from '../../lib/creditsClient';
 
 interface GeneratedStrategy {
   id: string;
@@ -36,6 +37,10 @@ interface GeneratedStrategy {
   lotSize: number;
   explanation: string;
   confidence: number;
+  mt5Symbol?: string;
+  takeProfit2?: number;
+  currentPrice?: number;
+  marketDataAvailable?: boolean;
 }
 
 export const PromptTradingView: React.FC = () => {
@@ -68,6 +73,9 @@ export const PromptTradingView: React.FC = () => {
   // History & Generated Strategies
   const [strategyHistory, setStrategyHistory] = useState<GeneratedStrategy[]>([]);
   const [activeGeneratedStrategy, setActiveGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionResult, setExecutionResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // Templates list (including single setups & multi-pair parlays)
   const templates = [
@@ -105,50 +113,84 @@ export const PromptTradingView: React.FC = () => {
     if (!promptText.trim() || isGenerating) return;
 
     setIsGenerating(true);
+    setErrorMessage(null);
+    setExecutionResult(null);
     try {
       const res = await fetch('/api/prompt-trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: promptText })
+        body: JSON.stringify({ prompt: promptText, pairs: selectedPairs })
       });
       const data = await res.json();
-      
+
+      if (!res.ok || !data.ok) {
+        setErrorMessage(data.error || 'Failed to generate strategy. Please try again.');
+        return;
+      }
+
       const newStrategy: GeneratedStrategy = {
-        id: `strat-${Date.now()}`,
+        id: 'strat-' + Date.now(),
         timestamp: 'Just now',
         prompt: promptText,
         pair: data.pair || selectedPairs[0] || 'EURUSD',
         direction: (data.direction || 'BUY') as 'BUY' | 'SELL',
-        entryPrice: data.entryPrice || 1.0850,
-        stopLoss: data.stopLoss || 1.0820,
-        takeProfit: data.takeProfit1 || 1.0940,
-        riskReward: data.riskReward || '1:3.0',
+        entryPrice: data.entryPrice,
+        stopLoss: data.stopLoss,
+        takeProfit: data.takeProfit1,
+        riskReward: data.riskReward || '1:2.0',
         lotSize: data.lotSize || 1.0,
-        explanation: data.strategyExplanation || 'AI detected institutional liquidity sweep with optimal risk/reward parameters.',
-        confidence: 91
+        explanation: data.strategyExplanation || '',
+        confidence: 91,
+        mt5Symbol: data.mt5Symbol,
+        takeProfit2: data.takeProfit2,
+        currentPrice: data.currentPrice,
+        marketDataAvailable: data.marketDataAvailable
       };
 
       setActiveGeneratedStrategy(newStrategy);
       setStrategyHistory([newStrategy, ...strategyHistory]);
-    } catch {
-      const fallbackStrategy: GeneratedStrategy = {
-        id: `strat-${Date.now()}`,
-        timestamp: 'Just now',
-        prompt: promptText,
-        pair: selectedPairs[0] || 'EURUSD',
-        direction: promptText.toLowerCase().includes('sell') || promptText.toLowerCase().includes('short') ? 'SELL' : 'BUY',
-        entryPrice: selectedPairs[0] === 'XAUUSD' ? 2355.20 : 1.0842,
-        stopLoss: selectedPairs[0] === 'XAUUSD' ? 2345.00 : 1.0815,
-        takeProfit: selectedPairs[0] === 'XAUUSD' ? 2385.00 : 1.0925,
-        riskReward: '1:3.2',
-        lotSize: 0.75,
-        explanation: 'Institutional order block detected on M15. SL set behind local liquidity shelf.',
-        confidence: 92
-      };
-      setActiveGeneratedStrategy(fallbackStrategy);
-      setStrategyHistory([fallbackStrategy, ...strategyHistory]);
+    } catch (err: any) {
+      setErrorMessage('Network error — please try again.');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleExecute = async () => {
+    if (!activeGeneratedStrategy || isExecuting) return;
+    const s = activeGeneratedStrategy;
+    const email = getUserEmail();
+    if (!email) {
+      setExecutionResult({ ok: false, message: 'Please sign in to execute trades.' });
+      return;
+    }
+    setIsExecuting(true);
+    setExecutionResult(null);
+    try {
+      const res = await fetch('/api/mt5/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-email': email },
+        body: JSON.stringify({
+          action: 'open',
+          symbol: s.mt5Symbol || (s.pair + '.vcn'),
+          side: s.direction.toLowerCase(),
+          volume: s.lotSize,
+          sl: s.stopLoss,
+          tp: s.takeProfit,
+          comment: 'prompt-' + s.id
+        })
+      });
+      const data = await res.json();
+      if (data.ok && data.signal_id) {
+        setExecutionResult({ ok: true, message: 'Signal ' + data.signal_id + ' sent to MT5 — awaiting EA execution.' });
+        try { confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } }); } catch {}
+      } else {
+        setExecutionResult({ ok: false, message: data.error || 'Execution failed.' });
+      }
+    } catch (err: any) {
+      setExecutionResult({ ok: false, message: err.message || 'Network error.' });
+    } finally {
+      setIsExecuting(false);
     }
   };
 
@@ -709,6 +751,16 @@ export const PromptTradingView: React.FC = () => {
       </div>
 
       {/* Generated Strategy Preview Card */}
+      {errorMessage && (
+        <div className="mb-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+          {errorMessage}
+        </div>
+      )}
+      {executionResult && (
+        <div className={'mb-3 p-3 rounded-xl text-xs ' + (executionResult.ok ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300')}>
+          {executionResult.message}
+        </div>
+      )}
       {activeGeneratedStrategy && (
         <div className="bg-white dark:bg-[#080911] border border-[#5b3fe4] dark:border-purple-500/40 rounded-2xl p-6 space-y-4 shadow-lg dark:shadow-2xl animate-in slide-in-from-bottom-2">
           <div className="flex items-center justify-between border-b border-[#e2e8f0] dark:border-[#161826] pb-3">
@@ -761,11 +813,8 @@ export const PromptTradingView: React.FC = () => {
               Discard
             </button>
             <button
-              onClick={() => {
-                try {
-                  confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
-                } catch {}
-              }}
+              onClick={handleExecute}
+              disabled={isExecuting}
               className="px-5 py-2 rounded-xl bg-[#5b3fe4] hover:bg-[#4c32d4] text-white font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer active:scale-98 transition-all"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
@@ -2669,56 +2670,139 @@ app.get('/api/macro-news', async (req, res) => {
 
 app.post('/api/prompt-trade', async (req, res) => {
   try {
-    const { prompt } = req.body;
+    const { prompt, pairs } = req.body || {};
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length < 5) {
+      return res.status(400).json({ ok: false, error: 'A prompt of at least 5 characters is required.' });
+    }
 
-    const systemPrompt = `You are PipNex Prompt Trading Engine. Convert user natural language prompts into automated forex bot trade parameters.
-Return JSON with:
-{
-  "pair": "EUR/USD",
-  "direction": "BUY" or "SELL",
-  "entryType": "Market" | "Limit" | "Breakout",
-  "entryPrice": 1.0845,
-  "stopLoss": 1.0815,
-  "takeProfit1": 1.0890,
-  "takeProfit2": 1.0930,
-  "lotSize": 1.0,
-  "riskReward": "1:2.8",
-  "strategyExplanation": "...",
-  "botParameters": {
-    "trailingStopPips": 15,
-    "maxSpread": 1.2,
-    "timeframe": "15m"
-  }
-}`;
+    // Determine target pair — prefer explicit pairs from UI, else parse from prompt
+    const PAIR_RE = /\b(XAUUSD|XAGUSD|EURUSD|GBPUSD|USDJPY|AUDUSD|USDCAD|USDCHF|NZDUSD|BTCUSD|ETHUSD|US30|NAS100|SPX500)\b/i;
+    const requestedPairs = Array.isArray(pairs) && pairs.length
+      ? pairs.map((pp) => String(pp).toUpperCase())
+      : [];
+    const parsedFromPrompt = (String(prompt).match(PAIR_RE) || [])[0];
+    const targetPair = String(requestedPairs[0] || parsedFromPrompt || 'EURUSD').toUpperCase();
+    const mt5Symbol = targetPair.endsWith('.vcn') ? targetPair : targetPair + '.vcn';
 
-    const text = await generateWithFallback({
-      model: 'gemini-flash-latest',
-      prompt: `Generate PipNex trade execution setup for prompt: "${prompt}"`,
-      systemInstruction: systemPrompt,
-      responseMimeType: 'application/json'
-    });
-
-    const parsed = JSON.parse(text || '{}');
-    res.json(parsed);
-  } catch (error) {
-    console.error('Prompt trade error:', error);
-    res.json({
-      pair: 'EUR/USD',
-      direction: 'BUY',
-      entryType: 'Market',
-      entryPrice: 1.0842,
-      stopLoss: 1.0812,
-      takeProfit1: 1.0895,
-      takeProfit2: 1.0940,
-      lotSize: 1.25,
-      riskReward: '1:3.1',
-      strategyExplanation: 'Detected 15-minute bullish order block retest with rising volume and clean liquidation pool above 1.0890.',
-      botParameters: {
-        trailingStopPips: 12,
-        maxSpread: 1.0,
-        timeframe: '15m'
+    // Fetch live market context (best-effort)
+    let currentPrice = null;
+    let recentCandles = [];
+    let marketDataAvailable = false;
+    try {
+      const { candles, quote } = await fetchRealCandles(targetPair, '15m');
+      if (candles && candles.length) {
+        recentCandles = candles.slice(-20).map((c) => ({
+          open: Number(c.open), high: Number(c.high), low: Number(c.low), close: Number(c.close)
+        }));
+        currentPrice = Number(quote && quote.price ? quote.price : candles[candles.length - 1].close) || null;
+        marketDataAvailable = currentPrice !== null && currentPrice > 0;
       }
+    } catch (e) {
+      console.warn('[Prompt Trade] market data fetch failed:', e && e.message);
+    }
+
+    const marketContext = marketDataAvailable
+      ? 'Live market data for ' + targetPair + ' — current price: ' + currentPrice + '\nLast 20 M15 candles [open,high,low,close]:\n' + recentCandles.map((c) => '[' + c.open + ',' + c.high + ',' + c.low + ',' + c.close + ']').join('\n')
+      : 'No live market data available for ' + targetPair + '. Use conservative historically-plausible levels AND explicitly say in strategyExplanation that live price was unavailable.';
+
+    const systemPrompt = 'You are the PipTraderAI Prompt Trading Engine. Convert natural-language trading instructions into a concrete automated trade setup.\n\n' +
+      marketContext + '\n\n' +
+      'Return ONLY valid JSON (no markdown, no code fences) matching this schema:\n' +
+      '{\n' +
+      '  "pair": "' + targetPair + '",\n' +
+      '  "direction": "BUY" | "SELL",\n' +
+      '  "entryType": "Market" | "Limit" | "Breakout",\n' +
+      '  "entryPrice": number,\n' +
+      '  "stopLoss": number,\n' +
+      '  "takeProfit1": number,\n' +
+      '  "takeProfit2": number,\n' +
+      '  "lotSize": number,\n' +
+      '  "riskReward": "1:X.X",\n' +
+      '  "strategyExplanation": "2-4 sentence rationale anchored to the actual price data above",\n' +
+      '  "botParameters": { "trailingStopPips": number, "maxSpread": number, "timeframe": "1m"|"5m"|"15m"|"1h"|"4h" }\n' +
+      '}\n\n' +
+      'CRITICAL RULES:\n' +
+      '- BUY: stopLoss MUST be < entryPrice; takeProfit1 and takeProfit2 MUST be > entryPrice.\n' +
+      '- SELL: stopLoss MUST be > entryPrice; takeProfit1 and takeProfit2 MUST be < entryPrice.\n' +
+      '- entryPrice MUST be within ±0.5% of current price when market data is available.\n' +
+      '- All prices positive finite numbers. lotSize between 0.01 and 5.0.\n' +
+      '- Respect user-stated SL/TP if present in prompt.\n' +
+      '- Never guarantee profits.';
+
+    let rawText = '';
+    try {
+      rawText = await generateWithFallback({
+        model: 'gemini-flash-latest',
+        prompt: 'User prompt: "' + prompt + '"\nTarget pair: ' + targetPair,
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        temperature: 0.3
+      });
+    } catch (aiErr) {
+      console.error('[Prompt Trade] Gemini failed:', aiErr && aiErr.message);
+      return res.json({ ok: false, error: 'AI service is temporarily unavailable. Please try again in a moment.' });
+    }
+
+    let parsed = null;
+    try {
+      const cleaned = String(rawText || '').trim().replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      console.error('[Prompt Trade] JSON parse failed:', String(rawText || '').slice(0, 300));
+      return res.json({ ok: false, error: 'AI returned an unexpected response. Please rephrase your prompt and try again.' });
+    }
+
+    let dir = String(parsed.direction || '').toUpperCase();
+    if (dir === 'LONG') dir = 'BUY';
+    if (dir === 'SHORT') dir = 'SELL';
+    if (dir !== 'BUY' && dir !== 'SELL') {
+      return res.json({ ok: false, error: 'AI did not return a valid trade direction (BUY/SELL).' });
+    }
+
+    const entry = Number(parsed.entryPrice);
+    const sl = Number(parsed.stopLoss);
+    const tp1 = Number(parsed.takeProfit1);
+    const tp2 = Number(parsed.takeProfit2);
+    const lot = Number(parsed.lotSize);
+
+    const allValid = [entry, sl, tp1, lot].every((n) => Number.isFinite(n) && n > 0);
+    if (!allValid) {
+      return res.json({ ok: false, error: 'AI returned invalid price levels. Please try again.' });
+    }
+
+    if (dir === 'BUY' && !(sl < entry && tp1 > entry && (Number.isFinite(tp2) ? tp2 > entry : true))) {
+      return res.json({ ok: false, error: 'Invalid BUY levels: SL(' + sl + ') must be < entry(' + entry + ') < TP(' + tp1 + '/' + tp2 + '). Try rephrasing.' });
+    }
+    if (dir === 'SELL' && !(sl > entry && tp1 < entry && (Number.isFinite(tp2) ? tp2 < entry : true))) {
+      return res.json({ ok: false, error: 'Invalid SELL levels: TP(' + tp1 + '/' + tp2 + ') must be < entry(' + entry + ') < SL(' + sl + '). Try rephrasing.' });
+    }
+
+    const safeLot = Math.min(5, Math.max(0.01, lot));
+    const rr = dir === 'BUY'
+      ? (tp1 - entry) / Math.max(1e-9, entry - sl)
+      : (entry - tp1) / Math.max(1e-9, sl - entry);
+    const riskRewardStr = '1:' + Math.max(0.1, rr).toFixed(1);
+
+    return res.json({
+      ok: true,
+      pair: targetPair,
+      mt5Symbol,
+      direction: dir,
+      entryType: parsed.entryType || 'Market',
+      entryPrice: entry,
+      stopLoss: sl,
+      takeProfit1: tp1,
+      takeProfit2: Number.isFinite(tp2) ? tp2 : tp1,
+      lotSize: safeLot,
+      riskReward: riskRewardStr,
+      strategyExplanation: String(parsed.strategyExplanation || 'AI-generated setup based on your prompt.'),
+      botParameters: parsed.botParameters || { trailingStopPips: 15, maxSpread: 1.5, timeframe: '15m' },
+      currentPrice,
+      marketDataAvailable
     });
+  } catch (error) {
+    console.error('[Prompt Trade] fatal:', error && error.message);
+    return res.status(500).json({ ok: false, error: 'Prompt trade request failed. Please try again.' });
   }
 });
 
