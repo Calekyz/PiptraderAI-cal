@@ -19,7 +19,6 @@ import {
 import { MarketPulse } from '../MarketPulse';
 import { useSignalVerification } from '../../hooks/useSignalVerification';
 import { AIVerificationPill } from '../AIVerificationPill';
-import { ExecuteTradeButton } from '../ExecuteTradeButton';
 
 interface PulseSignalsViewProps {
   onBack?: () => void;
@@ -203,7 +202,6 @@ const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy
 
                   <button
                     onClick={() => {
-                      if (__canExecute) return; // handled by ExecuteTradeButton
                       if (onExecuteSignal) {
                         onExecuteSignal(sig);
                       } else {
@@ -225,16 +223,6 @@ export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
   onOpenUpgrade,
   onExecuteSignal
 }) => {
-  // Plan check — Pro/Elite get 1-click execute, others see upgrade prompt
-  const __user = (() => {
-    try {
-      const raw = localStorage.getItem('user');
-      return raw ? JSON.parse(raw) : {};
-    } catch { return {}; }
-  })();
-  const __plan = String(__user?.plan || 'Pending');
-  const __canExecute = __plan === 'Pro' || __plan === 'Elite';
-
   const [signals, setSignals] = useState<PulseSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'All' | 'Forex' | 'Commodities' | 'Crypto'>('All');
@@ -454,44 +442,26 @@ Setup: ${sig.setupType}`;
       )}
 
       {/* 4. Upgrade Callout if user wants unlimited automated alerts */}
-      {__canExecute ? (
-        <div className="bg-emerald-500/5 border border-emerald-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-left space-y-1">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider font-mono">
-                Direct MT5 Integration Active
-              </h3>
-            </div>
-            <p className="text-xs text-emerald-200/80 max-w-xl">
-              Your {__plan} plan includes 1-click execution to MT5. Every signal above can be sent directly to your live account — no webhooks, no setup.
-            </p>
+      <div className="bg-[#090b17] border border-[#1a1e36] rounded-2xl p-5 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="text-left space-y-1">
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4 text-purple-400" />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+              Direct Metatrader &amp; Webhook Integration
+            </h3>
           </div>
-          <span className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0">
-            {__plan} · Enabled
-          </span>
+          <p className="text-xs text-gray-400 max-w-xl">
+            Stream signals directly into your MT4/MT5 PipTraderAI bots with instant automated 1-click execution.
+          </p>
         </div>
-      ) : (
-        <div className="bg-[#090b17] border border-[#1a1e36] rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-left space-y-1">
-            <div className="flex items-center gap-2">
-              <Crown className="w-4 h-4 text-purple-400" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                Direct MT5 Execution
-              </h3>
-            </div>
-            <p className="text-xs text-gray-400 max-w-xl">
-              Upgrade to Pro or Elite to execute any signal directly to your MT5 account with one click. No webhooks required.
-            </p>
-          </div>
-          <button
-            onClick={() => onOpenUpgrade?.('Pro')}
-            className="px-5 py-2.5 rounded-xl bg-[#a78bfa] hover:bg-[#bba4fb] text-slate-950 font-bold text-xs transition-all shadow-md cursor-pointer shrink-0"
-          >
-            Upgrade to Pro
-          </button>
-        </div>
-      )}
+
+        <button
+          onClick={() => onOpenUpgrade?.('Elite')}
+          className="px-5 py-2.5 rounded-xl bg-[#a78bfa] hover:bg-[#bba4fb] text-slate-950 font-bold text-xs transition-all shadow-md cursor-pointer shrink-0"
+        >
+          Upgrade for Webhooks
+        </button>
+      </div>
     </div>
   );
 };
