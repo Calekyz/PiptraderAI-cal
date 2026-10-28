@@ -239,9 +239,34 @@ export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
   onOpenUpgrade,
   onExecuteSignal
 }) => {
-  const __user = (() => { try { const r = localStorage.getItem('user'); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
-  const __plan = String(__user?.plan || 'Pending');
-  const __canExecute = __plan === 'Pro' || __plan === 'Elite';
+  const [__planState, set__planState] = React.useState<string>(() => {
+    try {
+      const keys = ['user', 'pipnex_user', 'auth_user', 'currentUser', 'userData', 'pipnex_auth_user'];
+      for (const k of keys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const u = JSON.parse(raw);
+          if (u?.plan) return String(u.plan);
+        }
+      }
+    } catch {}
+    return 'Pending';
+  });
+  React.useEffect(() => {
+    if (__planState && __planState !== 'Pending') return;
+    let email: string | null = null;
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      email = u?.email || localStorage.getItem('user_email') || localStorage.getItem('pipnex_user_email') || null;
+    } catch {}
+    if (!email) return;
+    fetch('/api/user/me', { headers: { 'x-user-email': email } })
+      .then(r => r.json())
+      .then(d => { if (d?.user?.plan) set__planState(String(d.user.plan)); })
+      .catch(() => {});
+  }, [__planState]);
+  const __plan = __planState;
+  const __canExecute = ['pro', 'elite'].includes(String(__plan).toLowerCase());
   const [signals, setSignals] = useState<PulseSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'All' | 'Forex' | 'Commodities' | 'Crypto'>('All');
