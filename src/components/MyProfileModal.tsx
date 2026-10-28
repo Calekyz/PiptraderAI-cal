@@ -30,7 +30,7 @@ export const MyProfileModal: React.FC<MyProfileModalProps> = ({
 }) => {
   const [firstName, setFirstName] = useState(user.firstName || 'Davis');
   const [lastName, setLastName] = useState(user.lastName || 'Johnson');
-  const [email, setEmail] = useState(user.email || 'davisjohnson591@gmail.com');
+  const [email, setEmail] = useState(user.email || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   if (!isOpen) return null;

@@ -344,7 +344,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
   const verifiedKes = currentProduct?.kesAmount || Math.round(verifiedUsd * exchangeRate);
   const rawTillName = config?.mpesa.businessName || 'PipTraderAI Payment Agent';
   const mpesaTillName = /peak\s*markets|pipnex ai till/i.test(rawTillName) ? 'PipTraderAI Payment Agent' : rawTillName;
-  const rawTillNumber = config?.mpesa.tillNumber || '372203';
+  const rawTillNumber = config?.mpesa.tillNumber || '';
   const mpesaTillNumber = rawTillNumber === '3722030' ? '372203' : rawTillNumber;
 
   return (
@@ -702,14 +702,14 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                       </div>
                       <button
                         type="button"
-                        onClick={() => copyToClipboard(config?.binance.binanceId || '1067841957', 'binance_id')}
+                        onClick={() => copyToClipboard(config?.binance.binanceId || '', 'binance_id')}
                         className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
                       >
                         {copiedKey === 'binance_id' ? '✓ Copied' : 'Copy'}
                       </button>
                     </div>
                     <div className="text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono tracking-wider mt-0.5">
-                      {config?.binance.binanceId || '1067841957'}
+                      {config?.binance.binanceId || '—'}
                     </div>
                   </div>
 

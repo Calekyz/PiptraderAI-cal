@@ -386,7 +386,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
         },
         momentumVolatility: {
           momentum: 'Strong', volatility: 'Medium',
-          explanation: `RSI hovering in constructive territory (${indicators?.currentRsi?.toFixed(1) || '58.4'}).`
+          explanation: `RSI hovering in constructive territory (${indicators?.currentRsi?.toFixed(1) || '—'}).`
         },
         possibleScenarios: {
           bullish: { condition: `Clean break above ${(currentPrice * 1.006).toFixed(decimals)}`, targetArea: (currentPrice * 1.015).toFixed(decimals) },
@@ -857,7 +857,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold">{utcTime || '14:57:54 UTC'}</span>
+              <span className="font-bold">{utcTime || '—'}</span>
               <span className="text-emerald-500">● Real-Time</span>
             </div>
           </div>
@@ -938,7 +938,7 @@ export const AITradingView: React.FC<AITradingViewProps> = ({
               <div>
                 <label className="text-[11px] text-gray-400 block mb-1">Target Trigger Price</label>
                 <input type="number" step="any" value={alertPrice} onChange={(e) => setAlertPrice(e.target.value)}
-                  placeholder={`Current: ${quote?.price?.toFixed(selectedAsset.decimals) || '2914.50'}`}
+                  placeholder={`Current: ${quote?.price?.toFixed(selectedAsset.decimals) || '—'}`}
                   className="w-full font-mono text-sm p-2 rounded-xl bg-slate-50 dark:bg-[#13162b] border border-gray-300 dark:border-gray-700 focus:outline-none focus:border-purple-500"
                   autoFocus required />
               </div>

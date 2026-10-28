@@ -556,7 +556,21 @@ export const PromptTradingView: React.FC = () => {
                 <h4 className="text-xs font-bold">No MT5 Account Connected</h4>
               </div>
               <button 
-                onClick={() => {}}
+                onClick={async () => {
+                  const email = getUserEmail();
+                  if (!email) return;
+                  try {
+                    const res = await fetch('/api/mt5/stats', { headers: { 'x-user-email': email } });
+                    const data = await res.json();
+                    if (data.ok) {
+                      setExecutionResult({ ok: true, message: 'MT5 connected — balance $' + (data.balance || 0).toFixed(2) });
+                    } else {
+                      setExecutionResult({ ok: false, message: 'MT5 not connected: ' + (data.error || data.reason || 'unknown') });
+                    }
+                  } catch {
+                    setExecutionResult({ ok: false, message: 'Connection check failed' });
+                  }
+                }}
                 className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
                 title="Refresh Connection"
               >
@@ -656,7 +670,7 @@ export const PromptTradingView: React.FC = () => {
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-[#64748b] dark:text-gray-400">Risk Exposure</span>
-                <span className="font-mono text-[#0f172a] dark:text-white font-bold">USD 450.00 / 1000.00</span>
+                <span className="font-mono text-[#0f172a] dark:text-white font-bold">—</span>
               </div>
               <div className="w-full bg-gray-100 dark:bg-[#10121d] h-1.5 rounded-full overflow-hidden border border-gray-200 dark:border-[#1b1f30]">
                 <div className="bg-[#5b3fe4] dark:bg-[#9d83e9] h-full w-[45%]" />
@@ -667,7 +681,7 @@ export const PromptTradingView: React.FC = () => {
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-[#64748b] dark:text-gray-400">Active Trades</span>
-                <span className="font-mono text-[#0f172a] dark:text-white font-bold">2 / 5</span>
+                <span className="font-mono text-[#0f172a] dark:text-white font-bold">— / —</span>
               </div>
               <div className="w-full bg-gray-100 dark:bg-[#10121d] h-1.5 rounded-full overflow-hidden border border-gray-200 dark:border-[#1b1f30]">
                 <div className="bg-[#5b3fe4] dark:bg-[#9d83e9] h-full w-[40%]" />
@@ -719,7 +733,7 @@ export const PromptTradingView: React.FC = () => {
             <div className="flex items-center justify-between text-[10.5px] font-mono text-[#64748b] dark:text-gray-400 pt-1 border-t border-[#e2e8f0] dark:border-[#151724]">
               <div className="flex items-center gap-1">
                 <Zap className="w-3 h-3 text-[#5b3fe4] dark:text-purple-400" />
-                <span>System latency: ~50ms</span>
+                <span>System latency: —</span>
               </div>
               <div className="flex items-center gap-1 text-gray-400">
                 <CircleDot className="w-3 h-3" />
