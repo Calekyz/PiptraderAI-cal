@@ -22,6 +22,7 @@ import { AIVerificationPill } from '../AIVerificationPill';
 import { ExecuteTradeButton } from '../ExecuteTradeButton';
 
 interface PulseSignalsViewProps {
+  user?: any;
   onBack?: () => void;
   onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
   onExecuteSignal?: (signal: any) => void;
@@ -235,11 +236,12 @@ const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy
 };
 
 export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
+  user,
   onBack,
   onOpenUpgrade,
   onExecuteSignal
 }) => {
-  const [__planState, set__planState] = React.useState<string>(() => {
+  const __planState = String(user?.plan || (() => {
     try {
       const keys = ['user', 'pipnex_user', 'auth_user', 'currentUser', 'userData', 'pipnex_auth_user'];
       for (const k of keys) {
@@ -251,20 +253,7 @@ export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
       }
     } catch {}
     return 'Pending';
-  });
-  React.useEffect(() => {
-    if (__planState && __planState !== 'Pending') return;
-    let email: string | null = null;
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || '{}');
-      email = u?.email || localStorage.getItem('user_email') || localStorage.getItem('pipnex_user_email') || null;
-    } catch {}
-    if (!email) return;
-    fetch('/api/user/me', { headers: { 'x-user-email': email } })
-      .then(r => r.json())
-      .then(d => { if (d?.user?.plan) set__planState(String(d.user.plan)); })
-      .catch(() => {});
-  }, [__planState]);
+  })());
   const __plan = __planState;
   const __canExecute = ['pro', 'elite'].includes(String(__plan).toLowerCase());
   const [signals, setSignals] = useState<PulseSignal[]>([]);

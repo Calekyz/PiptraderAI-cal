@@ -1280,6 +1280,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
                 ]}
               >
                 <PulseSignalsView 
+                  user={user}
                   onBack={() => setActiveTab('overview')}
                   onOpenUpgrade={handleOpenUpgrade}
                   onExecuteSignal={(sig) => {
