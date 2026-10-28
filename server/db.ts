@@ -2387,18 +2387,35 @@ export async function initializeDatabase(): Promise<void> {
 // ============================================================================
 import { pipnexKvStore } from '../src/db/schema';
 
+// In-memory fallback so local dev works even when Neon is unreachable.
+// Controlled by USE_MEMORY_KV=true (Codespace) or auto-fallback on DB failure.
+const __kvMemory = new Map<string, any>();
+const __USE_MEMORY_KV = String(process.env.USE_MEMORY_KV || '').toLowerCase() === 'true';
+
 export async function kvGet<T = any>(key: string): Promise<T | null> {
+  // Memory-only mode (local dev with unreachable DB)
+  if (__USE_MEMORY_KV) {
+    return __kvMemory.has(key) ? (__kvMemory.get(key) as T) : null;
+  }
+  // DB-first, memory fallback
   try {
     const rows = await pgDb.select().from(pipnexKvStore).where(eq(pipnexKvStore.key, key));
-    if (!rows || rows.length === 0) return null;
+    if (!rows || rows.length === 0) {
+      return __kvMemory.has(key) ? (__kvMemory.get(key) as T) : null;
+    }
     return rows[0].value as T;
   } catch (err: any) {
-    console.warn(`[KV] get "${key}" failed:`, err?.message);
-    return null;
+    console.warn(`[KV] get "${key}" failed (using memory):`, err?.message);
+    return __kvMemory.has(key) ? (__kvMemory.get(key) as T) : null;
   }
 }
 
 export async function kvSet<T = any>(key: string, value: T): Promise<boolean> {
+  // Always write to memory first — instant
+  __kvMemory.set(key, value);
+  if (__USE_MEMORY_KV) {
+    return true;
+  }
   try {
     await pgDb
       .insert(pipnexKvStore)
@@ -2409,17 +2426,21 @@ export async function kvSet<T = any>(key: string, value: T): Promise<boolean> {
       });
     return true;
   } catch (err: any) {
-    console.warn(`[KV] set "${key}" failed:`, err?.message);
-    return false;
+    console.warn(`[KV] set "${key}" failed (kept in memory):`, err?.message);
+    return true;
   }
 }
 
 export async function kvDelete(key: string): Promise<boolean> {
+  __kvMemory.delete(key);
+  if (__USE_MEMORY_KV) {
+    return true;
+  }
   try {
     await pgDb.delete(pipnexKvStore).where(eq(pipnexKvStore.key, key));
     return true;
   } catch (err: any) {
-    console.warn(`[KV] delete "${key}" failed:`, err?.message);
-    return false;
+    console.warn(`[KV] delete "${key}" failed (removed from memory):`, err?.message);
+    return true;
   }
 }
