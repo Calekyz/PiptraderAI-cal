@@ -480,8 +480,8 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
         )
       )}
 
-      {/* ── Expected Analysis — always shown when we have a prediction ── */}
-      {prediction && (
+      {/* ── Expected Analysis — always shown when we have a target event ── */}
+      {target && (
         <div className="mt-4 p-4 rounded-xl bg-gray-50 dark:bg-[#0a0c16] border border-gray-200 dark:border-[#16192c] space-y-3">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-3.5 h-3.5 text-purple-500" />
@@ -501,40 +501,46 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
           </div>
 
           {/* AI Analysis */}
-          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Sparkles className="w-3 h-3 text-purple-500" />
-              <span className="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">AI Analysis</span>
+          {prediction && (
+            <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Sparkles className="w-3 h-3 text-purple-500" />
+                <span className="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">AI Analysis</span>
+              </div>
+              <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">
+                {prediction.aiNote || prediction.reasoning}
+              </p>
             </div>
-            <p className="text-[11px] text-gray-700 dark:text-gray-300 leading-relaxed">
-              {prediction.aiNote || prediction.reasoning}
-            </p>
-          </div>
+          )}
 
           {/* USD Bias */}
-          <div className="flex items-center justify-between text-[11px] p-2.5 rounded-lg bg-white dark:bg-[#121524] border border-gray-200 dark:border-[#1e233d]">
-            <span className="text-gray-600 dark:text-gray-400 font-medium">USD News Bias</span>
-            <span className={`font-bold font-mono ${
-              prediction.usdScore > 0.5 ? 'text-emerald-500'
-              : prediction.usdScore < -0.5 ? 'text-rose-500'
-              : 'text-gray-500'
-            }`}>
-              {prediction.usdScore >= 0 ? '+' : ''}{prediction.usdScore.toFixed(2)}
-            </span>
-          </div>
-                  <div className="mt-3 pt-3 border-t border-[#1a1d2d] news-execute-btn">
-                    <ExecuteTradeButton
-                      symbol={(prediction as any).symbol || 'XAUUSD.vcn'}
-                      side={String(prediction.direction).toUpperCase() === 'SELL' ? 'sell' : 'buy'}
-                      volume={0.1}
-                      comment={'news_' + ((target as any)?.title || 'event').slice(0, 20)}
-                      label={'Execute ' + String(prediction.direction).toUpperCase() + ' on ' + ((prediction as any).symbol || 'XAUUSD')}
-                    />
-                  </div>
+          {prediction && (
+            <div className="flex items-center justify-between text-[11px] p-2.5 rounded-lg bg-white dark:bg-[#121524] border border-gray-200 dark:border-[#1e233d]">
+              <span className="text-gray-600 dark:text-gray-400 font-medium">USD News Bias</span>
+              <span className={`font-bold font-mono ${
+                prediction.usdScore > 0.5 ? 'text-emerald-500'
+                : prediction.usdScore < -0.5 ? 'text-rose-500'
+                : 'text-gray-500'
+              }`}>
+                {prediction.usdScore >= 0 ? '+' : ''}{prediction.usdScore.toFixed(2)}
+              </span>
+            </div>
+          )}
+          {prediction && (
+            <div className="mt-3 pt-3 border-t border-[#1a1d2d] news-execute-btn">
+              <ExecuteTradeButton
+                symbol={(prediction as any).symbol || 'XAUUSD.vcn'}
+                side={String(prediction.direction).toUpperCase() === 'SELL' ? 'sell' : 'buy'}
+                volume={0.1}
+                comment={'news_' + ((target as any)?.title || 'event').slice(0, 20)}
+                label={'Execute ' + String(prediction.direction).toUpperCase() + ' on ' + ((prediction as any).symbol || 'XAUUSD')}
+              />
+            </div>
+          )}
 
 
           {/* Expected Direction Summary */}
-          {prediction.direction !== 'WAIT' && (
+          {prediction && prediction.direction !== 'WAIT' && (
             <div className={`p-2.5 rounded-lg border text-[11px] flex items-center justify-between ${
               prediction.direction === 'BUY'
                 ? 'bg-emerald-500/5 border-emerald-500/30'
