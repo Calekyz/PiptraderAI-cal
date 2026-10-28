@@ -3379,21 +3379,51 @@ app.get('/api/mt5/stats', async (req: any, res: any) => {
 
   let r = await bridgeUserStats(email);
 
-  // Auto-link: if user isn't in bridge_links yet but exists in users table,
-  // call /bridge/link to register them, then retry stats.
+  // Auto-link if needed
   const notLinked = r.ok && r.data && r.data.ok === false && r.data.reason === 'not_linked';
   if (notLinked) {
-    console.log('[MT5 Stats] not_linked — auto-linking:', email);
     const linkRes = await bridgeLink(email);
     if (linkRes.ok && linkRes.data && linkRes.data.ok) {
-      console.log('[MT5 Stats] auto-link success for', email);
       r = await bridgeUserStats(email);
-    } else {
-      console.log('[MT5 Stats] auto-link failed:', linkRes.data?.reason || linkRes.error);
     }
   }
 
-  return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
+  // Overlay LIVE account from bot session (real balance, not stale bridge_links data)
+  let liveAccount: any = null;
+  try {
+    const botSession = await getBridgeSession(email);
+    if (botSession) {
+      const acc = await bridgeFetch(email, '/v1/account');
+      if (acc.ok && acc.data) {
+        liveAccount = acc.data.account || acc.data;
+      }
+    }
+  } catch {}
+
+  const baseData = (r.data && r.data.ok) ? r.data : {};
+  const liveBalance = liveAccount?.balance ?? liveAccount?.equity;
+  const liveEquity = liveAccount?.equity ?? liveAccount?.balance;
+  const liveOpenPositions = Array.isArray(liveAccount?.positions) ? liveAccount.positions.length
+    : (liveAccount?.open_positions ?? liveAccount?.openPositions ?? baseData.open_positions ?? null);
+
+  return res.status(200).json({
+    ok: true,
+    email,
+    linked_at: baseData.linked_at || null,
+    last_stats_at: baseData.last_stats_at || new Date().toISOString(),
+    balance: liveBalance ?? baseData.balance ?? null,
+    equity: liveEquity ?? baseData.equity ?? null,
+    daily_pnl: liveAccount?.daily_pnl ?? liveAccount?.profit ?? baseData.daily_pnl ?? null,
+    open_positions: liveOpenPositions,
+    meta: {
+      source: liveAccount ? 'live_bot_session' : (baseData.meta?.source || 'bridge_links_stale'),
+      account_number: liveAccount?.login || liveAccount?.account || null,
+      broker: liveAccount?.broker || liveAccount?.company || null,
+      currency: liveAccount?.currency || null,
+      leverage: liveAccount?.leverage || null,
+      name: liveAccount?.name || null
+    }
+  });
 });
 
 app.post('/api/mt5/execute', async (req: any, res: any) => {
