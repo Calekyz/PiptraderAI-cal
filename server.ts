@@ -3523,7 +3523,23 @@ app.get('/api/mt5/signals', async (req: any, res: any) => {
   if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
   if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
   const r = await bridgeSignals(email);
-  return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
+  if (!r.ok || !r.data) {
+    return res.status(r.status || 500).json(r.data ?? { ok: false, error: r.error });
+  }
+
+  // Filter out stale PENDING signals (old queue model — never executed, EA no longer polls)
+  const now = Date.now();
+  const STALE_MS = 5 * 60 * 1000; // 5 minutes
+  const signals = Array.isArray(r.data.signals) ? r.data.signals : [];
+  const filtered = signals.filter((s: any) => {
+    if (s.status === 'PENDING' || s.status === 'DELIVERED') {
+      const t = new Date(s.created_at || s.createdAt || 0).getTime();
+      if (t && (now - t) > STALE_MS) return false; // hide stale
+    }
+    return true;
+  });
+
+  return res.json({ ...r.data, signals: filtered });
 });
 
 app.post('/api/auth/verify-code', (req, res) => {
