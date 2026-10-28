@@ -174,6 +174,9 @@ export const PositionCalculatorView: React.FC = () => {
     setIsFetchingPrice(true);
     try {
       const res = await fetch(`/api/market-data/price?symbol=${encodeURIComponent(inst.apiSymbol)}`);
+      if (!res.ok) {
+        console.warn('[PositionCalc] price fetch failed:', res.status);
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.quote && data.quote.price) {
@@ -281,6 +284,38 @@ export const PositionCalculatorView: React.FC = () => {
     }
 
     // Risk amount in currency ($)
+    // Guard: entry, SL, balance must all be real numbers
+    if (!entry || entry <= 0) {
+      return {
+        lotSize: 0,
+        riskAmountUsd: 0,
+        rewardAmountUsd: 0,
+        riskRewardRatio: 0,
+        pipValue: 0,
+        invalidReason: 'Enter a valid entry price to calculate'
+      } as any;
+    }
+    if (!slPips || slPips <= 0) {
+      return {
+        lotSize: 0,
+        riskAmountUsd: 0,
+        rewardAmountUsd: 0,
+        riskRewardRatio: 0,
+        pipValue: 0,
+        invalidReason: 'Enter a valid stop loss distance in pips'
+      } as any;
+    }
+    if (pipValuePerStandardLot <= 0) {
+      return {
+        lotSize: 0,
+        riskAmountUsd: 0,
+        rewardAmountUsd: 0,
+        riskRewardRatio: 0,
+        pipValue: 0,
+        invalidReason: 'Could not resolve pip value — enter entry price manually'
+      } as any;
+    }
+
     const riskAmountUsd = (balance * riskPct) / 100;
 
     // Price difference to SL
@@ -297,9 +332,9 @@ export const PositionCalculatorView: React.FC = () => {
     } else if (selectedSymbol === 'EURUSD' || selectedSymbol === 'GBPUSD' || selectedSymbol === 'AUDUSD') {
       pipValuePerStandardLot = 10; // $10 per pip on 100k contract
     } else if (selectedSymbol === 'USDJPY') {
-      pipValuePerStandardLot = (100000 * 0.01) / (entry || 154.28); // ~$6.48
+      pipValuePerStandardLot = entry > 0 ? (100000 * 0.01) / entry : 0; // ~$6.48
     } else if (selectedSymbol === 'USDCAD') {
-      pipValuePerStandardLot = (100000 * 0.0001) / (entry || 1.3980); // ~$7.15
+      pipValuePerStandardLot = entry > 0 ? (100000 * 0.0001) / entry : 0; // ~$7.15
     }
 
     // Lot size = Risk Amount / (Pips * Pip Value per 1 Lot)
