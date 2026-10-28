@@ -73,6 +73,16 @@ export const PromptTradingView: React.FC = () => {
   // History & Generated Strategies
   const [strategyHistory, setStrategyHistory] = useState<GeneratedStrategy[]>([]);
   const [activeGeneratedStrategy, setActiveGeneratedStrategy] = useState<GeneratedStrategy | null>(null);
+
+  // Load saved strategies on mount + when user changes
+  React.useEffect(() => {
+    const email = getUserEmail();
+    if (!email) return;
+    fetch('/api/prompt-strategies', { headers: { 'x-user-email': email } })
+      .then((r) => r.json())
+      .then((d) => { if (d.ok && Array.isArray(d.strategies)) setStrategyHistory(d.strategies); })
+      .catch(() => {});
+  }, []);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResult, setExecutionResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -119,7 +129,7 @@ export const PromptTradingView: React.FC = () => {
       const res = await fetch('/api/prompt-trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: promptText, pairs: selectedPairs })
+        body: JSON.stringify({ prompt: promptText, pairs: selectedPairs, riskPercent, maxSpread, executionMode })
       });
       const data = await res.json();
 
@@ -149,6 +159,14 @@ export const PromptTradingView: React.FC = () => {
 
       setActiveGeneratedStrategy(newStrategy);
       setStrategyHistory([newStrategy, ...strategyHistory]);
+      const __email = getUserEmail();
+      if (__email) {
+        fetch('/api/prompt-strategies/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-user-email': __email },
+          body: JSON.stringify(newStrategy)
+        }).catch(() => {});
+      }
     } catch (err: any) {
       setErrorMessage('Network error — please try again.');
     } finally {
@@ -194,13 +212,62 @@ export const PromptTradingView: React.FC = () => {
     }
   };
 
-  const handleStopAI = () => {
-    setIsAiStopped(true);
-    setAutoTradingMode(false);
+  const handleStopAI = async () => {
+    const email = getUserEmail();
+    if (!email) return;
+    try {
+      const res = await fetch('/api/prompt-control/stop', {
+        method: 'POST',
+        headers: { 'x-user-email': email }
+      });
+      const data = await res.json();
+      setIsAiStopped(true);
+      setAutoTradingMode(false);
+      setIsAiPaused(true);
+      setExecutionResult({
+        ok: true,
+        message: data.cancelled > 0
+          ? 'STOP AI — trading halted, ' + data.cancelled + ' pending signal(s) cancelled.'
+          : 'STOP AI — trading halted. No pending signals.'
+      });
+    } catch (err: any) {
+      setExecutionResult({ ok: false, message: 'Stop failed: ' + (err?.message || 'network error') });
+    }
   };
 
-  const handleCancelPending = () => {
-    setActiveGeneratedStrategy(null);
+  const handlePauseToggle = async () => {
+    const email = getUserEmail();
+    if (!email) return;
+    const next = !isAiPaused;
+    try {
+      const res = await fetch(next ? '/api/prompt-control/pause' : '/api/prompt-control/resume', {
+        method: 'POST',
+        headers: { 'x-user-email': email }
+      });
+      const data = await res.json();
+      if (data.ok) setIsAiPaused(next);
+    } catch {}
+  };
+
+  const handleCancelPending = async () => {
+    const email = getUserEmail();
+    if (!email) return;
+    try {
+      const res = await fetch('/api/prompt-control/cancel-pending', {
+        method: 'POST',
+        headers: { 'x-user-email': email }
+      });
+      const data = await res.json();
+      setActiveGeneratedStrategy(null);
+      setExecutionResult({
+        ok: true,
+        message: data.cancelled > 0
+          ? 'Cancelled ' + data.cancelled + ' pending signal(s).'
+          : 'No pending signals to cancel.'
+      });
+    } catch (err: any) {
+      setExecutionResult({ ok: false, message: 'Cancel failed: ' + (err?.message || 'network error') });
+    }
   };
 
   const handleVoiceToggle = () => {
@@ -595,7 +662,7 @@ export const PromptTradingView: React.FC = () => {
             {/* Action Row: Pause & Cancel All Pending */}
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => setIsAiPaused(!isAiPaused)}
+                onClick={handlePauseToggle}
                 className="py-1.5 px-3 rounded-lg bg-gray-100 dark:bg-[#121422] hover:bg-gray-200 dark:hover:bg-[#1a1d2e] border border-gray-200 dark:border-[#22273c] text-gray-700 dark:text-gray-300 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Pause className="w-3.5 h-3.5" />

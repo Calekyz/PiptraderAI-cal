@@ -47,7 +47,8 @@ import { getLimits, type PlanTier } from './src/lib/planLimits';
 import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter, fetchForexFactoryCalendar } from './server/forexFactoryEngine';
 import { bridgeConnect, bridgeDisconnect, getBridgeSession, bridgeFetch, getBotApiUrl } from './server/bridge';
-import { bridgeUserStats, bridgePushSignal, bridgeSignals, isMt5BridgeConfigured } from './server/mt5Bridge';
+import { kvGet, kvSet } from './server/db';
+import { bridgeUserStats, bridgePushSignal, bridgeSignals, bridgeAckSignal, isMt5BridgeConfigured } from './server/mt5Bridge';
 import PDFDocument from 'pdfkit';
 import {
   analyzeMarket,
@@ -3227,6 +3228,81 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // ─── MT5 Bridge proxies (token-authenticated) ───
+// ─── Prompt Trading Control (safety + persistence) ───
+app.get('/api/prompt-control/status', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  const state = (await kvGet<any>('prompt-state:' + email)) || {};
+  return res.json({ ok: true, paused: Boolean(state.paused), stoppedAt: state.stoppedAt || null });
+});
+
+app.post('/api/prompt-control/pause', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  const prev = (await kvGet<any>('prompt-state:' + email)) || {};
+  await kvSet('prompt-state:' + email, { ...prev, paused: true });
+  return res.json({ ok: true, paused: true });
+});
+
+app.post('/api/prompt-control/resume', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  const prev = (await kvGet<any>('prompt-state:' + email)) || {};
+  await kvSet('prompt-state:' + email, { ...prev, paused: false, stoppedAt: null });
+  return res.json({ ok: true, paused: false });
+});
+
+app.post('/api/prompt-control/cancel-pending', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
+  const listRes = await bridgeSignals(email);
+  let cancelled = 0;
+  if (listRes.ok && listRes.data && Array.isArray(listRes.data.signals)) {
+    const pending = listRes.data.signals.filter((s: any) => s.status === 'PENDING' || s.status === 'DELIVERED');
+    for (const sig of pending) {
+      const ack = await bridgeAckSignal({ email, signal_id: sig.id, ok: false, error: 'cancelled_by_user' });
+      if (ack.ok) cancelled++;
+    }
+  }
+  return res.json({ ok: true, cancelled });
+});
+
+app.post('/api/prompt-control/stop', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  await kvSet('prompt-state:' + email, { paused: true, stoppedAt: Date.now() });
+  if (!isMt5BridgeConfigured()) return res.json({ ok: true, paused: true, cancelled: 0 });
+  const listRes = await bridgeSignals(email);
+  let cancelled = 0;
+  if (listRes.ok && listRes.data && Array.isArray(listRes.data.signals)) {
+    const pending = listRes.data.signals.filter((s: any) => s.status === 'PENDING' || s.status === 'DELIVERED');
+    for (const sig of pending) {
+      const ack = await bridgeAckSignal({ email, signal_id: sig.id, ok: false, error: 'cancelled_by_stop_ai' });
+      if (ack.ok) cancelled++;
+    }
+  }
+  return res.json({ ok: true, paused: true, cancelled });
+});
+
+app.get('/api/prompt-strategies', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  const list = (await kvGet<any[]>('strategies:' + email)) || [];
+  return res.json({ ok: true, strategies: list });
+});
+
+app.post('/api/prompt-strategies/save', async (req: any, res: any) => {
+  const email = String(req.headers['x-user-email'] || '').trim().toLowerCase();
+  if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
+  const strategy = req.body;
+  if (!strategy || !strategy.id) return res.status(400).json({ ok: false, error: 'invalid_strategy' });
+  const existing = (await kvGet<any[]>('strategies:' + email)) || [];
+  const updated = [strategy, ...existing.filter((s: any) => s && s.id !== strategy.id)].slice(0, 100);
+  await kvSet('strategies:' + email, updated);
+  return res.json({ ok: true, count: updated.length });
+});
+
 app.get('/api/mt5/stats', async (req: any, res: any) => {
   const email = String(req.query.email || req.headers['x-user-email'] || '').trim().toLowerCase();
   if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
@@ -3239,6 +3315,8 @@ app.post('/api/mt5/execute', async (req: any, res: any) => {
   const email = String(req.headers['x-user-email'] || req.body?.email || '').trim().toLowerCase();
   if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
   if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
+  const __state = (await kvGet<any>('prompt-state:' + email)) || {};
+  if (__state.paused) return res.status(423).json({ ok: false, error: 'trading_paused_by_user', reason: 'Trading is paused. Click Resume on the Prompt Trading page.' });
   const { action, symbol, side, volume, sl, tp, ticket, comment } = req.body || {};
   if (!action || !symbol) return res.status(400).json({ ok: false, error: 'action_and_symbol_required' });
   const r = await bridgePushSignal({ email, action, symbol, side, volume, sl, tp, ticket, comment });

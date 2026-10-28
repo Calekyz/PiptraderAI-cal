@@ -66,6 +66,9 @@ export const bridgePushSignal = (payload: {
   comment?: string;
 }) => bridgeCall('/bridge/push-signal', { method: 'POST', body: JSON.stringify(payload) });
 
+export const bridgeAckSignal = (payload: { email: string; signal_id: string; ok: boolean; ticket?: number; price?: number; error?: string }) =>
+  bridgeCall('/bridge/ack-signal', { method: 'POST', body: JSON.stringify(payload) });
+
 export const bridgeSignals = (email: string) =>
   bridgeCall(`/bridge/signals?email=${encodeURIComponent(email)}`);
 
