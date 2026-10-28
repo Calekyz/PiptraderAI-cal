@@ -75,7 +75,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [email, setEmail] = useState(user.email || '');
 
   // Admin Panel Security & Gatekeeper State
-  const ADMIN_WHITELIST = ['pipnexaicustomer@gmail.com', 'oruchodaniel21@gmail.com'];
+  const ADMIN_WHITELIST = ['piptraderaisupport@gmail.com', 'oruchodaniel21@gmail.com'];
   const isWhitelistedAdmin = Boolean(
     user?.email && ADMIN_WHITELIST.includes(user.email.toLowerCase().trim())
   );

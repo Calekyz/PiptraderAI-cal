@@ -463,7 +463,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
             <div className="space-y-3.5 text-xs">
               {/* Email */}
               <a 
-                href="mailto:Pipnexaicustomer@gmail.com"
+                href="mailto:piptraderaisupport@gmail.com"
                 className="flex items-start gap-3 p-3 rounded-2xl bg-[#0d0e18] hover:bg-[#141624] border border-[#1a1d2e] hover:border-purple-500/40 transition-colors group cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-xl bg-[#141624] border border-[#272c44] flex items-center justify-center text-purple-400 shrink-0 group-hover:text-purple-300">
@@ -471,7 +471,7 @@ export const ContactSupportView: React.FC<ContactSupportViewProps> = ({
                 </div>
                 <div>
                   <div className="text-[11px] text-gray-400">Email</div>
-                  <div className="font-semibold text-white font-mono mt-0.5 group-hover:text-purple-300 transition-colors">Pipnexaicustomer@gmail.com</div>
+                  <div className="font-semibold text-white font-mono mt-0.5 group-hover:text-purple-300 transition-colors">piptraderaisupport@gmail.com</div>
                 </div>
               </a>
 

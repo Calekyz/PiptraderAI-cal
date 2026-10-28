@@ -95,7 +95,7 @@ export default function App() {
     } catch {}
   }, []);
 
-  const ADMIN_WHITELIST = ['pipnexaicustomer@gmail.com', 'oruchodaniel21@gmail.com'];
+  const ADMIN_WHITELIST = ['piptraderaisupport@gmail.com', 'oruchodaniel21@gmail.com'];
   const isWhitelistedAdmin = Boolean(
     currentUser?.email && ADMIN_WHITELIST.includes(currentUser.email.toLowerCase().trim())
   );

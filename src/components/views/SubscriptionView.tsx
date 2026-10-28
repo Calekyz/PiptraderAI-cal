@@ -88,7 +88,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
         `Payment Method: ${latestPayment?.paymentMethod || 'M-Pesa Verified / Binance USDT'}\n` +
         `Transaction Ref: ${latestPayment?.mpesaReceiptNumber || latestPayment?.transactionHash || 'chk_5u4g0IIZoSxkx2Dt'}\n` +
         `Amount Paid: ${latestPayment ? `$${latestPayment.usdPrice} USD (KES ${latestPayment.kesAmount.toLocaleString()})` : '$95.00 USD (KES 12,255)'}\n` +
-        `Support Contact: Pipnexaicustomer@gmail.com | +254726222093\n` +
+        `Support Contact: piptraderaisupport@gmail.com | +254726222093\n` +
         `===================================================\n` +
         `All PipTraderAI plan upgrades feature real-time AI chart intelligence, Nova AI (Nova) bot execution, and 24/7 priority support.`
       ], { type: 'text/plain' });
@@ -471,11 +471,11 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <a
-            href="mailto:Pipnexaicustomer@gmail.com"
+            href="mailto:piptraderaisupport@gmail.com"
             className="px-3.5 py-2 rounded-xl bg-[#121422] hover:bg-[#1a1e32] border border-[#23273c] text-white text-xs font-medium flex items-center gap-1.5 transition-all"
           >
             <Mail className="w-3.5 h-3.5 text-purple-400" />
-            <span>Pipnexaicustomer@gmail.com</span>
+            <span>piptraderaisupport@gmail.com</span>
           </a>
           <a
             href="tel:+254726222093"

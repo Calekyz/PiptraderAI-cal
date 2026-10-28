@@ -482,7 +482,7 @@ export const BotDashboard: React.FC<BotDashboardProps> = ({
   // Strict Whitelist for Admin Panel access (ONLY these two email accounts)
   const isAdmin = Boolean(
     user?.email &&
-    (user.email.toLowerCase().trim() === 'pipnexaicustomer@gmail.com' ||
+    (user.email.toLowerCase().trim() === 'piptraderaisupport@gmail.com' ||
      user.email.toLowerCase().trim() === 'oruchodaniel21@gmail.com')
   );
 

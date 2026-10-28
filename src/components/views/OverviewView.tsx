@@ -1157,10 +1157,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           </div>
           <div className="flex items-center gap-3">
             <a 
-              href="mailto:Pipnexaicustomer@gmail.com" 
+              href="mailto:piptraderaisupport@gmail.com" 
               className="font-mono text-[#5b3fe4] dark:text-purple-300 hover:underline font-semibold"
             >
-              Pipnexaicustomer@gmail.com
+              piptraderaisupport@gmail.com
             </a>
             <span className="text-gray-400">•</span>
             <a 
