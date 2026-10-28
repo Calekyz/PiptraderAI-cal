@@ -12,6 +12,10 @@ interface Props {
   user?: { id?: string; email?: string } | null;
 }
 
+// ─── Prediction display window (tune here) ───
+const PREDICTION_SHOW_MIN_BEFORE = 240; // show prediction up to 4 hours before release
+const PREDICTION_SHOW_MIN_AFTER  = 30;  // keep showing 30 min after release (post-release aftermath)
+
 const TARGET_KEYWORDS = [
   // NFP family
   'NFP', 'NON-FARM', 'NONFARM', 'PAYROLL', 'NON-FARM PAYROLL', 'NONFARM PAYROLL',
@@ -423,7 +427,7 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
         </>
       ) : (
         /* ── Scenario D: no full signal yet — show AI prediction if available ── */
-        prediction && prediction.direction !== 'WAIT' && predictionMinutesAway !== null && predictionMinutesAway <= 25 && predictionMinutesAway >= -2 ? (
+        prediction && prediction.direction !== 'WAIT' && predictionMinutesAway !== null && predictionMinutesAway <= PREDICTION_SHOW_MIN_BEFORE && predictionMinutesAway >= -PREDICTION_SHOW_MIN_AFTER ? (
           <div className={`relative overflow-hidden rounded-2xl border-2 p-5 shadow-xl ${
             prediction.direction === 'BUY'
               ? 'bg-emerald-500/10 border-emerald-500'
@@ -439,7 +443,7 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
               </div>
               <div className="min-w-0">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  🔮 AI News Prediction · {predictionMinutesAway} min away
+                  🔮 AI News Prediction · {predictionMinutesAway >= 0 ? `${predictionMinutesAway} min away` : `released ${Math.abs(predictionMinutesAway)} min ago`}
                 </div>
                 <div className={`text-2xl sm:text-3xl font-black tracking-tight ${
                   prediction.direction === 'BUY'
