@@ -219,8 +219,8 @@ export const ForexFactoryNewsView: React.FC<ForexFactoryNewsViewProps> = ({
       const period = 'thisweek';
 
       const [calRes, newsRes, quotesRes] = await Promise.all([
-        fetch(`/api/forex-factory/calendar?period=${period}`),
-        fetch(`/api/forex-factory/news?category=${encodeURIComponent(activeCategory)}`),
+        fetch(`/api/forex-factory-calendar?period=${period}`),
+        fetch(`/api/forex-factory-news?category=${encodeURIComponent(activeCategory)}`),
         fetch('/api/forex-factory/market-overview')
       ]);
 

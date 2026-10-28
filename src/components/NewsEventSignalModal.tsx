@@ -12,16 +12,26 @@ interface Props {
   user?: { id?: string; email?: string } | null;
 }
 
-const TARGET_KEYWORDS = ['NFP', 'NON-FARM', 'NONFARM', 'CPI', 'FOMC', 'PPI', 'FED FUNDS', 'INTEREST RATE'];
+const TARGET_KEYWORDS = [
+  // NFP family
+  'NFP', 'NON-FARM', 'NONFARM', 'PAYROLL', 'NON-FARM PAYROLL', 'NONFARM PAYROLL',
+  // Inflation
+  'CPI', 'CONSUMER PRICE', 'PPI', 'PRODUCER PRICE',
+  // FOMC / Fed / rates
+  'FOMC', 'FED FUNDS', 'FEDERAL FUNDS', 'INTEREST RATE', 'RATE DECISION', 'RATE HIKE', 'RATE CUT',
+];
 
 // Speeches / testimonies / minutes are NOT tradable releases.
 // "FOMC Member Bowman Speaks" must not trigger a signal.
 const EXCLUDE_KEYWORDS = [
+  // Speeches / testimony / commentary — NOT the release itself
   'SPEAKS', 'SPEECH', 'TESTIMONY', 'TESTIFIES', 'PRESS CONFERENCE', 'PRESSER',
-  'REMARKS', 'ADDRESS', 'STATEMENT', 'MINUTES', 'SYMPOSIUM', 'PANEL',
+  'REMARKS', 'ADDRESS', 'SYMPOSIUM', 'PANEL',
   'MEMBER', 'BULLARD', 'BOWMAN', 'WALLER', 'MUSALEM', 'SCHMID', 'COLLINS',
   'POWELL SPEAKS', 'LAGARDE SPEAKS', 'BAILEY SPEAKS', 'UEDA SPEAKS',
   'AUCTION', 'BOND AUCTION', 'HOLIDAY', 'BANK HOLIDAY',
+  // NOTE: 'STATEMENT' and 'MINUTES' intentionally NOT excluded.
+  // "FOMC Statement" and "FOMC Meeting Minutes" ARE the high-impact releases.
 ];
 
 function isTargetEvent(ev: MacroEvent): boolean {

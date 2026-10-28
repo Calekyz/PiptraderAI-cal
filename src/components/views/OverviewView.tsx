@@ -52,8 +52,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   React.useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetch('/api/forex-factory/calendar?period=thisweek').then(r => r.json()).catch(() => ({})),
-      fetch('/api/forex-factory/calendar?period=nextweek').then(r => r.json()).catch(() => ({})),
+      fetch('/api/forex-factory-calendar?period=thisweek').then(r => r.json()).catch(() => ({})),
+      fetch('/api/forex-factory-calendar?period=nextweek').then(r => r.json()).catch(() => ({})),
     ])
       .then(([thisWeek, nextWeek]: any[]) => {
         if (cancelled) return;
@@ -67,6 +67,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           seen.add(id);
           return true;
         });
+        console.log('[OverviewView] FF events loaded:', { thisWeek: a.length, nextWeek: b.length, merged: merged.length });
         setMacroEvents(merged);
       })
       .catch(() => { /* silent — modal just shows empty state */ });
