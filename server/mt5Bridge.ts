@@ -66,6 +66,18 @@ export const bridgePushSignal = (payload: {
   comment?: string;
 }) => bridgeCall('/bridge/push-signal', { method: 'POST', body: JSON.stringify(payload) });
 
+export const bridgeExecuteDirect = (payload: {
+  email: string;
+  symbol: string;
+  side?: 'buy' | 'sell';
+  volume?: number;
+  sl?: number;
+  tp?: number;
+  comment?: string;
+  ticket?: number;
+  action?: 'open' | 'close';
+}) => bridgeCall('/bridge/execute', { method: 'POST', body: JSON.stringify(payload) });
+
 export const bridgeAckSignal = (payload: { email: string; signal_id: string; ok: boolean; ticket?: number; price?: number; error?: string }) =>
   bridgeCall('/bridge/ack-signal', { method: 'POST', body: JSON.stringify(payload) });
 

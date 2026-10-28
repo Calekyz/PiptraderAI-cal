@@ -48,7 +48,7 @@ import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter, fetchForexFactoryCalendar } from './server/forexFactoryEngine';
 import { bridgeConnect, bridgeDisconnect, getBridgeSession, bridgeFetch, getBotApiUrl } from './server/bridge';
 import { kvGet, kvSet } from './server/db';
-import { bridgeUserStats, bridgePushSignal, bridgeSignals, bridgeAckSignal, isMt5BridgeConfigured } from './server/mt5Bridge';
+import { bridgeUserStats, bridgePushSignal, bridgeSignals, bridgeAckSignal, bridgeExecuteDirect, isMt5BridgeConfigured } from './server/mt5Bridge';
 import PDFDocument from 'pdfkit';
 import {
   analyzeMarket,
@@ -3407,42 +3407,43 @@ app.post('/api/mt5/execute', async (req: any, res: any) => {
     });
   }
 
-  // Try DIRECT execute via mt5-bridge /v1/order (uses user's stored bot JWT + VPS)
+  // Try DIRECT execute via token-authenticated /bridge/execute (no login needed)
   const isClose = action === 'close';
-  const orderPayload: any = isClose
-    ? { ticket, symbol }
+  const execPayload: any = isClose
+    ? { email, symbol, action: 'close', ticket }
     : {
+        email,
         symbol,
+        action: 'open',
+        side: String(side || 'buy').toLowerCase(),
         volume: Number(volume) || 0.01,
-        order_type: String(side || 'buy').toLowerCase(),
-        deviation: 5,
         sl: sl ?? undefined,
         tp: tp ?? undefined,
         comment: comment || 'PipTrader trade'
       };
 
-  const path = isClose ? '/v1/order/close' : '/v1/order';
-  const direct = await bridgeFetch(email, path, 'POST', orderPayload);
+  const direct = await bridgeExecuteDirect(execPayload);
 
-  if (direct.ok) {
-    const ticketNum = direct.data?.ticket ?? direct.data?.order ?? direct.data?.ticket_id ?? null;
+  if (direct.ok && direct.data?.ok) {
+    const resultData = direct.data?.result || {};
+    const ticketNum = resultData.ticket ?? resultData.order ?? resultData.ticket_id ?? resultData?.data?.ticket ?? null;
     const signal_id = ticketNum ? 'DIRECT_' + ticketNum : 'DIRECT_' + Date.now().toString(36).toUpperCase();
-    console.log('[MT5 Execute] DIRECT success:', { email, path, ticket: ticketNum });
+    console.log('[MT5 Execute] DIRECT via /bridge/execute:', { email, ticket: ticketNum, mode: direct.data?.mode });
     return res.json({
       ok: true,
       mode: 'direct',
       signal_id,
       ticket: ticketNum,
-      order_type: orderPayload.order_type,
+      order_type: execPayload.side || 'close',
       symbol,
-      raw: direct.data,
+      raw: resultData,
       message: 'Order executed on MT5' + (ticketNum ? ' — ticket #' + ticketNum : '')
     });
   }
 
   const errMsg = String(direct.data?.error || direct.error || '');
-  const isNoVps = direct.status === 404 && /vps|assigned/i.test(errMsg);
-  const isAuthIssue = direct.status === 401 || direct.error === 'session_expired' || direct.error === 'not_connected';
+  const isNoVps = /no_vps_assigned/.test(errMsg);
+  const isAuthIssue = false; // token auth has no session concept
 
   if (isNoVps) {
     // Fallback: queue via signal table (needs poller)
