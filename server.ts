@@ -2124,6 +2124,34 @@ app.post(['/api/nova-chat', '/api/nova-chat', '/api/straddle-chat', '/api/trish-
   }
 });
 
+app.get('/api/forex-factory/market-overview', async (req: any, res: any) => {
+  try {
+    const events = await fetchForexFactoryCalendar('thisweek');
+    const highImpact = (events || []).filter((e: any) => /high/i.test(String(e.impact || e.impactLevel || '')));
+    const upcoming = highImpact
+      .filter((e: any) => (e.timestamp || 0) > Date.now() - 3600_000)
+      .sort((a: any, b: any) => (a.timestamp || 0) - (b.timestamp || 0))
+      .slice(0, 5);
+    return res.json({
+      ok: true,
+      source: 'ForexFactory',
+      totalEvents: (events || []).length,
+      highImpactCount: highImpact.length,
+      upcoming: upcoming.map((e: any) => ({
+        title: e.title,
+        currency: e.currency || e.country,
+        impact: 'High',
+        date: e.dateTime || e.date,
+        timestamp: e.timestamp
+      })),
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err: any) {
+    console.error('[market-overview] failed:', err?.message);
+    return res.json({ ok: false, error: 'market_overview_unavailable' });
+  }
+});
+
 app.post(['/api/nova-vision-analyze', '/api/screenshot-analyze'], async (req, res) => {
   try {
     const { imageBase64, mimeType = 'image/png', prompt: customPrompt, email: bodyEmail } = req.body;
