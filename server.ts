@@ -48,7 +48,7 @@ import { sqlRouter } from './server/sqlRouter';
 import { forexFactoryRouter, fetchForexFactoryCalendar } from './server/forexFactoryEngine';
 import { bridgeConnect, bridgeDisconnect, getBridgeSession, bridgeFetch, getBotApiUrl } from './server/bridge';
 import { kvGet, kvSet } from './server/db';
-import { bridgeUserStats, bridgePushSignal, bridgeSignals, bridgeAckSignal, bridgeExecuteDirect, isMt5BridgeConfigured } from './server/mt5Bridge';
+import { bridgeLink, bridgeUserStats, bridgePushSignal, bridgeSignals, bridgeAckSignal, bridgeExecuteDirect, isMt5BridgeConfigured } from './server/mt5Bridge';
 import PDFDocument from 'pdfkit';
 import {
   analyzeMarket,
@@ -3376,7 +3376,23 @@ app.get('/api/mt5/stats', async (req: any, res: any) => {
   const email = String(req.query.email || req.headers['x-user-email'] || '').trim().toLowerCase();
   if (!email) return res.status(400).json({ ok: false, error: 'email_required' });
   if (!isMt5BridgeConfigured()) return res.status(503).json({ ok: false, error: 'mt5_bridge_not_configured' });
-  const r = await bridgeUserStats(email);
+
+  let r = await bridgeUserStats(email);
+
+  // Auto-link: if user isn't in bridge_links yet but exists in users table,
+  // call /bridge/link to register them, then retry stats.
+  const notLinked = r.ok && r.data && r.data.ok === false && r.data.reason === 'not_linked';
+  if (notLinked) {
+    console.log('[MT5 Stats] not_linked — auto-linking:', email);
+    const linkRes = await bridgeLink(email);
+    if (linkRes.ok && linkRes.data && linkRes.data.ok) {
+      console.log('[MT5 Stats] auto-link success for', email);
+      r = await bridgeUserStats(email);
+    } else {
+      console.log('[MT5 Stats] auto-link failed:', linkRes.data?.reason || linkRes.error);
+    }
+  }
+
   return res.status(r.ok ? 200 : (r.status || 500)).json(r.data ?? { ok: false, error: r.error });
 });
 
