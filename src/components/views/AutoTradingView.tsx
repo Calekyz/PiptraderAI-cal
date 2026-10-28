@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { SignalsPanel } from '../SignalsPanel';
 import { Mt5TradingPanel } from '../Mt5TradingPanel';
 import {
   Bot,
@@ -212,7 +213,8 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
   };
 
   // ─── Locked (non-premium) ────────────────────────────────────
-  if (!isPremium) {
+  // isPremium gate removed — token-based execute available to all paid users
+  if (false) {
     return (
       <div className="min-h-[72vh] flex items-center justify-center p-4 animate-in fade-in duration-200">
         <div className="w-full max-w-xl bg-[#140f09]/95 border border-[#593d18] rounded-2xl p-7 sm:p-8 space-y-4 shadow-2xl">
@@ -251,6 +253,14 @@ export const AutoTradingView: React.FC<AutoTradingViewProps> = ({ user, onOpenUp
     return (
       <>
         <div className="max-w-2xl mx-auto p-4 space-y-4">
+          <Mt5TradingPanel user={user} />
+          <div className="bg-[#0a0c16] border border-[#1a1d2d] rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-purple-400" />
+              <h3 className="text-sm font-bold text-white">Live Signals — Execute Directly to MT5</h3>
+            </div>
+            <SignalsPanel user={user} />
+          </div>
           <Mt5TradingPanel user={user} />
           {error && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">

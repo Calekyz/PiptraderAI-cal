@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ExecuteTradeButton } from './ExecuteTradeButton';
 import { AlertTriangle, BarChart3, Calendar, Clock, ShieldAlert, Sparkles, TrendingDown, TrendingUp, X, Zap } from 'lucide-react';
 import { MacroEvent } from '../types';
 import { getUserEmail, handleCreditError } from '../lib/creditsClient';
