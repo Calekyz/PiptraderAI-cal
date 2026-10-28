@@ -19,6 +19,7 @@ import {
 import { MarketPulse } from '../MarketPulse';
 import { useSignalVerification } from '../../hooks/useSignalVerification';
 import { AIVerificationPill } from '../AIVerificationPill';
+import { ExecuteTradeButton } from '../ExecuteTradeButton';
 
 interface PulseSignalsViewProps {
   onBack?: () => void;
@@ -58,9 +59,11 @@ interface PulseSignalCardProps {
   copiedId: string | null;
   onCopy: (sig: PulseSignal) => void;
   onExecuteSignal?: (signal: any) => void;
+  onOpenUpgrade?: (tier?: 'Starter' | 'Pro' | 'Elite') => void;
+  canExecute?: boolean;
 }
 
-const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy, onExecuteSignal }) => {
+const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy, onExecuteSignal, onOpenUpgrade, canExecute }) => {
   const isBuy = sig.direction === 'BUY';
   const isTargetHit = sig.status === 'TARGET 1 HIT';
 
@@ -200,19 +203,32 @@ const PulseSignalCard: React.FC<PulseSignalCardProps> = ({ sig, copiedId, onCopy
                     )}
                   </button>
 
-                  <button
-                    onClick={() => {
-                      if (onExecuteSignal) {
-                        onExecuteSignal(sig);
-                      } else {
-                        onCopy(sig);
+                  {canExecute ? (
+                    <ExecuteTradeButton
+                      symbol={
+                        String(sig.symbol || '').includes('.vcn')
+                          ? sig.symbol
+                          : String(sig.symbol || '').includes('/')
+                            ? sig.symbol.replace('/', '') + '.vcn'
+                            : String(sig.symbol || '') + '.vcn'
                       }
-                    }}
-                    className="py-2 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
-                  >
-                    <Zap className="w-3.5 h-3.5 fill-current" />
-                    <span>Trade</span>
-                  </button>
+                      side={sig.direction === 'BUY' ? 'buy' : 'sell'}
+                      volume={0.1}
+                      sl={parseFloat(String(sig.stopLoss)) || undefined}
+                      tp={parseFloat(String(sig.takeProfit1)) || undefined}
+                      comment={'pulse_' + (sig.symbol || 'signal')}
+                      label={'Trade ' + (sig.direction || '')}
+                      className="!py-2 !px-3"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => onOpenUpgrade?.('Pro')}
+                      className="py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer active:scale-95"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Upgrade</span>
+                    </button>
+                  )}
                 </div>
               </div>
   );
@@ -223,6 +239,9 @@ export const PulseSignalsView: React.FC<PulseSignalsViewProps> = ({
   onOpenUpgrade,
   onExecuteSignal
 }) => {
+  const __user = (() => { try { const r = localStorage.getItem('user'); return r ? JSON.parse(r) : {}; } catch { return {}; } })();
+  const __plan = String(__user?.plan || 'Pending');
+  const __canExecute = __plan === 'Pro' || __plan === 'Elite';
   const [signals, setSignals] = useState<PulseSignal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'All' | 'Forex' | 'Commodities' | 'Crypto'>('All');
@@ -436,32 +455,52 @@ Setup: ${sig.setupType}`;
               copiedId={copiedId}
               onCopy={handleCopy}
               onExecuteSignal={onExecuteSignal}
+              onOpenUpgrade={onOpenUpgrade}
+              canExecute={__canExecute}
             />
           ))}
         </div>
       )}
 
       {/* 4. Upgrade Callout if user wants unlimited automated alerts */}
-      <div className="bg-[#090b17] border border-[#1a1e36] rounded-2xl p-5 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="text-left space-y-1">
-          <div className="flex items-center gap-2">
-            <Crown className="w-4 h-4 text-purple-400" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-              Direct Metatrader &amp; Webhook Integration
-            </h3>
+      {__canExecute ? (
+        <div className="bg-emerald-500/5 border border-emerald-500/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-left space-y-1">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider font-mono">
+                Direct MT5 Integration Active
+              </h3>
+            </div>
+            <p className="text-xs text-emerald-200/80 max-w-xl">
+              Your {__plan} plan includes 1-click execution to MT5. Every signal above can be sent directly to your live account — no webhooks, no setup.
+            </p>
           </div>
-          <p className="text-xs text-gray-400 max-w-xl">
-            Stream signals directly into your MT4/MT5 PipTraderAI bots with instant automated 1-click execution.
-          </p>
+          <span className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0">
+            {__plan} · Enabled
+          </span>
         </div>
-
-        <button
-          onClick={() => onOpenUpgrade?.('Elite')}
-          className="px-5 py-2.5 rounded-xl bg-[#a78bfa] hover:bg-[#bba4fb] text-slate-950 font-bold text-xs transition-all shadow-md cursor-pointer shrink-0"
-        >
-          Upgrade for Webhooks
-        </button>
-      </div>
+      ) : (
+        <div className="bg-[#090b17] border border-[#1a1e36] rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-left space-y-1">
+            <div className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-purple-400" />
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                Direct MT5 Execution
+              </h3>
+            </div>
+            <p className="text-xs text-gray-400 max-w-xl">
+              Upgrade to Pro or Elite to execute any signal directly to your MT5 account with one click. No webhooks required.
+            </p>
+          </div>
+          <button
+            onClick={() => onOpenUpgrade?.('Pro')}
+            className="px-5 py-2.5 rounded-xl bg-[#a78bfa] hover:bg-[#bba4fb] text-slate-950 font-bold text-xs transition-all shadow-md cursor-pointer shrink-0"
+          >
+            Upgrade to Pro
+          </button>
+        </div>
+      )}
     </div>
   );
 };
