@@ -23,14 +23,6 @@ const PAYMENT_OPTIONS: PaymentOption[] = [
     copyValue: '254799045699',
   },
   {
-    key: 'airtel',
-    label: 'Airtel Money',
-    detail: '254789889573',
-    sub: 'Predamah Ragira · Airtel Kenya',
-    icon: 'phone',
-    copyValue: '254789889573',
-  },
-  {
     key: 'mukuru',
     label: 'Mukuru',
     detail: '254799045699',
