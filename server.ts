@@ -114,12 +114,33 @@ app.get('/api/engine/news-prediction', async (req, res) => {
     const events = await fetchFfEventsForEngine();
     const now = Date.now();
 
-    const upcoming = events
-      .filter((e: any) => e.timestamp && e.timestamp > now)
-      .filter((e: any) => /HIGH/i.test(String(e.impact || e.impactLevel || '')))
-      .sort((a: any, b: any) => a.timestamp - b.timestamp);
+    // ── Target a specific event if ?title= is provided (modal use case) ──
+    const requestedTitle = String((req as any).query?.title || '').toLowerCase().trim();
+    let next: any = null;
 
-    const next: any = upcoming[0];
+    if (requestedTitle) {
+      next = events.find((e: any) =>
+        e.timestamp &&
+        /HIGH/i.test(String(e.impact || e.impactLevel || '')) &&
+        String(e.title || '').toLowerCase().includes(requestedTitle)
+      );
+    }
+
+    // ── Fallback: next event, including releases from last 30 min ──
+    if (!next) {
+      const pool = events
+        .filter((e: any) => e.timestamp && e.timestamp > now - 30 * 60_000)
+        .filter((e: any) => /HIGH/i.test(String(e.impact || e.impactLevel || '')))
+        .sort((a: any, b: any) => {
+          const aFuture = a.timestamp > now;
+          const bFuture = b.timestamp > now;
+          if (aFuture && !bFuture) return -1;
+          if (!aFuture && bFuture) return 1;
+          return a.timestamp - b.timestamp;
+        });
+      next = pool[0];
+    }
+
     if (!next) return res.json({ success: false, error: 'no_upcoming_events' });
 
     const minutesAway = Math.round((next.timestamp - now) / 60000);

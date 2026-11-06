@@ -199,7 +199,8 @@ export const NewsEventSignalModal: React.FC<Props> = ({ isOpen, onClose, events,
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch('/api/engine/news-prediction');
+        const __titleParam = target?.title ? '?title=' + encodeURIComponent(target.title) : '';
+        const r = await fetch('/api/engine/news-prediction' + __titleParam);
         const d = await r.json();
         if (cancelled) return;
         if (d?.success && d?.prediction) {
