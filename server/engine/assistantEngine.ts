@@ -305,7 +305,7 @@ Go to **Subscription** in the left sidebar to upgrade.`,
 
 **M-Pesa (Kenya)**
 • Automated STK Push → PIN prompt on your phone
-• Manual: Pay to Till **372203**, then submit the confirmation code
+• Manual: Pay to Till **3722030**, then submit the confirmation code
 • Instant activation
 
 **Binance USDT (Global)**

@@ -344,7 +344,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
   const verifiedKes = currentProduct?.kesAmount || Math.round(verifiedUsd * exchangeRate);
   const rawTillName = config?.mpesa.businessName || 'PipTraderAI Payment Agent';
   const mpesaTillName = /peak\s*markets|pipnex ai till/i.test(rawTillName) ? 'PipTraderAI Payment Agent' : rawTillName;
-  const rawTillNumber = config?.mpesa.tillNumber || '';
+  const rawTillNumber = config?.mpesa.tillNumber || '3722030';
   const mpesaTillNumber = rawTillNumber === '3722030' ? '372203' : rawTillNumber;
 
   return (
