@@ -865,11 +865,26 @@ async function initiatePayWaveXpressStkPush(params: {
       reference: params.externalReference
     };
 
-    const response = await fetch(`${baseUrl}/v1/stkpush`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const __ctrl = new AbortController();
+    const __timeout = setTimeout(() => __ctrl.abort(), 15000);
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/v1/stkpush`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: __ctrl.signal
+      });
+    } catch (__fetchErr: any) {
+      clearTimeout(__timeout);
+      if (__fetchErr?.name === 'AbortError') {
+        console.error('[PayWaveXpress STK Push] TIMEOUT after 15s — gateway unreachable');
+        return { success: false, error: 'PayWaveXpress timed out after 15s. Gateway may be down.' };
+      }
+      console.error('[PayWaveXpress STK Push] fetch error:', __fetchErr?.message);
+      return { success: false, error: __fetchErr?.message || 'PayWaveXpress network error' };
+    }
+    clearTimeout(__timeout);
 
     const data = await response.json().catch(() => ({}));
     console.log('[PayWaveXpress STK Response]:', JSON.stringify(data));
