@@ -396,6 +396,9 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage = '
 }
 
 // Resilient Gemini Generator with automatic model fallback for 503 / high demand spikes
+// Session-level quota tracker — skips models that returned 429
+const __geminiQuotaExhausted = new Set<string>();
+
 async function generateWithFallback(params: {
   prompt?: string;
   contents?: any;
@@ -407,15 +410,18 @@ async function generateWithFallback(params: {
 }): Promise<string> {
   const ai = getAIClient();
   const models = [
-    params.model || 'gemini-flash-latest',
-    'gemini-flash-latest',
-    'gemini-3.1-flash-lite'
-  ];
+    params.model && !__geminiQuotaExhausted.has(params.model) ? params.model : null,
+    'gemini-3.1-flash-lite',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-flash-latest'
+  ].filter(Boolean) as string[];
   const uniqueModels = Array.from(new Set(models));
   const timeoutLimit = params.timeoutMs || 30000;
 
   let lastError: any = null;
   for (const model of uniqueModels) {
+    if (__geminiQuotaExhausted.has(model)) continue;
     try {
       const config: any = {};
       if (params.systemInstruction) config.systemInstruction = params.systemInstruction;
@@ -434,7 +440,12 @@ async function generateWithFallback(params: {
         return response.text;
       }
     } catch (err: any) {
-      console.warn(`[Gemini API] Model ${model} returned error or timeout (${err?.status || err?.message || '503'}), trying fallback model...`);
+      if (err?.status === 'RESOURCE_EXHAUSTED' || err?.error?.code === 429) {
+        __geminiQuotaExhausted.add(model);
+        console.warn(`[Gemini API] ${model} quota EXHAUSTED — skipping for this session`);
+      } else {
+        console.warn(`[Gemini API] Model ${model} returned error or timeout (${err?.status || err?.message || '503'}), trying fallback model...`);
+      }
       lastError = err;
     }
   }
