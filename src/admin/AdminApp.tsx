@@ -23,8 +23,30 @@ import {
 } from './types';
 import { AdminApi, getStoredAdmin, clearAdminSession } from './api';
 
+// Detect if this page load is a reload (F5 / Ctrl+R / browser refresh)
+const __isReload = (() => {
+  try {
+    const nav = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    return nav.length > 0 && nav[0].type === 'reload';
+  } catch {
+    return false;
+  }
+})();
+
+// On every reload, wipe the admin session — forces fresh login
+if (__isReload) {
+  try {
+    clearAdminSession();
+    // Clear any other admin-scoped keys just in case
+    localStorage.removeItem('admin_authenticated');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminTokenKey');
+  } catch {}
+}
+
 export const AdminApp: React.FC = () => {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(() => {
+    if (__isReload) return null; // force login screen on refresh
     return getStoredAdmin();
   });
 
