@@ -345,7 +345,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
   const rawTillName = config?.mpesa.businessName || 'PipTraderAI Payment Agent';
   const mpesaTillName = /peak\s*markets|pipnex ai till/i.test(rawTillName) ? 'PipTraderAI Payment Agent' : rawTillName;
   const rawTillNumber = config?.mpesa.tillNumber || '3722030';
-  const mpesaTillNumber = rawTillNumber === '3722030' ? '372203' : rawTillNumber;
+  const mpesaTillNumber = rawTillNumber; // Display actual till (3722030) — strip happens server-side for PayWave
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
@@ -435,7 +435,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white">Pipnex Payment Agent</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-white">PipTraderAI Payment Agent</span>
                         <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-purple-600 text-white">Recommended</span>
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pay till {mpesaTillNumber}, then paste your M-Pesa confirmation.</div>
@@ -499,7 +499,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                 <div className="pt-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
                   <span className="inline-flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    Encrypted checkout · Pipnex Payment Agent verified
+                    Encrypted checkout · PipTraderAI Payment Agent verified
                   </span>
                 </div>
               </div>
@@ -542,7 +542,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                       <ClipboardList className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-base font-bold text-slate-900 dark:text-white">Pipnex Payment Agent</div>
+                      <div className="text-base font-bold text-slate-900 dark:text-white">PipTraderAI Payment Agent</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pay to our till, then submit your M-Pesa confirmation code</div>
                     </div>
                   </div>
@@ -568,7 +568,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
               <form onSubmit={handleSubmitManualMpesa} className="space-y-4 animate-in fade-in duration-150">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black tracking-tighter text-[#0ca84f] dark:text-[#32d574] bg-[#e4f7eb] dark:bg-[#10301d] px-1.5 py-0.5 rounded">M-PESA</span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Pipnex Payment Agent</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">PipTraderAI Payment Agent</h2>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 -mt-2">
                   Pay to the till below, then submit your confirmation message for instant automated activation.
@@ -966,7 +966,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                         }}
                         className="text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
                       >
-                        Switch to Pipnex Payment Agent
+                        Switch to PipTraderAI Payment Agent
                       </button>
                     </div>
                   </div>

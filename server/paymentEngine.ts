@@ -334,7 +334,7 @@ export function getPaymentConfig() {
     exchangeRate: getExchangeRate(),
     mpesa: {
       tillNumber: process.env.MPESA_TILL_NUMBER || '3722030',
-      businessName: process.env.MPESA_BUSINESS_NAME || 'Pipnex Payment Agent',
+      businessName: process.env.MPESA_BUSINESS_NAME || 'PipTraderAI Payment Agent',
       paybillNumber: process.env.MPESA_PAYBILL_NUMBER || '',
       accountName: process.env.MPESA_ACCOUNT_NAME || ''
     },

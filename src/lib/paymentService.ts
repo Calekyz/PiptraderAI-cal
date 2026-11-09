@@ -194,7 +194,7 @@ export async function fetchPaymentConfig(): Promise<PaymentConfig> {
     exchangeRate: 129,
     mpesa: {
       tillNumber: '3722030',
-      businessName: 'Pipnex Payment Agent'
+      businessName: 'PipTraderAI Payment Agent'
     },
     binance: {
       binanceId: '1067841957',
