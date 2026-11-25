@@ -211,7 +211,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div 
           className="absolute inset-0 pointer-events-none bg-cover bg-center opacity-25"
           style={{
-            backgroundImage: `radial-gradient(circle at 50% 40%, rgba(14, 23, 42, 0.4) 0%, rgba(5, 7, 17, 0.95) 85%), repeating-linear-gradient(0deg, rgba(30, 41, 59, 0.2) 0px, rgba(30, 41, 59, 0.2) 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, rgba(30, 41, 59, 0.2) 0px, rgba(30, 41, 59, 0.2) 1px, transparent 1px, transparent 40px)`
+            backgroundImage: `linear-gradient(rgba(5, 6, 11, 0.58), rgba(5, 6, 11, 0.86)), radial-gradient(circle at 50% 40%, rgba(14, 23, 42, 0.30) 0%, rgba(5, 7, 17, 0.88) 85%), url('https://i.postimg.cc/DZXwHJK3/Piptrader-AI-Cyber-Trading-Poster.png')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
           }}
         />
 
