@@ -8,6 +8,7 @@
 // ============================================================================
 
 import { kvGet, kvSet } from './db';
+import { invertEngineSignal } from './engine/inversion';
 
 interface TelegramSignalInput {
   symbol: string;
@@ -256,7 +257,8 @@ export function startSignalDeletionSweeper(): void {
 
 // ── Public API ────────────────────────────────────────────────────
 export async function sendSignalToTelegram(
-  sig: TelegramSignalInput
+  sig: TelegramSignalInput,
+  source: string = 'telegram'
 ): Promise<{ ok: boolean; skipped?: boolean; error?: string }> {
   try {
     if (!BOT_TOKEN)
@@ -266,6 +268,10 @@ export async function sendSignalToTelegram(
       return { ok: false, skipped: true };
     if ((sig.confidence || 0) < 75)
       return { ok: false, skipped: true, error: 'confidence below 75' };
+
+    // ── Inversion layer (shadow or live, controlled by env) ─────
+    sig = invertEngineSignal({ ...sig, source } as any) as any;
+    // ────────────────────────────────────────────────────────────
 
     const key = dedupeKey(sig);
     if (isDuplicate(key)) {
