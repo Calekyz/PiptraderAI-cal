@@ -306,7 +306,7 @@ async function runNewsPredictionCheck(): Promise<void> {
 
     const token = process.env.TELEGRAM_SIGNAL_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     if (!token) { console.warn('[News T-15] No bot token'); return; }
-    const channel = (process.env.TELEGRAM_SIGNAL_GROUPS || process.env.TELEGRAM_CHANNEL_ID || '@bellahfx1').split(',')[0].trim();
+    const channel = (process.env.TELEGRAM_SIGNAL_GROUPS || process.env.TELEGRAM_CHANNEL_ID || '@peshyFx').split(',')[0].trim();
 
     const dir = data.prediction.direction;
     const emoji = dir === 'BUY' ? '🟢' : '🔴';
@@ -5646,7 +5646,7 @@ app.get('/api/telegram/status', (req, res) => {
     res.json({
       success: true,
       configured: isTelegramConfigured(),
-      channel: process.env.TELEGRAM_CHANNEL_ID || '@bellahfx1',
+      channel: process.env.TELEGRAM_CHANNEL_ID || '@peshyFx',
       enabled: process.env.TELEGRAM_SIGNALS_ENABLED !== 'false',
     });
   } catch (err: any) {
