@@ -86,7 +86,7 @@ async function sweepDeletions(): Promise<void> {
 
 // ── Admin contact info ────────────────────────────────────────────────
 const CONTACTS = {
-  telegram: ['@mentor_calekyz', '@Peshfx1'],
+  telegram: ['@mentor_calekyz', '@bellahfx1'],
   whatsapp: ['+254726222093', '+254116081230'],
   email: 'piptraderaicustomer@gmail.com',
 };

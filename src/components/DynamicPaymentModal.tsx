@@ -418,6 +418,7 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-slate-900 dark:text-white">M-Pesa STK</span>
                         <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Fastest</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-purple-600 text-white">Recommended</span>
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Instant prompt on your phone. Enter PIN to complete.</div>
                     </div>
@@ -436,7 +437,6 @@ export const DynamicPaymentModal: React.FC<DynamicPaymentModalProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-slate-900 dark:text-white">PipTraderAI Payment Agent</span>
-                        <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-purple-600 text-white">Recommended</span>
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pay till {mpesaTillNumber}, then paste your M-Pesa confirmation.</div>
                     </div>
