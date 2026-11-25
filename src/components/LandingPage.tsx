@@ -209,7 +209,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       >
         {/* Background Trading Workspace Backdrop */}
         <div 
-          className="absolute inset-0 pointer-events-none bg-cover bg-center opacity-25"
+          className="absolute inset-0 pointer-events-none bg-cover bg-center opacity-100"
           style={{
             backgroundImage: `linear-gradient(rgba(5, 6, 11, 0.58), rgba(5, 6, 11, 0.86)), radial-gradient(circle at 50% 40%, rgba(14, 23, 42, 0.30) 0%, rgba(5, 7, 17, 0.88) 85%), url('https://i.postimg.cc/DZXwHJK3/Piptrader-AI-Cyber-Trading-Poster.png')`,
             backgroundSize: 'cover',
