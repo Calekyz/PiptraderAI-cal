@@ -88,16 +88,16 @@ export function invertEngineSignal<T extends EngineSignal>(sig: T, sourceOverrid
   if (dir !== "BUY" && dir !== "SELL") return sig;
 
   const entry = Number(sig.entry);
-  if (!Number.isFinite(entry)) return sig;
+  const hasEntry = Number.isFinite(entry);
 
   const newDirection = dir === "BUY" ? "SELL" : "BUY";
 
   const inverted: T = {
     ...sig,
     direction: newDirection,
-    stopLoss: Number.isFinite(Number(sig.stopLoss)) ? mirror(entry, Number(sig.stopLoss)) : sig.stopLoss,
-    takeProfit1: Number.isFinite(Number(sig.takeProfit1)) ? mirror(entry, Number(sig.takeProfit1)) : sig.takeProfit1,
-    takeProfit2: Number.isFinite(Number(sig.takeProfit2)) ? mirror(entry, Number(sig.takeProfit2)) : sig.takeProfit2,
+    stopLoss: hasEntry && Number.isFinite(Number(sig.stopLoss)) ? mirror(entry, Number(sig.stopLoss)) : sig.stopLoss,
+    takeProfit1: hasEntry && Number.isFinite(Number(sig.takeProfit1)) ? mirror(entry, Number(sig.takeProfit1)) : sig.takeProfit1,
+    takeProfit2: hasEntry && Number.isFinite(Number(sig.takeProfit2)) ? mirror(entry, Number(sig.takeProfit2)) : sig.takeProfit2,
     // pips are unsigned distances — do NOT negate
     meta: {
       ...(sig.meta || {}),

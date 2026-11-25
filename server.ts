@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { invertEngineSignal } from './server/engine/inversion';
 import express from 'express';
 import path from 'path';
 import crypto from 'crypto';
@@ -257,6 +258,15 @@ NOTE: <one short sentence why>`;
         // Fall through with rule-based prediction
       }
     }
+
+    // ── Inversion layer for news signals (shadow/logs, live/flips) ──
+    const _origDir = direction;
+    const _inv = invertEngineSignal({ direction, source: 'news' } as any);
+    if (_inv.direction !== _origDir) {
+      direction = _inv.direction as 'BUY' | 'SELL' | 'WAIT';
+      reasoning = `⚡ Signal inverted by system. ${reasoning}`;
+    }
+    // ────────────────────────────────────────────────────────────
 
     res.json({
       success: true,
