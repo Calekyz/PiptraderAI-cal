@@ -60,6 +60,7 @@ interface Props {
 }
 
 export const UpgradeWhatsAppCard: React.FC<Props> = ({ user, compact }) => {
+  const [isCardOpen, setIsCardOpen] = useState(false);
   const [plans, setPlans] = useState<Plan[]>(FALLBACK_PLANS);
   const [selected, setSelected] = useState<string>('pro');
   const [showPayments, setShowPayments] = useState(false);
@@ -108,6 +109,32 @@ export const UpgradeWhatsAppCard: React.FC<Props> = ({ user, compact }) => {
     ].filter(Boolean);
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(lines.join('\n'))}`;
   })();
+
+  // Collapsed tab by default — expand on click
+  if (!isCardOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsCardOpen(true)}
+        className="group w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-[#0d1020] hover:bg-[#131728] border border-emerald-500/30 hover:border-emerald-500/60 transition-all text-left"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
+            <MessageCircle className="w-4 h-4 text-white" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-white truncate">
+              Need help upgrading?
+            </div>
+            <div className="text-[11px] text-slate-400 truncate">
+              Pay via M-Pesa, bank, or crypto — chat on WhatsApp
+            </div>
+          </div>
+        </div>
+        <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-emerald-400 transition-colors shrink-0" />
+      </button>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-[#0e1224] to-[#0e1224] p-4 sm:p-5 shadow-lg">
